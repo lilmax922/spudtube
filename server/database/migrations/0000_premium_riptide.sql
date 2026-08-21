@@ -1,0 +1,1 @@
+CREATE TYPE "public"."kind" AS ENUM('MOVIE', 'TV_SHOW');

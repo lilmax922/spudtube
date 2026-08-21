@@ -1,0 +1,13 @@
+allowBuilds:
+  esbuild: true
+  simple-git-hooks: true
+  unrs-resolver: true
+  vue-demi: true
+minimumReleaseAgeExclude:
+  - '@vue/language-core@3.3.11'
+  - eslint@10.9.0
+  - vue-tsc@3.3.11
+shellEmulator: true
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - semver@6.3.1

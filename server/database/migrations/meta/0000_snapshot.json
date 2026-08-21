@@ -1,0 +1,27 @@
+{
+  "id": "642a197c-6906-4ec9-bc4a-387edfc91b02",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {},
+  "enums": {
+    "public.kind": {
+      "name": "kind",
+      "schema": "public",
+      "values": [
+        "MOVIE",
+        "TV_SHOW"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

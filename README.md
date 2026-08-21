@@ -67,4 +67,4 @@ pnpm build
 
 ## Status
 
-Planning complete; implementation not started. Ticket 01 (project scaffold) is the only unblocked ticket — see the issues directory for the current frontier.
+Scaffold landed (ticket 01): Nuxt + toolchain green on all four gates. Next unblocked: tickets 02 (i18n), 03 (TMDB client), 08 (auth), 11 (design system baseline) — see the issues directory for the current frontier.

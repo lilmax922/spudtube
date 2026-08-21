@@ -41,7 +41,7 @@ A person who has signed in with an account. Only Users rate Titles and keep pers
 _Avoid_: member, account, profile
 
 **Rating**:
-A User's verdict on a Title — exactly one of `AWESOME`, `GOOD`, `SUCKS`. One Rating per Member per Title, editable and removable, independent of WatchStatus. Labels are canonical; numeric orderings are presentation only.
+A User's verdict on a Title — exactly one of `AWESOME`, `GOOD`, `SUCKS`. One Rating per User per Title, editable and removable, independent of WatchStatus. Labels are canonical; numeric orderings are presentation only.
 _Avoid_: score, stars, review
 
 **WatchStatus**:

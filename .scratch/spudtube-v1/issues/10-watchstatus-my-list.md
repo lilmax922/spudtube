@@ -2,11 +2,13 @@
 
 **What to build:** A status toggle on detail pages (WATCHLISTED / WATCHED) plus a single My List page with three tabs — Watchlist, Watched, Rated. State machine: exactly one state per User×Title; marking WATCHED removes WATCHLISTED; re-watchlisting moves it back. Tabs join stored references with batched live TMDB details (current poster/name). A reference TMDB has removed renders as a degraded entry without breaking the list.
 
-**Blocked by:** 06, 08.
+**Blocked by:** 06, 08, 14.
 
 **Status:** ready-for-agent
 
-- [ ] Transition rules hold, including WATCHED-clears-WATCHLIST (integration-tested)
+- [ ] Transition rules hold, including WATCHED-overwrites-WATCHLISTED and clearing-to-null (integration-tested)
+- [ ] Invalid payloads rejected with 400 `{ issues }` before any business logic runs (integration-tested)
+- [ ] Cross-user isolation integration-tested: another User cannot see or mutate my statuses
 - [ ] Three tabs show the correct sets with live details
 - [ ] Removed-from-catalog references degrade gracefully; the rest of the list still loads
 - [ ] Anonymous gating matches Rating behavior

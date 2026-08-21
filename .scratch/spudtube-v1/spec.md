@@ -71,9 +71,13 @@ SpudTube is a web app for deciding what to watch. Visitors can immediately brows
 **Storage (ADR 0003)**: The database stores references only — no catalog mirror of TMDB data. Tables: Better Auth's standard four (`user`, `session`, `account`, `verification`) plus:
 
 - `rating`: `user_id`, `kind`, `tmdb_id`, label (`AWESOME | GOOD | SUCKS`), timestamps. Primary key (`user_id`, `kind`, `tmdb_id`) — one Rating per User per Title. Labels are canonical; numbers are presentation order only.
-- `title_status`: `user_id`, `kind`, `tmdb_id`, status (`WATCHLISTED | WATCHED`), timestamps. Same primary key shape.
+- `title_status`: `user_id`, `kind`, `tmdb_id`, a nullable `status` column (`WATCHLISTED | WATCHED`), timestamps. Same primary key shape. `NULL` means no state; clearing a status sets `NULL` rather than deleting the row.
 
-State machine (exactly one state per User×Title): `none → WATCHLISTED → WATCHED → none`; setting `WATCHED` deletes any `WATCHLISTED` row; re-watchlisting a watched Title moves it back. Table/column naming follows code-standard: singular snake_case.
+State machine (exactly one state per User×Title): `none → WATCHLISTED → WATCHED → none`; transitions update the single row in place — setting `WATCHED` overwrites `WATCHLISTED`, re-watchlisting a watched Title moves it back, and clearing sets `NULL`. Table/column naming follows code-standard: singular snake_case.
+
+**Data layer derivation (ADR 0004)**: Drizzle table definitions are the single source of truth; every runtime Zod schema derives from them via drizzle-orm/zod, and hand-written duplicates are forbidden. One file per table colocates the table, its relations, the derived schema variants (PascalCase constants with a `Schema` suffix), and row types (PascalCase without the suffix); variants are refined where they are defined, never composed inside routes or components. All database artifacts live together under the server db layout (schema / queries / migrations plus an index barrel), reached from app code only through Nuxt's built-in `#server` alias. Query functions are verb-first camelCase, accept already-validated payloads with explicit identity arguments, always scope by user id, and return written rows via `.returning()`.
+
+**Validation & error contract**: client-to-server writes and TMDB payloads are both parsed at the boundary — TMDB schemas are hand-written and server-only, with TMDB's `movie`/`tv` values mapped to the canonical Kind there. Validation failures return HTTP 400 `{ issues }` built by one shared helper using `z.flattenError`, described by a shared error type. Client forms use vee-validate with zodResolver bound to the exact same schema objects the server parses with; Better Auth's own tables stay entirely outside this pipeline.
 
 **Auth**: Better Auth configured with Google OAuth as the only provider. Mutating endpoints (rating/status CRUD) require a valid session; everything else is public. No email/password, no other providers.
 
@@ -129,4 +133,8 @@ Human-only setup steps (candidates for a `/wizard` walkthrough at implementation
 
 Catalog drift: a referenced Title TMDB later removes must degrade gracefully (e.g. "no longer in catalog" treatment on list pages) rather than error — a consequence of reference-only storage (ADR 0003).
 
-The glossary in `CONTEXT.md` is authoritative for vocabulary (Title, Kind, Region, DetectedRegion, Provider, Availability, User, Rating, WatchStatus, Watchlist); ADRs 0001–0003 record the why behind data source, stack, and storage decisions.
+The glossary in `CONTEXT.md` is authoritative for vocabulary (Title, Kind, Region, DetectedRegion, Provider, Availability, User, Rating, WatchStatus, Watchlist); ADRs 0001–0004 record the why behind data source, stack, storage, and data-layer decisions.
+
+## Comments
+
+2026-08-22: Amended by the data-layer grilling session — adopted the ADR 0004 decisions (Zod derivation from Drizzle tables, schema colocation, `#server` alias imports, naming conventions, 400 `{ issues }` error contract, vee-validate wiring), changed `title_status` to nullable-status rows instead of delete-on-transition, added ticket 14 as foundation blocking 09/10. Supersedes and replaces the parallel `.scratch/data-layer/` directory (deleted).

@@ -5,7 +5,7 @@ import withNuxt from './.nuxt/eslint.config.mjs'
 export default withNuxt(
   antfu({
     // Generated artifacts — never hand-edited.
-    ignores: ['server/db/migrations/**'],
+    ignores: ['server/db/migrations/**', 'server/db/schema/auth.ts'],
   }),
   {
     files: ['**/*.{js,mjs,ts,vue}'],

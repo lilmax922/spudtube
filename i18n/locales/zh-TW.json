@@ -5,5 +5,9 @@
   },
   "language": {
     "label": "語言"
+  },
+  "auth": {
+    "signIn": "登入",
+    "signOut": "登出"
   }
 }

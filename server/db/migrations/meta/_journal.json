@@ -15,6 +15,13 @@
       "when": 1787382470874,
       "tag": "0001_petite_grim_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787406703771,
+      "tag": "0002_smooth_the_initiative",
+      "breakpoints": true
     }
   ]
 }

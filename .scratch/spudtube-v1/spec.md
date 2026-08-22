@@ -66,7 +66,7 @@ SpudTube is a web app for deciding what to watch. Visitors can immediately brows
 
 **External data (ADR 0001)**: TMDB is the single external source, including streaming-provider data (licensed from JustWatch). There is no direct JustWatch call anywhere. Provider logos come from the TMDB image CDN; required TMDB and JustWatch attributions render wherever provider data appears.
 
-**TMDB access**: All TMDB traffic goes through one server-side client module exposing typed operations (multi-search, discover by kind/genre/popularity, title detail, providers, recommendations, genre lists). The TMDB read access token (Bearer) lives only in server env. Responses cache server-side behind the client: ~24h TTL for details/providers, minutes-level for search/discover pages.
+**TMDB access**: All TMDB traffic goes through one server-side client module exposing typed operations (multi-search, discover by kind/genre/popularity, title detail, providers, recommendations, genre lists). The TMDB read access token (Bearer) lives only in server env. Responses cache server-side behind the client: ~24h TTL for details/providers, minutes-level for search/discover pages; a missing Title (upstream 404) is negative-cached for ~1h so removals degrade gracefully without hammering the API.
 
 **Storage (ADR 0003)**: The database stores references only — no catalog mirror of TMDB data. Tables: Better Auth's standard four (`user`, `session`, `account`, `verification`) plus:
 

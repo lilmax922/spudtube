@@ -10,6 +10,10 @@ export default defineConfig({
           name: 'node',
           environment: 'node',
           include: ['server/**/*.test.ts', 'shared/**/*.test.ts'],
+          setupFiles: ['vitest.node.setup.ts'],
+          // Integration tests share the Docker Postgres and TRUNCATE CASCADE in
+          // beforeEach — parallel files would wipe each other's fixtures.
+          fileParallelism: false,
         },
       },
       await defineVitestProject({

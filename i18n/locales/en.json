@@ -5,5 +5,9 @@
   },
   "language": {
     "label": "Language"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out"
   }
 }

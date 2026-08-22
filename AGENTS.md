@@ -21,3 +21,4 @@ Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agent
 Read before implementing or making any architectural decision:
 
 - `docs/agents/code-standard.md` — implementation rules and conventions (Definition of Done, naming, imports, lint/format, testing, git).
+- `docs/agents/design-system.md` — approved UI baseline: tokens, type scale, spacing/density, icon stance, and binding rules (no gradients, no emoji, dark-only). Read before any UI work.

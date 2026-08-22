@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { countryToLocale, FALLBACK_LOCALE, isAppLocale, resolveDisplayLocale } from './locale'
+import {
+  countryToLocale,
+  FALLBACK_LOCALE,
+  isAppLocale,
+  readDetectedCountry,
+  resolveDisplayLocale,
+} from './locale'
+
+describe('readDetectedCountry', () => {
+  it('extracts a single-value country header', () => {
+    expect(readDetectedCountry({ 'cf-ipcountry': 'TW' })).toBe('TW')
+    expect(readDetectedCountry({ 'cf-ipcountry': 'US' })).toBe('US')
+  })
+
+  it('takes the first value of a multi-value header', () => {
+    expect(readDetectedCountry({ 'cf-ipcountry': ['TW', 'US'] })).toBe('TW')
+  })
+
+  it('returns null when the header is absent or empty', () => {
+    expect(readDetectedCountry({})).toBeNull()
+    expect(readDetectedCountry({ 'cf-ipcountry': undefined })).toBeNull()
+    expect(readDetectedCountry({ 'cf-ipcountry': [] })).toBeNull()
+    expect(readDetectedCountry({ 'x-other': 'TW' })).toBeNull()
+  })
+})
 
 describe('countryToLocale', () => {
   it('maps Taiwan to zh-TW', () => {

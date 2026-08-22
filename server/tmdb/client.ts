@@ -126,7 +126,7 @@ export function createTmdbClient({
         language: DEFAULT_TMDB_LANGUAGE,
       }
       if (genreIds && genreIds.length > 0)
-        params.with_genres = genreIds.join(',')
+        params.with_genres = genreIds.join('|')
       const segment = toMediaSegment(kind)
       return cache.wrap(`discover:${segment}:${params.with_genres ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(await request(`/discover/${segment}`, params))

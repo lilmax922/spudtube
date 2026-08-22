@@ -1,0 +1,32 @@
+<script setup lang="ts">
+import type { Kind } from '#server/tmdb/types'
+import { useI18n } from 'vue-i18n'
+
+defineProps<{ modelValue: Kind }>()
+const emit = defineEmits<{ 'update:modelValue': [value: Kind] }>()
+
+const { t } = useI18n()
+
+const options: { value: Kind, labelKey: 'browse.kindMovies' | 'browse.kindTvShows' }[] = [
+  { value: 'MOVIE', labelKey: 'browse.kindMovies' },
+  { value: 'TV_SHOW', labelKey: 'browse.kindTvShows' },
+]
+</script>
+
+<template>
+  <div class="inline-flex rounded-lg bg-secondary p-1" role="group" :aria-label="t('browse.kindLabel')">
+    <button
+      v-for="option in options"
+      :key="option.value"
+      type="button"
+      class="h-[30px] rounded-md px-4 text-sm font-medium transition-colors"
+      :class="option.value === modelValue
+        ? 'bg-primary text-primary-foreground'
+        : 'text-muted-foreground hover:text-foreground'"
+      :aria-pressed="option.value === modelValue"
+      @click="emit('update:modelValue', option.value)"
+    >
+      {{ t(option.labelKey) }}
+    </button>
+  </div>
+</template>

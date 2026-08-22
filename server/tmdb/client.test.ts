@@ -150,7 +150,7 @@ describe('tmdb client — discover', () => {
       headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
       params: {
         sort_by: 'popularity.desc',
-        with_genres: '878,35',
+        with_genres: '878|35',
         page: '2',
         language: 'zh-TW',
       },

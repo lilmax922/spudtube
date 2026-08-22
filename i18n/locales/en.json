@@ -1,7 +1,14 @@
 {
-  "home": {
-    "title": "Decide what to watch",
-    "tagline": "Discover movies and TV shows, see where they stream in your region, and keep your private ratings and lists."
+  "browse": {
+    "sectionLabel": "Browse titles",
+    "kindLabel": "Kind",
+    "kindMovies": "Movies",
+    "kindTvShows": "TV Shows",
+    "genresLabel": "Genres",
+    "clearAll": "Clear all",
+    "loading": "Loading…",
+    "empty": "No titles match your filters",
+    "error": "Something went wrong while loading titles"
   },
   "language": {
     "label": "Language"

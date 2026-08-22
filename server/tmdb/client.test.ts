@@ -1,7 +1,11 @@
 import type { FetchJson } from './client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTmdbClient, TmdbApiError } from './client'
-import { SEARCH_TTL_MS } from './constants'
+import {
+  DETAIL_TTL_MS,
+  NOT_FOUND_TTL_MS,
+  SEARCH_TTL_MS,
+} from './constants'
 import { createFakeTransport } from './fake-transport'
 
 const SEARCH_MULTI_PAGE = {
@@ -531,5 +535,76 @@ describe('tmdb client — response caching', () => {
     await client.searchMulti('dune', 2)
 
     expect(requests).toHaveLength(2)
+  })
+
+  it('caches a missing title with the short negative TTL, not the detail TTL', async () => {
+    let nowMs = 1_000_000
+    let fetchCount = 0
+    const fetchJson: FetchJson = async () => {
+      fetchCount += 1
+      throw new TmdbApiError(404, 'The resource you requested could not be found.')
+    }
+    const client = createTmdbClient({
+      token: 'test-token',
+      fetchJson,
+      now: () => nowMs,
+    })
+
+    await client.title('MOVIE', 404404)
+    await client.title('MOVIE', 404404)
+
+    expect(fetchCount).toBe(1)
+
+    nowMs += NOT_FOUND_TTL_MS + 1
+    await client.title('MOVIE', 404404)
+
+    expect(fetchCount).toBe(2)
+  })
+
+  it('caches a found title for the full detail TTL', async () => {
+    let nowMs = 1_000_000
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/movie/419430': MOVIE_DETAIL,
+    })
+    const client = createTmdbClient({
+      token: 'test-token',
+      fetchJson,
+      now: () => nowMs,
+    })
+
+    await client.title('MOVIE', 419430)
+    await client.title('MOVIE', 419430)
+
+    expect(requests).toHaveLength(1)
+
+    nowMs += DETAIL_TTL_MS - 1
+    await client.title('MOVIE', 419430)
+
+    expect(requests).toHaveLength(1)
+
+    nowMs += 1
+    await client.title('MOVIE', 419430)
+
+    expect(requests).toHaveLength(2)
+  })
+
+  it('never caches transport failures', async () => {
+    const nowMs = 1_000_000
+    let fetchCount = 0
+    const fetchJson: FetchJson = async () => {
+      fetchCount += 1
+      throw new TmdbApiError(500, 'Internal Server Error')
+    }
+    const client = createTmdbClient({
+      token: 'test-token',
+      fetchJson,
+      now: () => nowMs,
+    })
+
+    await expect(client.title('MOVIE', 123)).rejects.toThrow(TmdbApiError)
+    await expect(client.title('MOVIE', 123)).rejects.toThrow(TmdbApiError)
+    await expect(client.title('MOVIE', 123)).rejects.toThrow(TmdbApiError)
+
+    expect(fetchCount).toBe(3)
   })
 })

@@ -4,6 +4,7 @@ import { createTtlCache } from './cache'
 import {
   DEFAULT_TMDB_LANGUAGE,
   DETAIL_TTL_MS,
+  NOT_FOUND_TTL_MS,
   SEARCH_TTL_MS,
   TMDB_BASE_URL,
 } from './constants'
@@ -139,7 +140,8 @@ export function createTmdbClient({
 
     title(kind: Kind, tmdbId: number): Promise<TitleDetail | null> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`detail:${segment}:${tmdbId}`, DETAIL_TTL_MS, async () => {
+      return cache.wrap(`detail:${segment}:${tmdbId}`, value =>
+        value ? DETAIL_TTL_MS : NOT_FOUND_TTL_MS, async () => {
         let raw: unknown
         try {
           raw = await request(`/${segment}/${tmdbId}`, {

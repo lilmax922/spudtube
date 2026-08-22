@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { LoaderCircle } from '@lucide/vue'
-import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBrowseGrid } from '../composables/use-browse-grid'
@@ -115,28 +114,18 @@ void refresh()
       {{ emptyMessage }}
     </p>
 
-    <AnimatePresence mode="popLayout">
-      <motion.div
-        v-if="gridItems.length > 0"
-        key="results-grid"
-        layout
-        class="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-4"
-        :style="{ position: 'relative' }"
-        :aria-busy="gridLoading || gridLoadingMore"
-      >
-        <motion.div
-          v-for="title in gridItems"
-          :key="`${title.kind}-${title.tmdbId}`"
-          layout
-          :initial="{ opacity: 0, scale: 0.92 }"
-          :animate="{ opacity: 1, scale: 1 }"
-          :exit="{ opacity: 0, scale: 0.92 }"
-          :transition="{ duration: 0.18 }"
-        >
-          <TitleCard :title="title" :show-kind="showKind" />
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+    <div
+      v-if="gridItems.length > 0"
+      class="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-4"
+      :aria-busy="gridLoading || gridLoadingMore"
+    >
+      <TitleCard
+        v-for="title in gridItems"
+        :key="`${title.kind}-${title.tmdbId}`"
+        :title="title"
+        :show-kind="showKind"
+      />
+    </div>
 
     <div ref="sentinel" aria-hidden="true" />
 

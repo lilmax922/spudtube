@@ -4,7 +4,7 @@
 **Status:** decided — mockups reviewed and approved by owner
 **Date:** 2026-08
 
-Produced via the throwaway interactive prototype `.lavish/spudtube-design-baseline.html` (v8 final). The prototype is not committed; this file is the durable record of the approved design system. Tokens are written into `app/assets/css/tailwind.css`.
+Produced via the throwaway interactive prototype (v8 final), preserved as `docs/design/spudtube-v1-prototype.html` for visual reference. This file is the durable record of the approved design system. Tokens are written into `app/assets/css/tailwind.css`.
 
 > Scope note (owner): what we record here is the **design-system spec** — theme tokens, type scale, spacing/density, icon stance. The concrete UI will keep changing until v1 ships; pixels in the mockups are reference, not contract.
 

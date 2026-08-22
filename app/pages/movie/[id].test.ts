@@ -2,6 +2,7 @@ import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { PROVIDER_CATALOG } from '../../lib/availability-fixtures'
 import { MOVIE_DETAIL, MOVIE_DETAIL_NO_TRAILER, RECOMMENDATIONS_PAGE } from '../../lib/title-detail-fixtures'
 import MoviePage from './[id].vue'
 
@@ -11,6 +12,16 @@ function detailUrl(tmdbId: number): string {
 
 function recommendationsUrl(tmdbId: number): string {
   return `/api/catalog/movie/${tmdbId}/recommendations`
+}
+
+function providersUrl(tmdbId: number): string {
+  return `/api/catalog/movie/${tmdbId}/providers`
+}
+
+function registerEndpoints(tmdbId: number, detail = MOVIE_DETAIL): void {
+  registerEndpoint(detailUrl(tmdbId), () => detail)
+  registerEndpoint(recommendationsUrl(tmdbId), () => RECOMMENDATIONS_PAGE)
+  registerEndpoint(providersUrl(tmdbId), () => PROVIDER_CATALOG)
 }
 
 async function renderPage(route: string): Promise<VueWrapper<InstanceType<typeof MoviePage>>> {
@@ -31,8 +42,7 @@ afterEach(() => {
 
 describe('movie detail route', () => {
   it('renders the identity block for a known movie', async () => {
-    registerEndpoint(detailUrl(419430), () => MOVIE_DETAIL)
-    registerEndpoint(recommendationsUrl(419430), () => RECOMMENDATIONS_PAGE)
+    registerEndpoints(419430)
 
     const wrapper = await renderPage('/movie/419430')
     await vi.waitFor(() => {
@@ -46,9 +56,22 @@ describe('movie detail route', () => {
     expect(wrapper.text()).toContain('155 分鐘')
   })
 
+  it('renders the availability panel with providers for the default region', async () => {
+    registerEndpoints(419430)
+
+    const wrapper = await renderPage('/movie/419430')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('提供平台')
+    })
+
+    expect(wrapper.text()).toContain('訂閱')
+    const providerAlts = wrapper.findAll('img').map(image => image.attributes('alt'))
+    expect(providerAlts).toEqual(expect.arrayContaining(['CATCHPLAY+', 'Netflix']))
+    expect(wrapper.text()).toContain('JustWatch')
+  })
+
   it('embeds the trailer iframe when a trailer key exists', async () => {
-    registerEndpoint(detailUrl(419431), () => MOVIE_DETAIL)
-    registerEndpoint(recommendationsUrl(419431), () => RECOMMENDATIONS_PAGE)
+    registerEndpoints(419431)
 
     const wrapper = await renderPage('/movie/419431')
     await vi.waitFor(() => {
@@ -59,8 +82,7 @@ describe('movie detail route', () => {
   })
 
   it('renders no trailer iframe when the title has no trailer', async () => {
-    registerEndpoint(detailUrl(419432), () => MOVIE_DETAIL_NO_TRAILER)
-    registerEndpoint(recommendationsUrl(419432), () => RECOMMENDATIONS_PAGE)
+    registerEndpoints(419432, MOVIE_DETAIL_NO_TRAILER)
 
     const wrapper = await renderPage('/movie/419432')
     await vi.waitFor(() => {
@@ -72,8 +94,7 @@ describe('movie detail route', () => {
   })
 
   it('links recommended titles to their own detail routes', async () => {
-    registerEndpoint(detailUrl(419433), () => MOVIE_DETAIL)
-    registerEndpoint(recommendationsUrl(419433), () => RECOMMENDATIONS_PAGE)
+    registerEndpoints(419433)
 
     const wrapper = await renderPage('/movie/419433')
     await vi.waitFor(() => {

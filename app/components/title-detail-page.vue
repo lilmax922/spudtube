@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
 import { useTitleDetail } from '../composables/use-title-detail'
+import AvailabilityPanel from './availability-panel.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
 import TitleFactsPanel from './title-facts-panel.vue'
 import TitleIdentityBlock from './title-identity-block.vue'
@@ -77,6 +78,7 @@ const failed = computed(() => {
             <TitleFactsPanel :detail="detail.data.value" />
           </aside>
           <main class="flex min-w-0 flex-col gap-4">
+            <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
             <TitleTrailer :trailer-key="detail.data.value.trailerKey" />
           </main>
         </div>

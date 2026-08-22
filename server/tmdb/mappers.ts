@@ -1,0 +1,167 @@
+import type { z } from 'zod'
+import type {
+  rawGenreSchema,
+  rawMovieDetailSchema,
+  rawMovieSummarySchema,
+  rawProviderCatalogSchema,
+  rawRegionAvailabilitySchema,
+  rawTvDetailSchema,
+  rawTvSummarySchema,
+} from './schemas'
+import type { Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary } from './types'
+
+export function toKind(mediaType: string): Kind | null {
+  if (mediaType === 'movie')
+    return 'MOVIE'
+  if (mediaType === 'tv')
+    return 'TV_SHOW'
+  return null
+}
+
+export function toMediaSegment(kind: Kind): 'movie' | 'tv' {
+  return kind === 'MOVIE' ? 'movie' : 'tv'
+}
+
+export function kindFromSegment(segment: 'movie' | 'tv'): Kind {
+  return segment === 'movie' ? 'MOVIE' : 'TV_SHOW'
+}
+
+export function mapMovieSummary(
+  raw: z.infer<typeof rawMovieSummarySchema>,
+): TitleSummary {
+  return {
+    kind: 'MOVIE',
+    tmdbId: raw.id,
+    name: raw.title,
+    posterPath: raw.poster_path,
+    backdropPath: raw.backdrop_path,
+    releaseDate: raw.release_date,
+    voteAverage: raw.vote_average,
+  }
+}
+
+export function mapTvSummary(raw: z.infer<typeof rawTvSummarySchema>): TitleSummary {
+  return {
+    kind: 'TV_SHOW',
+    tmdbId: raw.id,
+    name: raw.name,
+    posterPath: raw.poster_path,
+    backdropPath: raw.backdrop_path,
+    releaseDate: raw.first_air_date,
+    voteAverage: raw.vote_average,
+  }
+}
+
+export function mapPage<T>(
+  raw: { page: number, total_pages: number, total_results: number },
+  results: T[],
+): Page<T> {
+  return {
+    page: raw.page,
+    results,
+    totalPages: raw.total_pages,
+    totalResults: raw.total_results,
+  }
+}
+
+function orNull(value: string | null | undefined): string | null {
+  if (value == null || value === '')
+    return null
+  return value
+}
+
+export function mapGenres(raw: z.infer<typeof rawGenreSchema>[]): Genre[] {
+  return raw.map(genre => ({ id: genre.id, name: genre.name }))
+}
+
+export function pickTrailerKey(
+  videos: z.infer<typeof rawMovieDetailSchema>['videos'],
+): string | null {
+  const results = videos?.results ?? []
+  const trailers = results.filter(
+    video => video.site === 'YouTube' && video.type === 'Trailer',
+  )
+  const preferred
+    = trailers.find(video => video.iso_639_1 === 'zh' && video.official === true)
+      ?? trailers.find(video => video.iso_639_1 === 'en' && video.official === true)
+      ?? trailers.find(video => video.official === true)
+      ?? trailers[0]
+  return preferred?.key ?? null
+}
+
+export function pickOverview(
+  base: string,
+  translations: z.infer<typeof rawMovieDetailSchema>['translations'],
+): string {
+  if (base !== '')
+    return base
+  const list = translations?.translations ?? []
+  const zh = list.find(t => t.iso_639_1 === 'zh' && t.iso_3166_1 === 'TW')
+  const en = list.find(t => t.iso_639_1 === 'en')
+  return zh?.data.overview || en?.data.overview || ''
+}
+
+export function mapMovieDetail(
+  raw: z.infer<typeof rawMovieDetailSchema>,
+): TitleDetail {
+  return {
+    kind: 'MOVIE',
+    tmdbId: raw.id,
+    name: raw.title,
+    posterPath: raw.poster_path,
+    backdropPath: raw.backdrop_path,
+    releaseDate: orNull(raw.release_date),
+    voteAverage: raw.vote_average,
+    overview: pickOverview(raw.overview, raw.translations),
+    tagline: orNull(raw.tagline),
+    genres: mapGenres(raw.genres),
+    runtimeMinutes: raw.runtime,
+    trailerKey: pickTrailerKey(raw.videos),
+  }
+}
+
+export function mapTvDetail(raw: z.infer<typeof rawTvDetailSchema>): TitleDetail {
+  return {
+    kind: 'TV_SHOW',
+    tmdbId: raw.id,
+    name: raw.name,
+    posterPath: raw.poster_path,
+    backdropPath: raw.backdrop_path,
+    releaseDate: orNull(raw.first_air_date),
+    voteAverage: raw.vote_average,
+    overview: pickOverview(raw.overview, raw.translations),
+    tagline: orNull(raw.tagline),
+    genres: mapGenres(raw.genres),
+    runtimeMinutes: raw.episode_run_time[0] ?? null,
+    trailerKey: pickTrailerKey(raw.videos),
+  }
+}
+
+function mapProviderEntries(
+  entries: z.infer<typeof rawRegionAvailabilitySchema>['flatrate'],
+): Provider[] {
+  return (entries ?? []).map(entry => ({
+    id: entry.provider_id,
+    name: entry.provider_name,
+    logoPath: entry.logo_path,
+  }))
+}
+
+export function mapProviderCatalog(
+  raw: z.infer<typeof rawProviderCatalogSchema>,
+): ProviderCatalog {
+  return Object.fromEntries(
+    Object.entries(raw.results).map(([region, regionRaw]) => [
+      region,
+      {
+        link: regionRaw.link ?? null,
+        groups: {
+          subscription: mapProviderEntries(regionRaw.flatrate),
+          free: mapProviderEntries(regionRaw.free),
+          rent: mapProviderEntries(regionRaw.rent),
+          buy: mapProviderEntries(regionRaw.buy),
+        },
+      },
+    ]),
+  )
+}

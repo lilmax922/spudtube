@@ -1,13 +1,28 @@
 <script setup lang="ts">
+import type { WatchStatus } from '#server/db/schema/title-status'
 import type { TitleDetail } from '#server/tmdb/types'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropUrl, posterUrl } from '../lib/images'
+import TitleStatusToggle from './title-status-toggle.vue'
 
 interface Props {
   detail: TitleDetail
+  status?: WatchStatus | null
+  signedIn?: boolean
+  statusPending?: boolean
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  status: null,
+  signedIn: false,
+  statusPending: false,
+})
+
+const emit = defineEmits<{
+  setStatus: [status: WatchStatus]
+  clearStatus: []
+  signInRequested: []
+}>()
 
 const { t } = useI18n()
 
@@ -71,6 +86,17 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
           >
             {{ genre.name }}
           </span>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <TitleStatusToggle
+            :status="status"
+            :signed-in="signedIn"
+            :pending="statusPending"
+            @set-status="emit('setStatus', $event)"
+            @clear-status="emit('clearStatus')"
+            @sign-in-requested="emit('signInRequested')"
+          />
         </div>
 
         <p v-if="detail.tagline" class="mt-4 text-sm italic text-foreground/85">

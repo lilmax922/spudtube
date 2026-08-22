@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from '#imports'
+import { useFetch, useRoute } from '#imports'
 import { useTitleDetail } from '../composables/use-title-detail'
+import { useTitleStatus } from '../composables/use-title-status'
+import { authClient, signIn } from '../lib/auth-client'
 import RecommendationsStrip from './recommendations-strip.vue'
 import TitleFactsPanel from './title-facts-panel.vue'
 import TitleIdentityBlock from './title-identity-block.vue'
@@ -19,10 +22,26 @@ const props = defineProps<Props>()
 const route = useRoute()
 const { t } = useI18n()
 
-const { detail, recommendations } = useTitleDetail(
-  props.kind,
-  computed(() => route.params.id ?? ''),
-)
+const titleId = computed(() => route.params.id ?? '')
+
+const { detail, recommendations } = useTitleDetail(props.kind, titleId)
+
+const { data: session } = await authClient.useSession(useFetch)
+const signedIn = computed(() => session.value?.user != null)
+
+const { status, pending: statusPending, set, clear } = useTitleStatus(props.kind, titleId, signedIn)
+
+function onSetStatus(next: WatchStatus): void {
+  void set(next)
+}
+
+function onClearStatus(): void {
+  void clear()
+}
+
+function onSignInRequested(): void {
+  void signIn.social({ provider: 'google' })
+}
 
 const notFound = computed(() => {
   if (detail.pending.value)
@@ -69,7 +88,15 @@ const failed = computed(() => {
         </div>
 
         <div class="mb-8">
-          <TitleIdentityBlock :detail="detail.data.value" />
+          <TitleIdentityBlock
+            :detail="detail.data.value"
+            :status="status"
+            :signed-in="signedIn"
+            :status-pending="statusPending"
+            @set-status="onSetStatus"
+            @clear-status="onClearStatus"
+            @sign-in-requested="onSignInRequested"
+          />
         </div>
 
         <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr] md:gap-8">

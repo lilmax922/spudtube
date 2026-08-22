@@ -17,6 +17,14 @@
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
+  "watchStatus": {
+    "watchlist": "Watchlist",
+    "watched": "Watched",
+    "watchlistAdd": "Add to watchlist",
+    "watchlistRemove": "In watchlist — click to remove",
+    "watchedMark": "Mark as watched",
+    "watchedClear": "Watched — click to clear"
+  },
   "detail": {
     "loading": "Loading…",
     "error": "Couldn't load this title right now. Please try again later.",
@@ -39,5 +47,22 @@
       "body": "It may have been removed from the catalog, or the link is incorrect.",
       "backHome": "Back to home"
     }
+  },
+  "myList": {
+    "heading": "My List",
+    "loading": "Loading…",
+    "error": "Couldn't load your list right now. Please try again later.",
+    "signInPrompt": "Sign in to see your watchlist, watched titles, and ratings.",
+    "tabs": {
+      "watchlist": "Watchlist",
+      "watched": "Watched",
+      "rated": "Rated"
+    },
+    "empty": {
+      "watchlist": "Nothing on your watchlist yet.",
+      "watched": "Nothing watched yet.",
+      "rated": "Nothing rated yet."
+    },
+    "removed": "No longer in catalog"
   }
 }

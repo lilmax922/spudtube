@@ -5,7 +5,7 @@ import AccountMenu from './components/account-menu.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 
 const { data: session } = await authClient.useSession(useFetch)
 
@@ -27,6 +27,13 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
         <span class="text-lg font-semibold tracking-tight">SpudTube</span>
         <div class="flex items-center gap-3">
           <LanguageSwitcher />
+          <NuxtLink
+            v-if="session?.user"
+            to="/my-list"
+            class="inline-flex h-[38px] items-center rounded-[10px] px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            {{ t('myList.heading') }}
+          </NuxtLink>
           <AccountMenu
             :user="session?.user ?? null"
             @sign-in="onSignIn"

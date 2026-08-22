@@ -9,8 +9,9 @@ if (!databaseUrl) {
 
 export default defineConfig({
   dialect: 'postgresql',
-  schema: './server/database/schema.ts',
-  out: './server/database/migrations',
+  schema: './server/db/schema',
+  out: './server/db/migrations',
+  casing: 'snake_case',
   dbCredentials: {
     url: databaseUrl,
   },

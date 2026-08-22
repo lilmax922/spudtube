@@ -57,5 +57,5 @@ Vitest covers the full stack: Nitro server routes and Vue components (happy-dom 
 
 - Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`…
 - Pre-commit hook: simple-git-hooks runs lint-staged → `eslint --fix` on staged files.
-- Trunk-based development off `main`; a push to `main` builds and deploys via Cloudflare Pages.
+- Trunk-based development off `main`: changes land as short-lived branches, squash-merged via PR (linear history); a push to `main` builds and deploys via Cloudflare Pages.
 - pnpm is the only package manager; the lockfile is committed.

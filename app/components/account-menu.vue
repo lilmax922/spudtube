@@ -22,7 +22,7 @@ const { t } = useI18n()
     <button
       v-if="!user"
       type="button"
-      class="inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2"
+      class="inline-flex h-[38px] items-center gap-1 rounded-[10px] px-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2"
       @click="emit('signIn')"
     >
       <LogIn class="size-4" stroke-width="1.75" />
@@ -42,7 +42,7 @@ const { t } = useI18n()
       </span>
       <button
         type="button"
-        class="inline-flex size-9 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2"
+        class="inline-flex size-[38px] items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2"
         :aria-label="t('auth.signOut')"
         @click="emit('signOut')"
       >

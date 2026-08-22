@@ -1,14 +1,17 @@
 import type { Db } from '../db'
 import { createHmac } from 'node:crypto'
-import { session, user } from '../db/schema'
+import process from 'node:process'
+import { auth } from '../auth'
+import { user } from '../db/schema'
 
-// S2 fixture seam: create a real user + session row through Drizzle and present the
-// genuine session cookie so Better Auth accepts it — no hand-rolled tokens, no mocks.
-// The cookie value is the raw session token signed with the same HMAC-SHA-256 scheme
-// Better Auth's `serializeSignedCookie` uses, keyed by BETTER_AUTH_SECRET.
+// S2 fixture seam: create a real user through Drizzle and a real session through Better
+// Auth's own programmatic API (`internalAdapter.createSession` — same path sign-in uses),
+// then present the genuine session cookie. No hand-rolled tokens, no auth-layer mocks.
+// The only replicated piece is the cookie wire format: `<token>.<HMAC-SHA-256 base64>`
+// under the session cookie name, signed with BETTER_AUTH_SECRET exactly as Better Auth's
+// `serializeSignedCookie` does. getSession validates the cookie against the DB row.
 
 const SESSION_COOKIE_NAME = 'better-auth.session_token'
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 function signSessionToken(token: string, secret: string): string {
   const signature = createHmac('sha256', secret).update(token).digest('base64')
@@ -18,23 +21,18 @@ function signSessionToken(token: string, secret: string): string {
 export interface SessionFixture {
   userId: string
   cookie: string
-  token: string
 }
 
-export async function createSessionFixture(db: Db, secret: string, options: { email?: string } = {}): Promise<SessionFixture> {
+export async function createSessionFixture(db: Db, options: { email?: string } = {}): Promise<SessionFixture> {
   const userId = crypto.randomUUID()
   const email = options.email ?? `${userId}@example.com`
   await db.insert(user).values({ id: userId, name: 'Spud Tester', email, emailVerified: true })
-  const token = crypto.randomUUID().replaceAll('-', '').slice(0, 32)
-  await db.insert(session).values({
-    id: crypto.randomUUID(),
-    userId,
-    token,
-    expiresAt: new Date(Date.now() + SESSION_TTL_MS),
-  })
+
+  const internalAdapter = (await auth.$context).internalAdapter
+  const session = await internalAdapter.createSession(userId)
+  const secret = process.env.BETTER_AUTH_SECRET ?? ''
   return {
     userId,
-    token,
-    cookie: `${SESSION_COOKIE_NAME}=${signSessionToken(token, secret)}`,
+    cookie: `${SESSION_COOKIE_NAME}=${signSessionToken(session.token, secret)}`,
   }
 }

@@ -24,8 +24,6 @@ afterAll(async () => {
   await db.$client.end()
 })
 
-const secret = process.env.BETTER_AUTH_SECRET!
-
 function guardApp() {
   const app = createApp()
   app.use('/api/me', defineEventHandler(async (event) => {
@@ -46,7 +44,7 @@ describe('session guard (seam S2)', () => {
   })
 
   it('returns the session for a real fixture session cookie', async () => {
-    const fixture = await createSessionFixture(db, secret)
+    const fixture = await createSessionFixture(db)
     const fetchGuard = guardApp()
 
     const response = await fetchGuard(new Request('http://localhost/api/me', {
@@ -72,7 +70,7 @@ describe('session guard (seam S2)', () => {
   })
 
   it('sign-out clears the session so getSession no longer recognizes it', async () => {
-    const fixture = await createSessionFixture(db, secret)
+    const fixture = await createSessionFixture(db)
     const app = createApp()
     app.use('/api/auth', authHandler)
     const fetchAuth = toWebHandler(app)

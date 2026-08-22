@@ -1,8 +1,8 @@
 import { relations } from 'drizzle-orm'
 import { integer, pgEnum, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod'
+import { user } from './auth'
 import { kindEnum } from './kind'
-import { user } from './user'
 
 // Canonical Rating labels (CONTEXT.md). The enum cannot share the table's name
 // (Postgres tables reserve a composite type of the same name).

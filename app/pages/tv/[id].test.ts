@@ -1,0 +1,56 @@
+import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
+import { flushPromises } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { RECOMMENDATIONS_PAGE, TV_DETAIL } from '../../lib/title-detail-fixtures'
+import TvPage from './[id].vue'
+
+function detailUrl(tmdbId: number): string {
+  return `/api/catalog/tv/${tmdbId}`
+}
+
+function recommendationsUrl(tmdbId: number): string {
+  return `/api/catalog/tv/${tmdbId}/recommendations`
+}
+
+async function renderPage(route: string): Promise<ReturnType<typeof mountSuspended>> {
+  return await mountSuspended(TvPage, { route })
+}
+
+beforeEach(() => {
+  document.cookie = 'spudtube-locale=zh-TW; Path=/'
+})
+
+afterEach(() => {
+  document.cookie = 'spudtube-locale=; Max-Age=0; Path=/'
+})
+
+describe('tv detail route', () => {
+  it('renders the identity block for a known tv show', async () => {
+    registerEndpoint(detailUrl(94605), () => TV_DETAIL)
+    registerEndpoint(recommendationsUrl(94605), () => RECOMMENDATIONS_PAGE)
+
+    const wrapper = await renderPage('/tv/94605')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('奧術')
+    })
+
+    expect(wrapper.text()).toContain('在烏托邦皮爾特沃夫…')
+    expect(wrapper.text()).toContain('動畫')
+    expect(wrapper.text()).toContain('科幻與奇幻')
+    expect(wrapper.text()).toContain('2021')
+    expect(wrapper.text()).toContain('42 分鐘')
+    expect(wrapper.find('iframe').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('預告片')
+  })
+
+  it('renders a friendly not-found state for a removed show', async () => {
+    registerEndpoint(detailUrl(404404), () => null)
+    registerEndpoint(recommendationsUrl(404404), () => RECOMMENDATIONS_PAGE)
+
+    const wrapper = await renderPage('/tv/404404')
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('找不到這部作品')
+    })
+  })
+})

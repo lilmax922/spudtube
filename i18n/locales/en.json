@@ -12,5 +12,32 @@
   },
   "language": {
     "label": "Language"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out"
+  },
+  "detail": {
+    "loading": "Loading…",
+    "error": "Couldn't load this title right now. Please try again later.",
+    "back": "Back to home",
+    "trailer": "Trailer",
+    "recommendations": "You might also like",
+    "runtimeMinutes": "{minutes} min",
+    "kind": {
+      "movie": "Movie",
+      "tv": "TV Show"
+    },
+    "facts": {
+      "heading": "Facts",
+      "kind": "Type",
+      "released": "Released",
+      "runtime": "Runtime"
+    },
+    "notFound": {
+      "title": "Title not found",
+      "body": "It may have been removed from the catalog, or the link is incorrect.",
+      "backHome": "Back to home"
+    }
   }
 }

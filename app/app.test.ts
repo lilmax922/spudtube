@@ -39,7 +39,7 @@ vi.mock('./composables/use-browse-grid', () => ({
 
 describe('app shell', () => {
   it('renders brand and lands directly on the browse grid', async () => {
-    const wrapper = await mountSuspended(App)
+    const wrapper = await mountSuspended(App, { route: '/' })
 
     expect(wrapper.text()).toContain('SpudTube')
     expect(wrapper.text()).toContain('沙丘')

@@ -54,7 +54,7 @@ afterEach(() => {
 
 describe('language switcher', () => {
   it('renders a control per configured locale', async () => {
-    const wrapper = await mountSuspended(LanguageSwitcher)
+    const wrapper = await mountSuspended(LanguageSwitcher, { route: '/?probe=1' })
     const labels = wrapper.findAll('button').map(button => button.text())
 
     expect(labels).toEqual(['繁體中文', 'English'])
@@ -62,7 +62,7 @@ describe('language switcher', () => {
 
   it('marks the persisted locale as active', async () => {
     writeLocaleCookie('zh-TW')
-    const wrapper = await mountSuspended(LanguageSwitcher)
+    const wrapper = await mountSuspended(LanguageSwitcher, { route: '/?probe=2' })
 
     const chinese = findButton(wrapper, '繁體中文')!
     const english = findButton(wrapper, 'English')!
@@ -71,7 +71,7 @@ describe('language switcher', () => {
   })
 
   it('switches language instantly and persists the choice', async () => {
-    const wrapper = await mountSuspended(LanguageSwitcher)
+    const wrapper = await mountSuspended(LanguageSwitcher, { route: '/?probe=3' })
 
     await findButton(wrapper, '繁體中文')!.trigger('click')
     await flushPromises()
@@ -83,20 +83,20 @@ describe('language switcher', () => {
 
 describe('display locale resolution through the app shell', () => {
   it('falls back to en without any country signal', async () => {
-    const wrapper = await mountSuspended(App)
+    const wrapper = await mountSuspended(App, { route: '/?probe=4' })
 
     expect(wrapper.text()).toContain('Movies')
   })
 
   it('honors the persisted choice over the resolved default', async () => {
     writeLocaleCookie('zh-TW')
-    const wrapper = await mountSuspended(App)
+    const wrapper = await mountSuspended(App, { route: '/?probe=5' })
 
     expect(wrapper.text()).toContain('電影')
   })
 
   it('re-renders landing strings without reload', async () => {
-    const wrapper = await mountSuspended(App)
+    const wrapper = await mountSuspended(App, { route: '/?probe=6' })
 
     await findButton(wrapper, '繁體中文')!.trigger('click')
     await flushPromises()

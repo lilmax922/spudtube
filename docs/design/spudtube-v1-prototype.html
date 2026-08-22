@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpudTube 設計系統基線 v8 — 可操作原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --background: oklch(0.105 0.012 275);
+  --foreground: oklch(0.96 0.008 280);
+  --card: oklch(0.17 0.018 278);
+  --card-foreground: oklch(0.96 0.008 280);
+  --popover: oklch(0.17 0.018 278);
+  --popover-foreground: oklch(0.96 0.008 280);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.24 0.02 282);
+  --secondary-foreground: oklch(0.96 0.008 280);
+  --muted: oklch(0.24 0.02 282);
+  --muted-foreground: oklch(0.72 0.015 285);
+  --accent: oklch(0.24 0.025 285);
+  --accent-foreground: oklch(0.96 0.008 280);
+  --destructive: oklch(0.72 0.2 25);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.556 0 0);
+  --radius: 0.625rem;
+  --font-sans: 'Inter','Noto Sans TC',ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);font-size:14px;line-height:1.7;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font-family:inherit;font-size:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+
+/* ---------- 頂欄 = 漂浮 frosted 膠囊 ---------- */
+#mockbar{position:sticky;top:16px;z-index:50;display:flex;align-items:center;gap:14px;max-width:1180px;margin:0 auto;padding:8px 16px;border:1px solid var(--border);border-radius:999px;background:color-mix(in oklab,var(--card) 72%,transparent);backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);box-shadow:0 8px 30px rgba(0,0,0,.5);transition:transform .28s ease,opacity .28s ease}
+#mockbar.hide{transform:translateY(-130%);opacity:0}
+.logo{display:inline-flex;align-items:center;gap:8px;font-size:18px;font-weight:800;letter-spacing:-.02em;padding:6px 8px;border-radius:var(--radius);cursor:pointer}
+.logo:hover{background:var(--muted)}
+.logo .pot{color:var(--primary)}
+.search{flex:1;display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid var(--input);border-radius:var(--radius);background:color-mix(in oklab,var(--input) 30%,transparent);color:var(--muted-foreground)}
+.search:focus-within{border-color:var(--ring)}
+.search input{flex:1;background:none;border:none;outline:none;color:var(--foreground)}
+.search input::placeholder{color:var(--muted-foreground)}
+.search button{display:inline-flex;align-items:center;padding:4px;border-radius:6px;color:var(--muted-foreground)}
+.search button:hover{color:var(--foreground);background:var(--muted)}
+#appnav{display:flex;gap:4px;align-items:center}
+#appnav a{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:var(--radius);font-weight:600;color:var(--muted-foreground);transition:background .15s,color .15s}
+#appnav a:hover{color:var(--foreground);background:var(--muted)}
+#appnav a.on{color:var(--primary);background:var(--primary-foreground)}
+
+/* ---------- 主 frame ---------- */
+#mockframe{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);z-index:90;padding:10px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--popover);color:var(--popover-foreground);font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Hero ---------- */
+.hero{margin-bottom:32px}
+.screen{position:relative;display:flex;align-items:flex-end;gap:32px;min-height:340px;padding:40px 40px 32px;border-radius:calc(var(--radius) + 8px);overflow:hidden}
+.screen-glyph{position:absolute;right:-20px;bottom:-60px;font-size:300px;font-weight:800;color:#fff;opacity:.06;pointer-events:none}
+.screen-info{position:relative;z-index:1;max-width:640px}
+.kicker{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:#fff;opacity:.75}
+.screen-title{font-size:36px;line-height:1.2;font-weight:800;color:#fff;margin-top:6px}
+.screen-meta{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#fff;opacity:.85;margin-top:8px}
+.screen-meta .star{color:#fbbf24}
+.screen-ov{font-size:14px;line-height:1.7;color:#fff;opacity:.85;max-width:560px;margin-top:12px}
+.screen-actions{display:flex;gap:12px;margin-top:20px}
+.screbtn{height:38px;padding:0 18px;border-radius:var(--radius);font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.screbtn.primary{background:var(--primary);color:var(--primary-foreground)}
+.screbtn.primary:hover{filter:brightness(1.08)}
+.screbtn.ghost{border:1px solid rgba(255,255,255,.35);color:#fff}
+.screbtn.ghost:hover{background:rgba(255,255,255,.12)}
+
+/* ---------- Toolbar（單一控制工具列） ---------- */
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 4px;margin-bottom:24px}
+.seg{display:inline-flex;background:var(--muted);border-radius:var(--radius);padding:3px;gap:2px}
+.seg button{height:30px;padding:0 14px;border-radius:calc(var(--radius) - 2px);font-size:13px;font-weight:600;color:var(--muted-foreground)}
+.seg button.on{background:var(--primary);color:var(--primary-foreground)}
+.frdivider{width:1px;height:24px;background:var(--border);margin:0 4px}
+.frgroup{display:inline-flex;gap:6px;align-items:center}
+.chipbtn{height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:500;color:var(--muted-foreground);border:1px solid var(--input);background:transparent;transition:background .15s,color .15s,border-color .15s}
+.chipbtn:hover{color:var(--foreground);border-color:var(--ring)}
+.chipbtn.on{background:var(--secondary);color:var(--secondary-foreground);border-color:var(--secondary)}
+.chipbtn.ghost{color:var(--foreground);border-color:var(--border)}
+.chipbtn.ghost:hover{border-color:var(--ring)}
+
+/* ---------- 分類列 rows ---------- */
+.rows{display:flex;flex-direction:column;gap:32px}
+.rowhead{display:flex;align-items:baseline;justify-content:space-between;padding:0 2px 12px}
+.rowhead h3{font-size:16.5px;font-weight:700;letter-spacing:.01em}
+.morecta{font-size:12.5px;font-weight:600;color:var(--muted-foreground);padding:4px 8px;border-radius:8px}
+.morecta:hover{color:var(--foreground);background:var(--muted)}
+.strip{display:flex;gap:16px;overflow-x:auto;padding-bottom:22px;scrollbar-width:thin}
+.strip::-webkit-scrollbar{height:6px}
+.strip::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ---------- 海報卡片 ---------- */
+.poster{width:168px;flex-shrink:0;cursor:pointer;outline:none;border-radius:var(--radius)}
+.poster:focus-visible{box-shadow:0 0 0 2px var(--ring)}
+.art{position:relative;aspect-ratio:2/3;border-radius:var(--radius);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.art .glyph{font-size:56px;font-weight:800;color:#fff;opacity:.4;transition:opacity .2s}
+.poster:hover .glyph{opacity:.18}
+.wlbtn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#fff;backdrop-filter:blur(4px);opacity:0;transition:opacity .18s,background .15s}
+.poster:hover .wlbtn,.wlbtn:focus-visible{opacity:1}
+.wlbtn.on{background:var(--primary);color:var(--primary-foreground)}
+.ovl{position:absolute;inset:0;background:rgba(8,6,12,.82);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s;display:flex;align-items:flex-end;padding:14px}
+.poster:hover .ovl{opacity:1}
+.ovl p{font-size:12.5px;line-height:1.6;color:#fff;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cap{margin-top:8px;display:flex;flex-direction:column;gap:2px}
+.cap b{font-size:13px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap span{font-size:12px;color:var(--muted-foreground);display:inline-flex;align-items:center;gap:4px}
+.cap .star{color:#fbbf24}
+
+/* ---------- 篩選/搜尋結果 grid ---------- */
+.resultbar{margin-bottom:16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.resultbar h3{font-size:16.5px;font-weight:700}
+.xs{font-size:12px;font-weight:500}
+.muted{color:var(--muted-foreground)}
+.small{font-size:12.5px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:16px}
+.pgrid .poster{width:100%}
+.sentinel{grid-column:1/-1;display:flex;justify-content:center;padding:16px 0}
+.spinner{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--ring);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;color:var(--muted-foreground);text-align:center}
+.empty b{font-size:15px;color:var(--foreground)}
+
+/* ---------- 返回列 / 主題頁 ---------- */
+.backrow{padding:0 2px 10px}
+.linkbtn{font-size:13px;font-weight:600;color:var(--muted-foreground);padding:4px 8px;border-radius:8px}
+.linkbtn:hover{color:var(--foreground);background:var(--muted)}
+.topichead{padding:4px 2px 20px;display:flex;flex-direction:column;gap:4px}
+.topichead h1{font-size:24px;font-weight:700;letter-spacing:-.01em}/* ---------- 詳情頁 hero ---------- */
+.dwrap{margin-bottom:32px}
+.dhero{display:flex;gap:28px;padding:36px 36px 32px;border-radius:calc(var(--radius) + 8px)}
+.bigposter{width:200px;flex-shrink:0}
+.info{flex:1;min-width:0}
+.dtitle{font-size:24px;font-weight:700;letter-spacing:-.01em;color:#fff}
+.dyear{font-size:20px;font-weight:600;color:rgba(255,255,255,.6)}
+.metarow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85)}
+.tag{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.35);color:rgba(255,255,255,.9)}
+.drating{display:flex;align-items:center;gap:8px;margin-top:14px}
+.avg{font-size:18px;font-weight:700;color:#fbbf24}
+.avglab{font-size:12.5px;color:rgba(255,255,255,.7)}
+.dact{display:flex;align-items:center;gap:12px;margin-top:16px}
+.tagline{margin-top:16px;font-style:italic;font-size:14px;color:rgba(255,255,255,.85)}
+.overview{margin-top:10px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.88);max-width:640px}
+.crewline{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:12.5px;color:rgba(255,255,255,.65)}
+.crewline b{color:rgba(255,255,255,.9);font-weight:600}
+
+/* ---------- 詳情兩欄 ---------- */
+.dgrid{display:grid;grid-template-columns:280px 1fr;gap:32px;margin-bottom:32px}
+.dside{display:flex;flex-direction:column;gap:16px}
+.dmain{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:color-mix(in oklab,var(--card) 78%,transparent);border:1px solid var(--border);border-radius:var(--radius);padding:20px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.panel h3{font-size:16.5px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dfact h3{margin-bottom:8px}
+.dfact dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px}
+.dfact dt{color:var(--muted-foreground)}
+.dfact dd{color:var(--foreground);font-weight:500;text-align:right}
+.dfact hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+.kwrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.kwrow .tag{border-color:var(--input);color:var(--muted-foreground)}
+
+/* ---------- 提供平台 ---------- */
+.provgroup{margin-bottom:12px}
+.glabel{font-size:12px;font-weight:600;color:var(--muted-foreground);display:block;margin-bottom:6px}
+.provrow{display:flex;gap:8px;flex-wrap:wrap}
+.prov{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border:1px solid var(--input);border-radius:999px;font-size:12.5px;font-weight:500;background:var(--muted)}
+.pdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.attrline{margin-top:8px;font-size:11.5px;color:var(--muted-foreground)}
+.input{height:30px;padding:0 10px;border:1px solid var(--input);border-radius:var(--radius);background:var(--muted);color:var(--foreground)}
+
+/* ---------- 演員 ---------- */
+.castrow{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
+.castcard{width:96px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.castavatar{width:64px;height:64px;border-radius:50%;background:var(--muted);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--muted-foreground)}
+.castcard b{font-size:12.5px;font-weight:600}
+.castcard span{font-size:11.5px;color:var(--muted-foreground)}
+
+/* ---------- 預告片 ---------- */
+.trailer{position:relative;aspect-ratio:16/9;border-radius:var(--radius);background:#0b0b0d;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+.trailer .play{width:54px;height:54px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.trailer:hover .play{transform:scale(1.08)}
+.playinglabel{position:absolute;bottom:12px;left:14px;font-size:12px;font-weight:600;color:#fff;opacity:0;transition:opacity .2s}
+.trailer.playing .playinglabel{opacity:1}
+
+/* ---------- 預告 dialog ---------- */
+.trailer-dialog{width:min(860px,92vw);padding:0;border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);background:#0a0a0c;color:var(--foreground);overflow:hidden}
+.trailer-dialog::backdrop{background:rgba(6,6,10,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.td-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.td-title{font-size:14px;font-weight:700}
+.td-close{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--muted-foreground)}
+.td-close:hover{color:var(--foreground);background:var(--muted)}
+.td-body{padding:14px 16px 18px}
+.td-trailer{position:relative;aspect-ratio:16/9;border-radius:var(--radius);background:#000;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.td-trailer .play{width:60px;height:60px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.td-trailer .playinglabel{position:absolute;bottom:14px;left:16px;font-size:12.5px;font-weight:600;color:#fff;opacity:1}
+.td-caption{margin-top:10px;font-size:12.5px;color:var(--muted-foreground)}
+
+/* ---------- 相關推薦 ---------- */
+.recstrip{display:flex;gap:16px;overflow-x:auto;padding-bottom:22px;margin-bottom:24px}
+.recstrip .poster{width:168px}
+
+/* ---------- 我的清單 ---------- */
+.listtabs{display:flex;gap:8px;margin-bottom:20px}
+.listitem{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);background:color-mix(in oklab,var(--card) 70%,transparent);cursor:pointer;transition:background .15s}
+.listitem:hover{background:var(--card)}
+.listitem + .listitem{margin-top:8px}
+.thumb{width:46px;height:66px;border-radius:8px;flex-shrink:0}
+.li-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.li-main b{font-size:14px;font-weight:600}
+.li-main span{font-size:12.5px;color:var(--muted-foreground);display:inline-flex;align-items:center;gap:4px}
+.li-main .star{color:#fbbf24}
+
+/* ---------- 評價（Netflix 式） ---------- */
+.ratepop{position:relative;display:inline-flex}
+.rateicon{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--muted);color:var(--muted-foreground);border:1px solid var(--input)}
+.rateicon.on{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.ratefly{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);display:flex;gap:4px;padding:6px;border-radius:var(--radius);background:var(--popover);border:1px solid var(--border);opacity:0;visibility:hidden;transition:opacity .16s,transform .16s;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.ratepop:hover .ratefly{opacity:1;visibility:visible;transform:translateX(-50%)}
+.rateopt{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--muted);color:var(--muted-foreground)}
+.rateopt:hover{background:var(--secondary);color:var(--secondary-foreground)}
+.rateopt.on{background:var(--primary);color:var(--primary-foreground)}
+
+/* ---------- 狀態 ---------- */
+.statusrow{display:inline-flex;gap:6px}
+.sbtn{width:38px;height:38px;border-radius:var(--radius);display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--input);color:var(--muted-foreground)}
+.sbtn[data-active="1"]{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+
+/* ---------- 試色 dock / 色票 ---------- */
+.themedock{position:fixed;right:18px;bottom:18px;z-index:80;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:color-mix(in oklab,var(--popover) 82%,transparent);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.themedock .dlab{font-size:12px;font-weight:600;color:var(--muted-foreground);margin-right:2px}
+.tswatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.tswatch.on{border-color:var(--foreground);box-shadow:0 0 0 2px var(--background)}
+
+/* ---------- 設計系統參照區（下方 section） ---------- */
+.refs{max-width:1180px;margin:40px auto 0;padding:0 16px;display:flex;flex-direction:column;gap:32px}
+.refcard{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:24px}
+.refcard h2{font-size:16.5px;font-weight:700;margin-bottom:4px}
+.refcard .hint{font-size:12.5px;color:var(--muted-foreground);margin-bottom:16px}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.swatch{display:flex;align-items:center;gap:12px}
+.swatch .chip{width:44px;height:44px;border-radius:10px;flex-shrink:0}
+.swatch .meta{display:flex;flex-direction:column;min-width:0}
+.swatch .meta b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.swatch .meta span{font-size:11.5px;color:var(--muted-foreground);font-family:ui-monospace,monospace}
+.iconrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+.iconcell{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--muted)}
+.iconcell span{font-size:11.5px;color:var(--muted-foreground)}
+
+/* ---------- 提示 chips ---------- */
+.trychips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.try{font-size:12px;font-weight:500;color:var(--muted-foreground);padding:6px 12px;border:1px solid var(--input);border-radius:999px;background:var(--muted)}
+
+/* ---------- 決策表單 ---------- */
+.decision{border:1px dashed var(--ring);border-radius:var(--radius);padding:20px}
+.decision h2{font-size:16.5px;font-weight:700;margin-bottom:4px}
+.decision .hint{font-size:12.5px;color:var(--muted-foreground);margin-bottom:12px}
+.decision .opts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.decision label{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--input);border-radius:999px;font-size:13px;font-weight:500;cursor:pointer}
+.decision label:has(input:checked){background:var(--secondary);color:var(--secondary-foreground);border-color:var(--secondary)}
+.decision .queuednote{display:none;font-size:12px;color:var(--muted-foreground);align-items:center;gap:6px}
+.queuednote svg{color:#22c55e}
+.decision button[type="submit"]{height:38px;padding:0 18px;border-radius:var(--radius);background:var(--primary);color:var(--primary-foreground);font-weight:600;margin-right:10px}
+.decision button[type="submit"]:hover{filter:brightness(1.08)}</style>
+</head>
+<body>
+<div id="mockframe">
+  <header id="mockbar">
+    <span class="logo" tabindex="0" role="button" aria-label="SpudTube 首頁">
+      <span class="pot">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-3.8 0-6.5 1.8-7.4 4.4C3.2 8.2 3 9 3 10c0 2 .8 3.4 2 4.8V19c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-4.2c1.2-1.4 2-2.8 2-4.8 0-1-.2-1.8-.6-2.6C18.5 4.8 15.8 3 12 3zM8.5 8.5A1.5 1.5 0 1 1 8.5 11.5 1.5 1.5 0 0 1 8.5 8.5zm7 0a1.5 1.5 0 1 1-1.5 1.5 1.5 1.5 0 0 1 1.5-1.5zM12 13a1.5 1.5 0 1 1-1.5 1.5A1.5 1.5 0 0 1 12 13z"/></svg>
+      </span>
+      SpudTube
+    </span>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="gsearch" type="search" placeholder="搜尋電影或影集…" aria-label="搜尋">
+      <button id="gclear" hidden type="button" aria-label="清除搜尋">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <nav id="appnav" aria-label="主要導覽">
+      <a href="#" data-nav="list">我的清單</a>
+    </nav>
+  </header>
+  <main id="screenroot" aria-live="polite"></main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="trailerDialog" class="trailer-dialog" aria-label="播放預告片">
+  <div class="td-head">
+    <span class="td-title">預告片</span>
+    <button type="button" class="td-close" data-trailer-close aria-label="關閉預告片">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="td-body">
+    <div class="td-trailer" id="dialogTrailerBox">
+      <div class="play">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#111"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+      <span class="playinglabel">▶ 正在播放：官方預告片（示意）</span>
+    </div>
+    <p class="td-caption">僅為設計示意，非實際影片。</p>
+  </div>
+</dialog>
+
+<div class="refs">
+  <section class="refcard" aria-label="互動提示">
+    <h2>操作提示</h2>
+    <p class="hint">試玩五個畫面，或看下方設計系統參照。</p>
+    <div id="trychips" class="trychips"></div>
+  </section>
+
+  <section class="refcard" aria-label="Color tokens">
+    <h2>Color tokens</h2>
+    <p class="hint">與 app/assets/css/tailwind.css 一致；右下角試色 dock 可即時切換強調色。</p>
+    <div id="swatches" class="swatches"></div>
+  </section>
+
+  <section class="refcard" aria-label="Icon set">
+    <h2>Icon set</h2>
+    <p class="hint">Lucide line icons，stroke 1.75。</p>
+    <div id="iconrow" class="iconrow"></div>
+  </section>
+
+  <form class="decision" data-question="q2-accent">
+    <h2>Q2 · 品牌強調色</h2>
+    <p class="hint">已定案：純中性。下方為候選清單，供日後更換參考。</p>
+    <div class="opts">
+      <label><input type="radio" name="q2" data-pal="violet" value="violet"> 幽夜紫</label>
+      <label><input type="radio" name="q2" data-pal="cyan" value="cyan"> 極光青</label>
+      <label><input type="radio" name="q2" data-pal="gold" value="gold"> 馬鈴薯金</label>
+      <label><input type="radio" name="q2" data-pal="emerald" value="emerald"> 翡翠綠</label>
+      <label><input type="radio" name="q2" data-pal="coral" value="coral"> 珊瑚紅</label>
+      <label><input type="radio" name="q2" data-pal="red" value="red"> 劇院紅</label>
+      <label><input type="radio" name="q2" data-pal="sky" value="sky"> 天空藍</label>
+      <label><input type="radio" name="q2" data-pal="mono" value="mono"> 純中性</label>
+    </div>
+    <button type="submit">送出此決定</button>
+    <span class="queuednote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 已送出（可修改後重送）</span>
+  </form>
+
+  <form class="decision" data-question="q4-mockup-approval">
+    <h2>Q4 · 三張關鍵畫面核准（v8）</h2>
+    <p class="hint">已核准。可在此重新送出核准／意見。</p>
+    <div class="opts">
+      <label><input type="radio" name="q4mockupapproval" value="approve" checked> 核准</label>
+      <label><input type="radio" name="q4mockupapproval" value="changes"> 需要修改</label>
+    </div>
+    <button type="submit">送出此決定</button>
+    <span class="queuednote"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 已送出（可修改後重送）</span>
+  </form>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const TITLES=[
+ {id:"shogun",kind:"tv",t:"幕府將軍",en:"Shōgun",y:2024,runtime:"第1季 · 10集",g:["history","drama"],pop:96,r:8.9,glyph:"將",tone:"#991b1b",
+  ov:"1600年的日本：一位英國領航員、一位瀕死的大名與一位神祕譯者，被捲入足以改變國家的權力鬥爭。",
+  prov:{TW:{sub:["Disney+"],free:[],rent:[],buy:[]},US:{sub:["Hulu","Disney+"],free:[],rent:[],buy:[]},JP:{sub:["Disney+","U-NEXT"],free:[],rent:[],buy:[]},GB:{sub:["Disney+"],free:[],rent:[],buy:[]}}},
+ {id:"dune2",kind:"movie",t:"沙丘：第二部",en:"Dune: Part Two",y:2024,runtime:"2小時46分",g:["scifi","adventure"],pop:98,r:8.3,glyph:"沙",tone:"#b45309",
+  ov:"保羅·亞崔迪加入弗瑞曼人，向毀滅他家族的陰謀者展開復仇，同時在愛與命運之間掙扎，試圖阻止他唯一能預見的可怕未來。",
+  prov:{TW:{sub:["Netflix"],free:[],rent:["Apple TV","Google Play 電影"],buy:["Apple TV"]},US:{sub:["Max"],free:[],rent:["Amazon Video","Apple TV"],buy:["Apple TV"]},JP:{sub:["U-NEXT"],free:[],rent:["Apple TV"],buy:[]},GB:{sub:["Netflix"],free:[],rent:["Apple TV"],buy:[]}}},
+ {id:"oppenheimer",kind:"movie",t:"奧本海默",en:"Oppenheimer",y:2023,runtime:"3小時",g:["drama","history"],pop:95,r:8.4,glyph:"奧",tone:"#7f1d1d",
+  ov:"曼哈頓計畫的核心人物羅伯特·奧本海默，必須冒著毀滅世界的風險拯救世界。",
+  prov:{TW:{sub:[],free:[],rent:["Apple TV","Google Play 電影"],buy:["Apple TV"]},US:{sub:[],free:[],rent:["Amazon Video"],buy:["Amazon Video"]},JP:{sub:[],free:[],rent:["Apple TV"],buy:[]},GB:{sub:[],free:[],rent:["Apple TV"],buy:[]}}},
+ {id:"tlou",kind:"tv",t:"最後生還者",en:"The Last of Us",y:2023,runtime:"第1季 · 9集",g:["drama","thriller"],pop:94,r:8.6,glyph:"末",tone:"#4d7c0f",
+  ov:"真菌瘟疫摧毀文明二十年後，硬漢走私客喬爾受託護送少女莉莉跨越崩壞的美國。",
+  prov:{TW:{sub:["CATCHPLAY+"],free:[],rent:[],buy:[]},US:{sub:["Max"],free:[],rent:["Amazon Video"],buy:[]},JP:{sub:["U-NEXT"],free:[],rent:[],buy:[]},GB:{sub:["Sky/NOW"],free:[],rent:[],buy:[]}}},
+ {id:"io2",kind:"movie",t:"腦筋急轉彎2",en:"Inside Out 2",y:2024,runtime:"1小時37分",g:["animation","comedy"],pop:92,r:7.6,glyph:"轉",tone:"#7c3aed",
+  ov:"萊莉進入青春期，總部突然迎來焦慮等新情緒，原有的情緒們必須學習共處。",
+  prov:{TW:{sub:["Disney+"],free:[],rent:[],buy:[]},US:{sub:["Disney+"],free:[],rent:["Amazon Video"],buy:[]},JP:{sub:["Disney+"],free:[],rent:[],buy:[]},GB:{sub:["Disney+"],free:[],rent:[],buy:[]}}},
+ {id:"rickmorty",kind:"tv",t:"瑞克和莫蒂",en:"Rick and Morty",y:2013,runtime:"第8季",g:["animation","comedy"],pop:90,r:9.1,glyph:"R",tone:"#22c55e",
+  ov:"酗酒天才科學家瑞克帶著孫子莫蒂穿梭多重宇宙，每趟冒險都荒謬又致命。",
+  prov:{TW:{sub:["Netflix"],free:[],rent:[],buy:[]},US:{sub:["Hulu","Max"],free:["Pluto TV"],rent:[],buy:[]},JP:{sub:["Netflix"],free:[],rent:[],buy:[]},GB:{sub:["Channel 4"],free:[],rent:[],buy:[]}}},
+ {id:"heron",kind:"movie",t:"蒼鷺與少年",en:"The Boy and the Heron",y:2023,runtime:"2小時4分",g:["animation","fantasy"],pop:88,r:8.0,glyph:"鷺",tone:"#0e7490",
+  ov:"喪母的少年牧真人隨蒼鷺闖入通往另一世界的門，展開一場關於生死的奇幻旅程。",
+  prov:{TW:{sub:["Netflix","CATCHPLAY+"],free:[],rent:[],buy:[]},US:{sub:["Max"],free:[],rent:[],buy:[]},JP:{sub:["U-NEXT"],free:[],rent:[],buy:[]},GB:{sub:[],free:[],rent:["Apple TV"],buy:[]}}},
+ {id:"blackmirror",kind:"tv",t:"黑鏡",en:"Black Mirror",y:2011,runtime:"第7季 · 6集",g:["scifi","drama"],pop:87,r:8.5,glyph:"鏡",tone:"#334155",
+  ov:"每集獨立的寓言劇：科技放大人性最幽微的恐懼，近未來比你想像得更近。",
+  prov:{TW:{sub:["Netflix"],free:[],rent:[],buy:[]},US:{sub:["Netflix"],free:[],rent:[],buy:[]},JP:{sub:["Netflix"],free:[],rent:[],buy:[]},GB:{sub:["Netflix"],free:[],rent:[],buy:[]}}},
+ {id:"godzilla",kind:"movie",t:"哥吉拉-1.0",en:"Godzilla Minus One",y:2023,runtime:"2小時5分",g:["scifi","thriller"],pop:85,r:8.2,glyph:"哥",tone:"#374151",
+  ov:"戰敗後歸零的日本，再遭史上最強怪獸蹂躪；一群毫無勝算的人決定挺身而出。",
+  prov:{TW:{sub:["Prime Video"],free:[],rent:[],buy:[]},US:{sub:["Netflix"],free:[],rent:["Amazon Video"],buy:[]},JP:{sub:["Prime Video","U-NEXT"],free:[],rent:[],buy:[]},GB:{sub:["Prime Video"],free:[],rent:[],buy:[]}}},
+ {id:"truedetective",kind:"tv",t:"真探",en:"True Detective",y:2014,runtime:"第4季 · 6集",g:["crime","drama"],pop:83,r:8.3,glyph:"探",tone:"#0891b2",
+  ov:"每季一樁懸案：警探搭檔在極地黑夜、沼澤小鎮或罪惡都市裡，追兇也追問自己。",
+  prov:{TW:{sub:["CATCHPLAY+"],free:[],rent:[],buy:[]},US:{sub:["Max"],free:[],rent:["Amazon Video"],buy:[]},JP:{sub:[],free:[],rent:["Apple TV"],buy:[]},GB:{sub:["Sky/NOW"],free:[],rent:[],buy:[]}}}
+];
+
+const GENRES=[["action","動作"],["adventure","冒險"],["animation","動畫"],["comedy","喜劇"],["crime","犯罪"],["drama","戲劇"],["thriller","驚悚"],["scifi","科幻"],["fantasy","奇幻"],["history","歷史"]];
+const GLABEL={action:"動作",adventure:"冒險",animation:"動畫",comedy:"喜劇",crime:"犯罪",drama:"戲劇",thriller:"驚悚",scifi:"科幻",fantasy:"奇幻",history:"歷史"};
+const PROVCOLOR={"Netflix":"#e50914","Disney+":"#0ea5e9","Prime Video":"#00a8e1","CATCHPLAY+":"#16a34a","Max":"#7c3aed","Hulu":"#10b981","Apple TV":"#8e8e93","Google Play 電影":"#f59e0b","Amazon Video":"#00a8e1","U-NEXT":"#ff0033","Pluto TV":"#ca8a04","Sky/NOW":"#0284c7","Channel 4":"#dc2626"};
+const REGIONS=[["TW","台灣"],["HK","香港"],["JP","日本"],["KR","韓國"],["SG","新加坡"],["US","美國"],["GB","英國"],["CA","加拿大"],["AU","澳洲"],["DE","德國"],["FR","法國"],["IN","印度"],["BR","巴西"],["MX","墨西哥"]];
+const GROUPS=[["sub","訂閱"],["free","免費"],["rent","租借"],["buy","購買"]];
+const BEST=[["最佳動作與冒險",["action","adventure"]],["最佳喜劇",["comedy"]],["最佳科幻與奇幻",["scifi","fantasy"]],["最佳犯罪與驚悚",["crime","thriller"]],["最佳戲劇",["drama"]]];
+const PAGE=6;
+
+const store={ratings:{},status:{},region:"TW",screen:{name:"home"},listTab:"watchlisted",
+ home:{kind:"tv",genres:new Set(),rating:"",query:"",shown:PAGE},topic:null};
+
+const $=s=>document.querySelector(s);
+const root=$("#screenroot");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const byId=id=>TITLES.find(x=>x.id===id);
+const KLABEL={movie:"電影",tv:"影集"};
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._h);toast._h=setTimeout(()=>t.classList.remove("show"),2200);}
+
+function posterCard(x){
+ const wl=store.status[x.id]==="watchlisted";
+ return `<article class="poster" data-open="${x.id}" role="button" tabindex="0" aria-label="${esc(x.t)}">
+   <div class="art" style="background:${x.tone}">
+     <span class="glyph">${esc(x.glyph)}</span>
+     <button type="button" class="wlbtn${wl?" on":""}" data-wl="${x.id}" aria-label="${wl?"從待看清單移除":"加入待看清單"}" title="${wl?"從待看清單移除":"加入待看清單"}">${wl?'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>'}</button>
+     <div class="ovl"><p>${esc(x.ov)}</p></div>
+   </div>
+   <div class="cap"><b>${esc(x.t)}</b><span><span class="star">★</span> ${x.r} · ${x.y}</span></div>
+ </article>`;
+}
+
+function resetFilters(){const h=store.home;h.genres.clear();h.rating="";h.query="";h.shown=PAGE;store.topic=null;}
+
+function goHome(){
+ store.screen={name:"home"};resetFilters();
+ const gq=$("#gsearch");gq.value="";$("#gclear").hidden=true;
+ render();
+}
+
+function bindOpen(scope){(scope||root).querySelectorAll("[data-open]").forEach(el=>{
+ el.addEventListener("click",()=>{store.screen={name:"detail",id:el.dataset.open};render();});
+ el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();store.screen={name:"detail",id:el.dataset.open};render();}});
+});(scope||root).querySelectorAll("[data-wl]").forEach(el=>el.addEventListener("click",e=>{
+ e.stopPropagation();e.preventDefault();
+ const id=el.dataset.wl,cur=store.status[id];
+ if(cur==="watchlisted"){delete store.status[id];toast("已從待看清單移除");}
+ else{store.status[id]="watchlisted";toast("已加入待看清單");}
+ render();
+}));}
+
+function syncRail(){
+ const h=store.home;
+ root.querySelectorAll("[data-kind]").forEach(b=>{const on=b.dataset.kind===h.kind;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+ root.querySelectorAll("[data-rate]").forEach(b=>{const on=(b.dataset.rate||"")===h.rating;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+ root.querySelectorAll("[data-genre]").forEach(b=>{const on=h.genres.has(b.dataset.genre);b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+}
+
+function renderRows(area){
+ const k=store.home.kind,kl=KLABEL[k];
+ const pool=TITLES.filter(x=>x.kind===k);
+ const byPop=(a,b)=>b.pop-a.pop;
+ const byRate=(a,b)=>b.r-a.r;
+ const byNew=(a,b)=>b.y-a.y||b.pop-a.pop;
+ const rows=[
+  {key:"trending",label:`本週熱門${kl}`,items:pool.slice().sort(byPop)},
+  {key:"top",label:`高評價${kl}`,items:pool.slice().sort(byRate)},
+  k==="movie"?{key:"now",label:"現正熱映",items:pool.slice().sort(byNew)}
+             :{key:"airing",label:"本季播映中",items:pool.slice().sort(byNew)},
+  ...BEST.map(([name,gs],i)=>({key:"g"+i,label:`${name}${kl}`,items:pool.filter(x=>x.g.some(g=>gs.includes(g)))}))
+ ].filter(r=>r.items.length);
+ area.innerHTML=`<div class="rows">${rows.map(r=>`
+   <section class="row"><div class="rowhead"><h3>${r.label}</h3><button type="button" class="morecta" data-cat="${r.key}">查看全部 →</button></div>
+   <div class="strip">${r.items.map(posterCard).join("")}</div></section>`).join("")}</div>`;
+ bindOpen(area);
+ area.querySelectorAll("[data-cat]").forEach(el=>el.addEventListener("click",()=>{
+   const r=rows.find(x=>x.key===el.dataset.cat);
+   if(!r)return;
+   store.screen={name:"topic"};store.topic={label:r.label,items:r.items,kind:k,shown:PAGE};
+render();
+
+(function trailerDialog(){
+  const d=$("#trailerDialog");
+  if(!d)return;
+  const close=()=>{if(typeof d.close==="function")d.close();};
+  d.querySelector("[data-trailer-close]").addEventListener("click",close);
+  d.addEventListener("click",e=>{if(e.target===d)close();});
+  d.addEventListener("cancel",()=>{});
+})();
+ }));
+}
+
+function renderGrid(area,mode){
+ const h=store.home;
+ let list;
+ if(mode==="search"){
+   const q=h.query.toLowerCase();
+   list=TITLES.filter(x=>(x.t+x.en).toLowerCase().includes(q));
+ }else{
+   list=TITLES.filter(x=>x.kind===h.kind);
+   if(h.genres.size)list=list.filter(x=>x.g.some(g=>h.genres.has(g)));
+   if(h.rating)list=list.filter(x=>x.r>=Number(h.rating));
+ }
+ list.sort((a,b)=>b.pop-a.pop);
+ const shown=list.slice(0,h.shown);
+ const more=list.length>h.shown;
+ const bits=[];
+ if(mode==="search")bits.push(`「${esc(h.query)}」`,"跨電影與影集");
+ else{
+   bits.push(KLABEL[h.kind]);
+   if(h.genres.size)bits.push(`類型：${[...h.genres].map(g=>GLABEL[g]).join("、")}（OR）`);
+   if(h.rating)bits.push(`★ ${h.rating}+ 以上`);
+ }
+ area.innerHTML=`
+ <div class="resultbar">
+   <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+     <h3>${mode==="search"?"搜尋結果":"篩選結果"}</h3>
+     ${bits.map(b=>`<span class="xs muted">${b}</span>`).join("")}
+     <span class="xs muted">共 ${list.length} 部 · 依熱門度排序 · 捲動自動載入更多</span>
+   </div>
+ </div>
+ <div class="pgrid">
+   ${shown.map(posterCard).join("")||`<div class="empty" style="grid-column:1/-1"><span style="opacity:.5">${iconSat()}</span><b>查無結果</b><span class="small">${mode==="search"?"換個關鍵字試試":"清掉幾個條件再試試"}</span></div>`}
+   ${more?`<div class="sentinel" id="sentinel"><div class="spinner" aria-label="載入中"></div></div>`:""}
+ </div>`;
+ bindOpen(area);
+ const sent=$("#sentinel");
+ if(sent){const ob=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){ob.disconnect();setTimeout(()=>{store.home.shown+=PAGE;renderContent();toast("已載入更多結果");},550);}},{rootMargin:"160px"});ob.observe(sent);}
+}
+
+function renderContent(){
+ const area=$("#contentarea");
+ if(!area)return;
+ const h=store.home;
+ if(h.query)renderGrid(area,"search");
+ else if(h.genres.size||h.rating)renderGrid(area,"filter");
+ else renderRows(area);
+}
+
+function renderTopic(){
+ const t=store.topic;
+ if(!t){goHome();return;}
+ const shown=t.items.slice(0,t.shown);
+ const more=t.items.length>t.shown;
+ const kindLabel=KLABEL[t.kind]||"作品";
+ root.innerHTML=`
+ <div class="backrow"><button class="linkbtn" data-back>← 返回首頁</button></div>
+ <div class="topichead">
+   <span class="xs muted">${kindLabel} · 主題</span>
+   <h1>${esc(t.label)}</h1>
+   <p class="small muted">共 ${t.items.length} 部${kindLabel}，依排序瀏覽；本頁不提供篩選器。</p>
+ </div>
+ <div class="pgrid">
+   ${shown.map(posterCard).join("")}
+   ${more?`<div class="sentinel" id="sentinel"><div class="spinner" aria-label="載入中"></div></div>`:""}
+ </div>`;
+ root.querySelector("[data-back]").addEventListener("click",goHome);
+ bindOpen(root);
+ const sent=$("#sentinel");
+ if(sent){const ob=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){ob.disconnect();setTimeout(()=>{store.topic.shown+=PAGE;renderTopic();toast("已載入更多結果");},550);}},{rootMargin:"160px"});ob.observe(sent);}
+}
+
+function buildHomeShell(){
+ const h=store.home;
+ const feat=[...TITLES].sort((a,b)=>b.pop-a.pop)[0];
+ root.innerHTML=`
+ <div class="hero">
+   <div class="screen" style="background:${feat.tone}">
+     <span class="screen-glyph" aria-hidden="true">${esc(feat.glyph)}</span>
+     <div class="screen-info">
+       <span class="kicker">本週首選 · S P U D T U B E</span>
+       <div class="screen-title">${esc(feat.t)}</div>
+       <div class="screen-meta"><span class="star">★</span><span>${feat.r}</span>·<span>${feat.y}</span>·<span>${feat.g.map(g=>GLABEL[g]).join("、")}</span></div>
+       <p class="screen-ov">${esc(feat.ov)}</p>
+       <div class="screen-actions">
+         <button type="button" class="screbtn primary" data-open="${feat.id}">▶ 預告與詳情</button>
+         <button type="button" class="screbtn ghost" data-watch="${feat.id}">${store.status[feat.id]==="watchlisted"?"在待看清單":"＋ 待看清單"}</button>
+       </div>
+     </div>
+   </div>
+ </div>
+ <div class="toolbar">
+   <div class="seg" role="group" aria-label="切換類型">
+     <button type="button" data-kind="movie" aria-pressed="false">電影</button>
+     <button type="button" data-kind="tv" aria-pressed="false">影集</button>
+   </div>
+   <span class="frdivider" aria-hidden="true"></span>
+   <div class="frgroup" role="group" aria-label="最低評分">
+     <button type="button" class="chipbtn" data-rate="" aria-pressed="false">★ 全部</button>
+     <button type="button" class="chipbtn" data-rate="7" aria-pressed="false">★ 7+</button>
+     <button type="button" class="chipbtn" data-rate="8" aria-pressed="false">★ 8+</button>
+   </div>
+   <span class="frdivider" aria-hidden="true"></span>
+   ${GENRES.map(([key,l])=>`<button type="button" class="chipbtn" data-genre="${key}" aria-pressed="false">${l}</button>`).join("")}
+   <button type="button" class="chipbtn ghost" data-clear>清除全部</button>
+ </div>
+ <div id="contentarea"></div>`;
+ const wb=root.querySelector("[data-watch]");
+ wb.addEventListener("click",()=>{
+   const id=wb.dataset.watch,cur=store.status[id];
+   if(cur==="watchlisted"){delete store.status[id];wb.textContent="＋ 待看清單";toast("已從待看清單移除");}
+   else if(cur==="watched"){store.status[id]="watchlisted";wb.textContent="在待看清單";toast("從已看移回待看清單");}
+   else{store.status[id]="watchlisted";wb.textContent="在待看清單";toast("已加入待看清單");}
+ });
+ bindOpen(root);
+ root.querySelectorAll("[data-kind]").forEach(el=>el.addEventListener("click",()=>{
+   if(store.home.kind===el.dataset.kind)return;
+   store.home.kind=el.dataset.kind;store.home.genres.clear();store.home.shown=PAGE;
+   syncRail();renderContent();
+ }));
+ root.querySelectorAll("[data-rate]").forEach(el=>el.addEventListener("click",()=>{
+   store.home.rating=store.home.rating===el.dataset.rate?"":el.dataset.rate;
+   store.home.shown=PAGE;
+   syncRail();renderContent();
+ }));
+ root.querySelectorAll(".toolbar [data-genre]").forEach(el=>el.addEventListener("click",()=>{
+   const key=el.dataset.genre;
+   store.home.genres.has(key)?store.home.genres.delete(key):store.home.genres.add(key);
+   store.home.shown=PAGE;
+   syncRail();renderContent();
+ }));
+ root.querySelector("[data-clear]").addEventListener("click",()=>{
+   resetFilters();syncRail();renderContent();
+ });
+ syncRail();renderContent();
+}
+
+function providerPanel(x){
+ const p=(x.prov&&x.prov[store.region])||{sub:[],free:[],rent:[],buy:[]};
+ const any=GROUPS.some(([k])=>p[k].length);
+ return `<section class="panel" aria-label="提供平台">
+   <h3>${iconGlobe()} 提供平台
+     <select id="regionSel" class="input" style="min-width:120px" aria-label="選擇區域">
+       ${REGIONS.map(([c,n])=>`<option value="${c}" ${c===store.region?"selected":""}>${n}</option>`).join("")}
+     </select>
+   </h3>
+   ${any?GROUPS.filter(([k])=>p[k].length).map(([k,label])=>`
+   <div class="provgroup">
+     <span class="glabel">${label}</span>
+     <div class="provrow">${p[k].map(n=>`<span class="prov"><span class="pdot" style="background:${PROVCOLOR[n]||"#888"}"></span>${esc(n)}</span>`).join("")}</div>
+   </div>`).join("")
+   :`<p class="small muted">此區域暫無串流資訊——作品仍會正常出現在所有列表，不會被隱藏。</p>`}
+   <p class="attrline">提供者資料由 JustWatch 授權 · 本產品使用 TMDB API 但未被 TMDB 認可或認證</p>
+ </section>`;
+}
+
+function iconGlobe(){return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>';}
+const iconStar=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>';
+const iconThumbUp=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+const iconThumbDown=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+const iconBookmark=()=>'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>';
+const iconFlame=()=>'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+const iconPopcorn=()=>'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 12a3 3 0 0 1-2-5.3A3 3 0 0 1 7.5 3.5a3 3 0 0 1 6-1.5A3 3 0 0 1 17 6.7 3 3 0 0 1 15 12"/><path d="M5 11l1 9h12l1-9"/></svg>';
+const iconPotato=()=>'<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-3.8 0-6.5 1.8-7.4 4.4C3.2 8.2 3 9 3 10c0 2 .8 3.4 2 4.8V19c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-4.2c1.2-1.4 2-2.8 2-4.8 0-1-.2-1.8-.6-2.6C18.5 4.8 15.8 3 12 3zM8.5 8.5A1.5 1.5 0 1 1 8.5 11.5 1.5 1.5 0 0 1 8.5 8.5zm7 0a1.5 1.5 0 1 1-1.5 1.5 1.5 1.5 0 0 1 1.5-1.5zM12 13a1.5 1.5 0 1 1-1.5 1.5A1.5 1.5 0 0 1 12 13z"/></svg>';
+const iconSat=()=>'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 7 9 3 5 7l4 4"/><path d="m17 11 4 4-4 4-4-4"/><path d="m8 12 4 4 6-6-4-4Z"/><path d="m16 8 3-3"/><path d="M9 21a6 6 0 0 0-6-6"/></svg>';
+
+function rateButtons(x){
+ const cur=store.ratings[x.id];
+ const icons={awesome:iconStar(),good:iconThumbUp(),sucks:iconThumbDown()};
+ const labels={awesome:"超棒",good:"不錯",sucks:"不行"};
+ return `<div class="ratepop" role="group" aria-label="你的評價">
+   <button type="button" class="rateicon${cur?" on":""}" data-rate-toggle aria-label="${cur?"已評價："+labels[cur]+"（點擊取消）":"評價這部片"}" title="${cur?labels[cur]:"評價"}">${icons[cur]||iconThumbUp()}</button>
+   <div class="ratefly">
+     ${["awesome","good","sucks"].map(k=>`<button type="button" class="rateopt${cur===k?" on":""}" data-rate="${k}" aria-label="${labels[k]}" title="${labels[k]}">${icons[k]}</button>`).join("")}
+   </div>
+ </div>`;
+}
+
+function statusButtons(x){
+ const st=store.status[x.id];
+ return `<div class="statusrow" role="group" aria-label="觀看狀態">
+   <button type="button" class="sbtn" data-status="watchlisted" data-active="${st==="watchlisted"?1:0}" aria-label="待看清單" title="待看清單">${iconBookmark()}</button>
+   <button type="button" class="sbtn" data-status="watched" data-active="${st==="watched"?1:0}" aria-label="已看" title="已看"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+ </div>`;
+}
+
+const CASTNAMES=["張復建","林明華","陳冠宇","李珮瑜","王柏硯","黃思婷","吳翊誠","蔡佳穎","劉承翰","許雅雯","楊政翰","鄭婉如"];
+const KWPOOL=["原作改編","獲獎無數","史詩","口碑之作","經典系列","年度話題","艾美獎","金球獎","大製作","獨立小品","改編小說","續集"];
+const TAGLINES={
+ shogun:"權力，比刀劍更鋒利。",dune2:"每一次沙暴，都是戰爭的序曲。",oppenheimer:"我成了死神，世界的毀滅者。",tlou:"在崩壞的世界裡，愛是唯一的疫苗。",
+ io2:"成長，就是一場情緒風暴。",rickmorty:"Wubba Lubba Dub Dub！",heron:"活在世上，總要為自己找個去處。",blackmirror:"科技越近，人性越遠。",
+ godzilla:"王者的怒吼，劃破海底。",truedetective:"時間是一個扁平的圓。"
+};
+const CREW={
+ shogun:[["製作人","真田廣之"],["導演","瑞秋·近藤"],["編劇","賈斯汀·馬克斯"]],
+ dune2:[["導演","丹尼·維勒納夫"],["編劇","喬·斯派茨"]],
+ oppenheimer:[["導演","克里斯多福·諾蘭"],["編劇","克里斯多福·諾蘭"]],
+ tlou:[["製作人","克雷格·麥辛"],["導演","尼爾·德拉克曼"]],
+ io2:[["導演","凱爾西·曼"],["配音","艾米·波勒"]],
+ rickmorty:[["主創","賈斯汀·羅蘭"],["主創","丹·哈蒙"]],
+ heron:[["導演","宮崎駿"],["配樂","久石讓"]],
+ blackmirror:[["主創","查理·布魯克"]],
+ godzilla:[["導演","亞當·溫高德"],["編劇","泰瑞·羅西奧"]],
+ truedetective:[["主創","尼克·皮佐拉托"]]
+};
+function crewFor(x){return CREW[x.id]||[];}
+function castFor(x){
+ const seed=[...x.id].reduce((a,c)=>a+c.charCodeAt(0),0);
+ return Array.from({length:6},(_,i)=>({name:CASTNAMES[(seed+i*3)%CASTNAMES.length],role:["主角","配角","配角","配角","演員","演員"][i]}));
+}
+function kwFor(x){
+ const seed=[...x.id].reduce((a,c)=>a+c.charCodeAt(0),7);
+ return Array.from({length:4},(_,i)=>KWPOOL[(seed+i*5)%KWPOOL.length]);
+}
+
+function renderDetail(id){
+ const x=byId(id)||TITLES[0];
+ const cast=castFor(x);
+ const kw=kwFor(x);
+ const crew=crewFor(x);
+ const st=store.status[x.id];
+ const recs=TITLES.filter(t=>t.id!==x.id).sort((a,b)=>(b.kind===x.kind)-(a.kind===x.kind)).slice(0,6);
+ root.innerHTML=`
+ <div class="backrow"><button class="linkbtn" data-back>← 返回首頁</button></div>
+ <div class="dwrap">
+   <div class="dhero" style="background:${x.tone}">
+     <div class="bigposter"><div style="aspect-ratio:2/3;background:${x.tone};display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:64px;font-weight:800;color:#fff;opacity:.34">${esc(x.glyph)}</span><span style="position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;color:#fff;opacity:.7;display:inline-flex;align-items:center;gap:4px">${iconBookmark()} ${store.status[x.id]==="watchlisted"?"待看中":"未收藏"}</span></div></div>
+     <div class="info">
+       <h1 class="dtitle">${esc(x.t)} <span class="dyear">(${x.y})</span></h1>
+       <div class="metarow"><span>${esc(x.runtime)}</span><span>·</span>${x.g.map(g=>`<span class="tag">${GLABEL[g]}</span>`).join("")}</div>
+       <div class="drating">
+         <span class="avg">★ ${x.r}</span><span class="avglab">平均評分</span>
+         <span style="flex:1"></span>
+         ${rateButtons(x)}
+       </div>
+       <div class="dact">
+         <button type="button" class="screbtn primary" data-trailer>▶ 播放預告</button>
+         ${statusButtons(x)}
+       </div>
+       <p class="tagline">${esc(TAGLINES[x.id]||"")}</p>
+       <p class="overview">${esc(x.ov)}</p>
+       <div class="crewline">${crew.map(c=>`<span><b>${esc(c[0])}</b> ${esc(c[1])}</span>`).join("")}</div>
+     </div>
+   </div>
+ </div>
+ <div class="dgrid">
+   <aside class="dside">
+     <section class="panel dfact" aria-label="作品資料">
+       <h3>作品資料</h3>
+       <dl>
+         <dt>原始標題</dt><dd>${esc(x.en)}</dd>
+         <dt>類型</dt><dd>${x.kind==="movie"?"電影":"影集"}</dd>
+         <dt>上映／首播</dt><dd>${x.y}</dd>
+         <dt>片長</dt><dd>${esc(x.runtime)}</dd>
+         <dt>熱門度</dt><dd>${iconFlame()} ${x.pop}</dd>
+       </dl>
+       <hr>
+       <h3>關鍵字</h3>
+       <div class="kwrow">${kw.map(k=>`<span class="tag">${esc(k)}</span>`).join("")}</div>
+     </section>
+   </aside>
+   <main class="dmain">
+     ${providerPanel(x)}
+     <section class="panel" aria-label="主要演員">
+       <h3>主要演員</h3>
+       <div class="castrow">${cast.map(c=>`
+         <div class="castcard"><div class="castavatar">${esc(c.name[0])}</div><b>${esc(c.name)}</b><span>${esc(c.role)}</span></div>`).join("")}</div>
+     </section>
+     <section class="panel" aria-label="預告片">
+       <h3>預告片</h3>
+       <div class="trailer" id="trailerBox" role="button" tabindex="0" aria-label="播放預告片">
+         <div class="play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#111"><path d="M8 5v14l11-7z"/></svg></div>
+         <span class="playinglabel">▶ 正在播放：官方預告片（示意）</span>
+       </div>
+     </section>
+   </main>
+ </div>
+ <div class="rowhead" style="padding:14px 18px 0"><h3>相關推薦</h3></div>
+ <div class="recstrip">${recs.map(posterCard).join("")}</div>`;
+ root.querySelector("[data-back]").addEventListener("click",goHome);
+root.querySelectorAll("[data-trailer]").forEach(b=>b.addEventListener("click",()=>{
+    const d=$("#trailerDialog");
+    if(d&&typeof d.showModal==="function"){
+      d.showModal();
+      const box=$("#dialogTrailerBox");
+      if(box){box.classList.add("playing");setTimeout(()=>box.classList.remove("playing"),2600);}
+    }else{
+      const t=$("#trailerBox");if(t){t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.add("playing");setTimeout(()=>t.classList.remove("playing"),2600);}
+    }
+  }));
+ const tb=$("#trailerBox");
+ tb.addEventListener("click",()=>tb.classList.toggle("playing"));
+ tb.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tb.classList.toggle("playing");}});
+ $("#regionSel").addEventListener("change",e=>{store.region=e.target.value;renderDetail(x.id);toast("已切換區域："+REGIONS.find(r=>r[0]===store.region)[1]);});
+ root.querySelectorAll("[data-rate]").forEach(el=>el.addEventListener("click",()=>{
+   const k=el.dataset.rate;
+   if(store.ratings[x.id]===k){delete store.ratings[x.id];toast("已刪除評價");}
+   else{store.ratings[x.id]=k;toast(`已評價「${{awesome:"超棒",good:"不錯",sucks:"不行"}[k]}」（僅自己可見）`);}
+   renderDetail(x.id);
+ }));
+ root.querySelector("[data-rate-toggle]").addEventListener("click",()=>{
+   if(store.ratings[x.id]){delete store.ratings[x.id];toast("已刪除評價");renderDetail(x.id);}
+ });
+ root.querySelectorAll("[data-status]").forEach(el=>el.addEventListener("click",()=>{
+   const k=el.dataset.status,cur=store.status[x.id];
+   if(k==="watchlisted"){
+     if(cur==="watched"){store.status[x.id]="watchlisted";toast("從已看移回待看清單");}
+     else if(cur==="watchlisted"){delete store.status[x.id];toast("已從待看清單移除");}
+     else{store.status[x.id]="watchlisted";toast("已加入待看清單");}
+   }else{
+     if(cur==="watched"){delete store.status[x.id];toast("已取消已看標記");}
+     else{
+       const was=cur==="watchlisted";
+       store.status[x.id]="watched";
+       toast(was?"已標記已看（並從待看清單移除）":"已標記已看");
+     }
+   }
+   renderDetail(x.id);
+ }));
+ bindOpen(root);
+}
+
+function renderList(){
+ const tabs=[["watchlisted","待看清單",Object.keys(store.status).filter(id=>store.status[id]==="watchlisted").length],
+             ["watched","已看",Object.keys(store.status).filter(id=>store.status[id]==="watched").length],
+             ["rated","已評分",Object.keys(store.ratings).length]];
+ const cur=store.listTab;
+ const ids=cur==="rated"?Object.keys(store.ratings):Object.keys(store.status).filter(id=>store.status[id]===cur);
+ const RLABEL={awesome:"超棒",good:"不錯",sucks:"不行"};
+ root.innerHTML=`
+ <div class="backrow"><button class="linkbtn" data-back>← 返回首頁</button></div>
+ <div class="listtabs" role="tablist" aria-label="我的清單分頁">
+   ${tabs.map(([k,l,n])=>`<button class="chipbtn ${cur===k?"on":""}" data-tab="${k}" role="tab" aria-selected="${cur===k}">${l}（${n}）</button>`).join("")}
+ </div>
+ ${ids.length?ids.map(id=>{const x=byId(id);if(!x)return `<div class="listitem"><div class="li-main"><b>作品已不在目錄中</b><span class="xs">此項目的 TMDB 資料已被移除，僅顯示佔位資訊</span></div></div>`;
+   return `<div class="listitem" data-open="${x.id}" role="button" tabindex="0">
+     <div class="thumb" style="background:${x.tone}"></div>
+     <div class="li-main"><b>${esc(x.t)}</b><span><span class="star">★</span> ${x.r} · ${x.y} · ${KLABEL[x.kind]}${store.ratings[x.id]?` · 你的評價：「${RLABEL[store.ratings[x.id]]}」`:""}</span></div>
+     <span class="muted small" style="display:inline-flex;align-items:center;gap:4px">${store.status[x.id]==="watched"?`${'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'} 已看`:store.status[x.id]==="watchlisted"?`${iconBookmark()} 待看`:""}</span>
+   </div>`;}).join("")
+ :`<div class="empty"><span style="opacity:.5">${iconPopcorn()}</span><b>這裡還空空的</b><span class="small">到首頁逛逛，或在詳情頁加上標記／評價</span></div>`}`;
+ root.querySelector("[data-back]").addEventListener("click",goHome);
+ root.querySelectorAll("[data-tab]").forEach(el=>el.addEventListener("click",()=>{store.listTab=el.dataset.tab;render();}));
+ bindOpen();
+}
+
+function render(){
+ const s=store.screen;
+ document.querySelectorAll("#appnav a").forEach(a=>a.classList.toggle("on",s.name==="list"));
+ if(s.name==="home")buildHomeShell();
+ else if(s.name==="detail")renderDetail(s.id);
+ else if(s.name==="topic")renderTopic();
+ else renderList();
+ const tips={
+  home:["① 巨幕「本週首選」：▶ 預告與詳情 進詳情頁；＋待看清單 直接收藏（再點一次取消）","② 頂欄＝容器內的漂浮膠囊：下滑收起、上滑浮出，捲動中隨時可打字搜尋","③ 一條工具列完成所有切換：電影↔影集｜★7+/★8+｜類型晶片｜清除全部","④ 點任一分類列右側「查看全部」→ 跳轉該主題專屬頁（無篩選器）","⑤ 滑鼠停在任一海報上 → 簡介覆疊（最多三行）；點海報進詳情頁","⑥ 右下角「試色」膠囊：切換多組強調色全站即時預覽，幫 Q2 選色"],
+  detail:["⑦ 詳情頁採 TMDB 式 hero：標題列與海報同高對齊，右欄依序為片名＋年份／類別徽章／平均評分與評價／操作列／tagline／簡介／製作群列","⑧ 下方左右兩欄：左側「作品資料＋關鍵字」事實欄，右側主欄放提供平台、主要演員、預告片","⑨ 切換區域下拉 → 提供平台即時更新（訂閱→免費→租借→購買）","⑩ 評價採 Netflix 式：hover 評價 icon 彈出 星／讚／倒讚 三選一，再點可取消","⑪ 加入待看清單 → 再點「已看」，觀察自動移出待看清單","⑫ 點「相關推薦」跳到另一部片的詳情頁","⑬ 任何海報右上角書籤鈕：一鍵加入／移除待看（常駐顯示）"],
+  list:["⑭ 三個分頁即時反映你在詳情頁的操作（待看／已看／已評分）","⑮ 點列項回到該片詳情頁"]
+ };
+ $("#trychips").innerHTML=tips[s.name].map(t=>`<span class="try">${t}</span>`).join("");
+}
+
+document.querySelectorAll("#appnav a").forEach(a=>a.addEventListener("click",()=>{store.screen={name:a.dataset.nav};render();}));
+document.querySelectorAll(".logo").forEach(l=>l.addEventListener("click",goHome));
+
+const gq=$("#gsearch"),gclear=$("#gclear");
+gq.addEventListener("input",()=>{
+ const raw=gq.value,q=raw.trim();
+ gclear.hidden=!raw;
+ if(store.screen.name!=="home"){store.screen={name:"home"};buildHomeShell();}
+ const h=store.home;
+ if(q){
+   h.query=q;h.shown=PAGE;
+   if(h.genres.size||h.rating){resetFiltersKeepQuery(h);}
+ }else{
+   h.query="";
+ }
+ syncRail();renderContent();
+});
+function resetFiltersKeepQuery(h){h.genres.clear();h.rating="";}
+gclear.addEventListener("click",()=>{
+ gq.value="";gclear.hidden=true;store.home.query="";store.home.shown=PAGE;
+ syncRail();renderContent();gq.focus();
+});
+
+(function stickyBar(){
+ const bar=$("#mockbar"),frameEl=$("#mockframe");
+ let lastY=window.scrollY;
+ window.addEventListener("scroll",()=>{
+   const y=window.scrollY,delta=y-lastY;lastY=y;
+   const rect=frameEl.getBoundingClientRect();
+   const stuck=rect.top<=0&&rect.bottom>90;
+   if(!stuck){bar.classList.remove("hide");return;}
+   if(delta>2&&y>60)bar.classList.add("hide");
+   else if(delta<-2)bar.classList.remove("hide");
+ },{passive:true});
+})();
+
+const swatches=[["background","背景"],["foreground","前景文字"],["card","卡片"],["primary","主要（按鈕）"],["secondary","次要"],["muted","靜音底"],["accent","強調底"],["destructive","破壞性"],["border","邊框"],["ring","焦點環"]];
+function renderSwatches(){
+ $("#swatches").innerHTML=swatches.map(([n,l])=>{
+  const cs=getComputedStyle(document.documentElement);
+  const v=cs.getPropertyValue("--"+n).trim();
+  return `<div class="swatch"><div class="chip" style="background:var(--${n});${n==="border"||n==="ring"?'box-shadow:inset 0 0 0 1px rgba(128,128,128,.3);':""}"></div><div class="meta"><b>--${n} · ${l}</b><span>${esc(v)||"—"}</span></div></div>`;
+ }).join("");
+}
+renderSwatches();
+
+const PALETTES=[
+ {id:"violet",label:"幽夜紫",p:"oklch(0.72 0.16 293)",pf:"oklch(0.16 0.04 293)",ring:"oklch(0.64 0.17 290)"},
+ {id:"cyan",label:"極光青",p:"oklch(0.78 0.12 200)",pf:"oklch(0.17 0.03 220)",ring:"oklch(0.70 0.13 205)"},
+ {id:"gold",label:"馬鈴薯金",p:"oklch(0.80 0.14 85)",pf:"oklch(0.20 0.03 85)",ring:"oklch(0.72 0.15 80)"},
+ {id:"emerald",label:"翡翠綠",p:"oklch(0.75 0.14 165)",pf:"oklch(0.15 0.03 170)",ring:"oklch(0.68 0.15 168)"},
+ {id:"coral",label:"珊瑚紅",p:"oklch(0.71 0.18 25)",pf:"oklch(0.16 0.03 25)",ring:"oklch(0.63 0.19 30)"},
+ {id:"red",label:"劇院紅",p:"oklch(0.5 0.17 26)",pf:"oklch(0.97 0.01 26)",ring:"oklch(0.44 0.15 28)"},
+ {id:"sky",label:"天空藍",p:"oklch(0.73 0.11 245)",pf:"oklch(0.15 0.02 250)",ring:"oklch(0.65 0.12 250)"},
+ {id:"mono",label:"純中性",p:"oklch(0.922 0 0)",pf:"oklch(0.205 0 0)",ring:"oklch(0.556 0 0)"}
+];
+function applyAccent(pid){
+ const pal=PALETTES.find(x=>x.id===pid);
+ if(!pal)return;
+ const rs=document.documentElement.style;
+ rs.setProperty("--primary",pal.p);
+ rs.setProperty("--primary-foreground",pal.pf);
+ rs.setProperty("--ring",pal.ring);
+ try{localStorage.setItem("spudtube.accent",pid);}catch(e){}
+ document.querySelectorAll(".tswatch").forEach(b=>b.classList.toggle("on",b.dataset.pal===pid));
+ const r=document.querySelector(`input[name="q2"][data-pal="${pid}"]`);
+ if(r)r.checked=true;
+ renderSwatches();
+}
+(function themeDock(){
+ let saved=null;try{saved=localStorage.getItem("spudtube.accent");}catch(e){}
+ if(!PALETTES.some(p=>p.id===saved))saved="mono";
+ const dock=document.createElement("div");
+ dock.className="themedock";dock.id="themedock";
+ dock.setAttribute("role","radiogroup");dock.setAttribute("aria-label","品牌強調色即時試色");
+ dock.innerHTML=`<span class="dlab">試色</span>`+PALETTES.map(p=>`<button type="button" class="tswatch${p.id===saved?" on":""}" data-pal="${p.id}" style="background:${p.p};${p.id==="mono"?"box-shadow:inset 0 0 0 1px rgba(128,128,128,.45)":""}" title="${p.label}" aria-label="${p.label}"></button>`).join("");
+ dock.addEventListener("click",e=>{const b=e.target.closest("[data-pal]");if(b)applyAccent(b.dataset.pal);});
+ document.body.appendChild(dock);
+ applyAccent(saved);
+})();
+document.querySelectorAll('input[name="q2"]').forEach(r=>r.addEventListener("change",()=>{if(r.dataset.pal)applyAccent(r.dataset.pal);}));
+
+(function renderIcons(){
+ const paths={
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  star:'<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+  bookmark:'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  play:'<polygon points="6 3 20 12 6 21 6 3"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+  film:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M17 3v18M3 7.5h4M17 7.5h4M3 12h18M3 16.5h4M17 16.5h4"/>',
+  tv:'<rect width="20" height="15" x="2" y="7" rx="2"/><polyline points="17 2 12 7 7 2"/>',
+  list:'<path d="M3 12h.01M3 18h.01M3 6h.01M8 12h13M8 18h13M8 6h13"/>',
+  thumbsup:'<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>'
+ };
+ const defs=[["search","搜尋 20"],["film","電影 24"],["tv","影集 24"],["star","評價 20"],["bookmark","待看 20"],["check","已看 20"],["play","播放 24"],["globe","區域 16"],["thumbsup","讚 16"],["list","清單 16"],["x","清除 16"]];
+ $("#iconrow").innerHTML=defs.map(([k,l])=>{
+  const sz=k==="globe"||k==="thumbsup"||k==="list"||k==="x"?18:k==="search"||k==="star"||k==="bookmark"||k==="check"?22:26;
+  const filled=k==="star"||k==="bookmark";
+  return `<div class="iconcell"><svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="${filled?"currentColor":"none"}" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${paths[k]}</svg><span>${l}</span></div>`;
+ }).join("");
+})();
+
+window.lavishQueue=function(form,qkey,text,data){
+ const fd=new FormData(form);
+ const val=fd.get(qkey);
+ if(!val)return;
+ window.lavish.queuePrompt(text,{tag:"design-decision",text:text,data:Object.assign({answer:val},data||{}),element:form});
+ form.querySelector(".queuednote").style.display="inline-flex";
+ const b=form.querySelector('button[type="submit"]');b.textContent="已送出（可修改後重送）";
+};
+
+document.querySelectorAll("form.decision").forEach(form=>{
+ form.addEventListener("submit",e=>{
+  e.preventDefault();
+  const q=form.getAttribute("data-question");
+  const map={
+   "q2-accent":["設計基線決定 Q2 · 品牌強調色",{question:"brand-accent"}],
+   "q4-mockup-approval":["設計基線決定 Q4 · 三張關鍵畫面核准(v8)",{question:"mockup-approval-v8"}]
+  };
+  const [txt,data]=map[q];
+  window.lavishQueue(form,q.replace(/-/g,""),txt,data);
+ });
+});
+
+render();
+})();
+</script>
+</body>
+</html>

@@ -12,5 +12,32 @@
   },
   "language": {
     "label": "語言"
+  },
+  "auth": {
+    "signIn": "登入",
+    "signOut": "登出"
+  },
+  "detail": {
+    "loading": "載入中…",
+    "error": "暫時無法取得資料，請稍後再試。",
+    "back": "返回首頁",
+    "trailer": "預告片",
+    "recommendations": "你可能也會喜歡",
+    "runtimeMinutes": "{minutes} 分鐘",
+    "kind": {
+      "movie": "電影",
+      "tv": "影集"
+    },
+    "facts": {
+      "heading": "作品資料",
+      "kind": "類型",
+      "released": "上映／首播",
+      "runtime": "片長"
+    },
+    "notFound": {
+      "title": "找不到這部作品",
+      "body": "它可能已從目錄中移除，或是連結有誤。",
+      "backHome": "回到首頁"
+    }
   }
 }

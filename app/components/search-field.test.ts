@@ -37,14 +37,4 @@ describe('search-field', () => {
     await clear.trigger('click')
     expect(wrapper.emitted('clear')).toHaveLength(1)
   })
-
-  it('keeps the clear button visible with an empty query when clearable', async () => {
-    const wrapper = await mountSuspended(SearchField, { props: { query: '', clearable: true } })
-
-    const clear = wrapper.find('button')
-    expect(clear.exists()).toBe(true)
-
-    await clear.trigger('click')
-    expect(wrapper.emitted('clear')).toHaveLength(1)
-  })
 })

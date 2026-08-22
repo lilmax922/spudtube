@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { LoaderCircle } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { AnimatePresence, motion } from 'motion-v'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBrowseGrid } from '../composables/use-browse-grid'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
-import { useKeywordSearch } from '../composables/use-keyword-search'
+import { useSearchState } from '../composables/use-search-state'
 import GenreChips from './genre-chips.vue'
 import KindToggle from './kind-toggle.vue'
-import SearchField from './search-field.vue'
 import TitleCard from './title-card.vue'
 
 const { t } = useI18n()
@@ -26,18 +26,14 @@ const {
   clearGenres,
 } = useBrowseGrid()
 const {
-  query: searchQuery,
+  mode,
   searchedQuery,
   items: searchItems,
   loading: searchLoading,
   loadingMore: searchLoadingMore,
   error: searchError,
-  search,
   loadMore: searchLoadMore,
-  clear: clearSearch,
-} = useKeywordSearch()
-
-const mode = ref<'browse' | 'search'>('browse')
+} = useSearchState()
 
 const gridItems = computed(() => (mode.value === 'search' ? searchItems.value : items.value))
 const gridLoading = computed(() => (mode.value === 'search' ? searchLoading.value : loading.value))
@@ -64,54 +60,33 @@ useInfiniteScroll(sentinel, () => {
     void loadMore()
 })
 
+watch(() => searchedQuery.value, (value) => {
+  if (value !== '')
+    clearGenres()
+})
+
 void refresh()
-
-function onSubmitSearch(): void {
-  if (searchQuery.value.trim() === '') {
-    if (mode.value === 'search')
-      onClearSearch()
-    return
-  }
-  mode.value = 'search'
-  clearGenres()
-  void search(searchQuery.value)
-}
-
-function onClearSearch(): void {
-  searchQuery.value = ''
-  clearSearch()
-  mode.value = 'browse'
-}
 </script>
 
 <template>
   <section class="flex flex-col gap-8" :aria-label="mode === 'search' ? t('search.sectionLabel') : t('browse.sectionLabel')">
-    <div class="flex flex-wrap items-center gap-x-8 gap-y-4">
-      <SearchField
-        :query="searchQuery"
-        :clearable="mode === 'search'"
-        @update:query="searchQuery = $event"
-        @search="onSubmitSearch"
-        @clear="onClearSearch"
-      />
-      <template v-if="mode === 'browse'">
-        <KindToggle :model-value="kind" @update:model-value="setKind" />
-        <div v-if="genres.length > 0" class="flex flex-wrap items-center gap-2">
-          <GenreChips
-            :genres="genres"
-            :model-value="selectedGenreIds"
-            @toggle="toggleGenre"
-          />
-        </div>
-        <button
-          v-if="selectedGenreIds.length > 0"
-          type="button"
-          class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          @click="clearGenres"
-        >
-          {{ t('browse.clearAll') }}
-        </button>
-      </template>
+    <div v-if="mode === 'browse'" class="flex flex-wrap items-center gap-x-8 gap-y-4">
+      <KindToggle :model-value="kind" @update:model-value="setKind" />
+      <div v-if="genres.length > 0" class="flex flex-wrap items-center gap-2">
+        <GenreChips
+          :genres="genres"
+          :model-value="selectedGenreIds"
+          @toggle="toggleGenre"
+        />
+      </div>
+      <button
+        v-if="selectedGenreIds.length > 0"
+        type="button"
+        class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        @click="clearGenres"
+      >
+        {{ t('browse.clearAll') }}
+      </button>
     </div>
 
     <p
@@ -140,18 +115,28 @@ function onClearSearch(): void {
       {{ emptyMessage }}
     </p>
 
-    <div
-      v-else
-      class="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-4"
-      :aria-busy="gridLoading || gridLoadingMore"
-    >
-      <TitleCard
-        v-for="title in gridItems"
-        :key="`${title.kind}-${title.tmdbId}`"
-        :title="title"
-        :show-kind="showKind"
-      />
-    </div>
+    <AnimatePresence mode="popLayout">
+      <motion.div
+        v-if="gridItems.length > 0"
+        key="results-grid"
+        layout
+        class="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-4"
+        :style="{ position: 'relative' }"
+        :aria-busy="gridLoading || gridLoadingMore"
+      >
+        <motion.div
+          v-for="title in gridItems"
+          :key="`${title.kind}-${title.tmdbId}`"
+          layout
+          :initial="{ opacity: 0, scale: 0.92 }"
+          :animate="{ opacity: 1, scale: 1 }"
+          :exit="{ opacity: 0, scale: 0.92 }"
+          :transition="{ duration: 0.18 }"
+        >
+          <TitleCard :title="title" :show-kind="showKind" />
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
 
     <div ref="sentinel" aria-hidden="true" />
 

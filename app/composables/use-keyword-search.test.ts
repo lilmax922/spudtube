@@ -43,6 +43,7 @@ describe('use-keyword-search', () => {
     expect(fetchSearch).toHaveBeenCalledWith('dune', 1)
     expect(search.query.value).toBe('dune')
     expect(search.searchedQuery.value).toBe('dune')
+    expect(search.mode.value).toBe('search')
     expect(search.items.value).toEqual([dune, duneTv])
     expect(search.hasMore.value).toBe(true)
     expect(search.error.value).toBe(false)
@@ -59,6 +60,7 @@ describe('use-keyword-search', () => {
     expect(fetchSearch).toHaveBeenCalledTimes(1)
     expect(search.query.value).toBe('')
     expect(search.searchedQuery.value).toBe('')
+    expect(search.mode.value).toBe('browse')
     expect(search.items.value).toEqual([])
     expect(search.hasMore.value).toBe(false)
     expect(search.loading.value).toBe(false)
@@ -66,6 +68,7 @@ describe('use-keyword-search', () => {
     await search.search('   ')
     expect(fetchSearch).toHaveBeenCalledTimes(1)
     expect(search.items.value).toEqual([])
+    expect(search.mode.value).toBe('browse')
   })
 
   it('appends the next page on loadMore and stops at the last page', async () => {

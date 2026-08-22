@@ -1,6 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
 import type { Page, TitleSummary } from '#server/tmdb/types'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { $fetch } from '#imports'
 import { usePagedResults } from './use-paged-results'
 
@@ -19,6 +19,7 @@ export function createApiSearchFetcher(): SearchFetcher {
 export interface KeywordSearchState {
   query: Ref<string>
   searchedQuery: Ref<string>
+  mode: ComputedRef<'browse' | 'search'>
   items: Ref<TitleSummary[]>
   page: Ref<number>
   totalPages: Ref<number>
@@ -34,6 +35,7 @@ export interface KeywordSearchState {
 export function useKeywordSearch(fetcher: SearchFetcher = createApiSearchFetcher()): KeywordSearchState {
   const query = ref('')
   const searchedQuery = ref('')
+  const mode = computed(() => (searchedQuery.value === '' ? 'browse' : 'search'))
   const { loadFirstPage, loadNextPage, reset, ...paged } = usePagedResults<TitleSummary>(page =>
     fetcher.fetchSearch(searchedQuery.value, page),
   )
@@ -59,6 +61,7 @@ export function useKeywordSearch(fetcher: SearchFetcher = createApiSearchFetcher
     ...paged,
     query,
     searchedQuery,
+    mode,
     search,
     loadMore: loadNextPage,
     clear,

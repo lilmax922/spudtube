@@ -4,12 +4,9 @@ import { useI18n } from 'vue-i18n'
 
 interface Props {
   query: string
-  clearable?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
-  clearable: false,
-})
+defineProps<Props>()
 
 const emit = defineEmits<{
   'update:query': [value: string]
@@ -36,7 +33,7 @@ const { t } = useI18n()
       @input="emit('update:query', ($event.target as HTMLInputElement).value)"
     >
     <button
-      v-if="query !== '' || clearable"
+      v-if="query !== ''"
       type="button"
       :aria-label="t('search.clear')"
       class="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"

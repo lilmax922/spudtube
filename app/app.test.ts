@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import App from './app.vue'
 
 describe('app shell', () => {
-  it('renders brand and tagline', async () => {
+  it('renders brand and scaffold strings from the locale bundles', async () => {
     const wrapper = await mountSuspended(App)
 
     expect(wrapper.text()).toContain('SpudTube')

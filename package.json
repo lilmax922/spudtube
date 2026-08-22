@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@lucide/vue": "^1.33.0",
+    "@nuxtjs/i18n": "^10.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -43,6 +44,7 @@
     "@nuxt/test-utils": "^4.1.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/pg": "^8.23.1",
+    "@vue/test-utils": "^2.4.11",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.9.0",
     "happy-dom": "^20.11.6",

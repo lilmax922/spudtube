@@ -5,7 +5,7 @@ import AccountMenu from './components/account-menu.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
-const { locale, t } = useI18n()
+const { locale } = useI18n()
 
 const { data: session } = await authClient.useSession(useFetch)
 
@@ -35,13 +35,8 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
         </div>
       </div>
     </header>
-    <main class="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-4 py-10">
-      <h1 class="text-3xl font-bold tracking-tight">
-        {{ t('home.title') }}
-      </h1>
-      <p class="mt-2 max-w-prose text-muted-foreground">
-        {{ t('home.tagline') }}
-      </p>
+    <main class="flex-1">
+      <NuxtPage />
     </main>
   </div>
 </template>

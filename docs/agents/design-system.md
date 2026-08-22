@@ -79,7 +79,7 @@ Single family **Inter**; weights 400/500/600/700/800. Chinese fallback Noto Sans
 
 ## Approved screens
 
-Three key screens were mocked and approved in the prototype (`.lavish/spudtube-design-baseline.html`):
+Three key screens were mocked and approved in the interactive prototype (`docs/design/spudtube-v1-prototype.html`):
 
 1. **Home / browse** — near-black base, floating capsule top bar, featured "now showing" hero, single control toolbar (kind seg | rating chips | genre chips | clear-all), poster category rows, each row's "view all" → dedicated topic page (no filters, infinite scroll).
 2. **Title detail** — TMDB-style single-column hero (title aligned with poster; meta chips, average rating + 3-way rate icon, actions, tagline, overview, crew line), below a two-column grid (facts + keywords sidebar | providers / cast row / trailer), bottom recommendations strip.

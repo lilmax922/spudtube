@@ -17,6 +17,15 @@
     "signIn": "登入",
     "signOut": "登出"
   },
+  "rating": {
+    "group": "你的評價",
+    "rate": "評價這部片",
+    "rated": "已評價：{label}",
+    "awesome": "超棒",
+    "good": "不錯",
+    "sucks": "不行",
+    "average": "平均評分"
+  },
   "detail": {
     "loading": "載入中…",
     "error": "暫時無法取得資料，請稍後再試。",

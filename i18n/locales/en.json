@@ -17,6 +17,15 @@
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
+  "rating": {
+    "group": "Your rating",
+    "rate": "Rate this title",
+    "rated": "Rated {label}",
+    "awesome": "Awesome",
+    "good": "Good",
+    "sucks": "Sucks",
+    "average": "Average rating"
+  },
   "detail": {
     "loading": "Loading…",
     "error": "Couldn't load this title right now. Please try again later.",

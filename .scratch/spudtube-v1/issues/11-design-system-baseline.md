@@ -4,9 +4,9 @@
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Theme tokens applied in the app shell so later tickets consume them directly
-- [ ] Decisions doc records choices with rationale pointers
-- [ ] Key-screen mockups reviewed and approved by the owner
-- [ ] Recommended path: `/prototype` in a fresh session against `.scratch/spudtube-v1/spec.md`
+- [x] Theme tokens applied in the app shell so later tickets consume them directly
+- [x] Decisions doc records choices with rationale pointers
+- [x] Key-screen mockups reviewed and approved by the owner
+- [x] Recommended path: `/prototype` in a fresh session against `.scratch/spudtube-v1/spec.md`

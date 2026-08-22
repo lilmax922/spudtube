@@ -10,9 +10,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Order: cheap static checks (lint, typecheck) and the test suite run in
-# parallel first so a fast failure blocks nothing; the expensive `nuxt build`
-# runs last, only after every cheaper gate has passed.
 jobs:
   lint:
     name: Lint

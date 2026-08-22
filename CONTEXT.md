@@ -37,8 +37,14 @@ The set of Providers carrying a given Title in a given Region. Zero or many Prov
 ### Display locale
 
 **DisplayLocale**:
-The `zh-TW` | `en` locale the interface renders in. Its default derives from the same platform country signal as DetectedRegion (`TW` → zh-TW, everything else → `en`); a manual per-browser choice overrides it permanently. It never changes catalog content or Availability, which follow Region.
+The `zh-TW` | `en` locale the interface renders in. Its default derives from the same platform country signal as DetectedRegion (`TW` → zh-TW, everything else → `en`); a manual per-browser choice overrides it permanently. It never changes catalog content or Availability, which follow Region; it also never changes the language TMDB returns for a Title's overview/tagline/genres, which is ContentLanguage.
 _Avoid_: country, market
+
+### Content language
+
+**ContentLanguage**:
+The language TMDB returns for a Title's overview, tagline, genres list and trailer preference. Independent of DisplayLocale and Region — switching the top-bar language or region does not change what copy TMDB returns. Today the TMDB client always requests `language=zh-TW`; the mapper falls back to the English copy only when the localized one is empty (`pickOverview`, `pickTrailerKey`). Pinned in ADR 0005.
+_Avoid_: ui language, title language
 
 ### Personal Tracking
 

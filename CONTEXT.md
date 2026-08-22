@@ -34,6 +34,12 @@ _Avoid_: platform, channel, service
 **Availability**:
 The set of Providers carrying a given Title in a given Region. Zero or many Providers per Title per Region.
 
+### Display locale
+
+**DisplayLocale**:
+The `zh-TW` | `en` locale the interface renders in. Its default derives from the same platform country signal as DetectedRegion (`TW` → zh-TW, everything else → `en`); a manual per-browser choice overrides it permanently. It never changes catalog content or Availability, which follow Region.
+_Avoid_: country, market
+
 ### Personal Tracking
 
 **User**:

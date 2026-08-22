@@ -1,9 +1,44 @@
 import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
+import type { Genre, TitleSummary } from '#server/tmdb/types'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../app.vue'
 import LanguageSwitcher from './language-switcher.vue'
+
+const titles: TitleSummary[] = [
+  {
+    kind: 'MOVIE',
+    tmdbId: 419430,
+    name: '沙丘',
+    posterPath: '/d5NXSklXoIq1Ue0nbpZppWPop2P.jpg',
+    backdropPath: null,
+    releaseDate: '2021-10-22',
+    voteAverage: 7.8,
+  },
+]
+
+const genres: Genre[] = [
+  { id: 28, name: '動作' },
+  { id: 878, name: '科幻' },
+]
+
+vi.mock('../composables/use-browse-grid', () => ({
+  useBrowseGrid: () => ({
+    kind: 'MOVIE',
+    selectedGenreIds: [],
+    genres,
+    items: titles,
+    loading: false,
+    loadingMore: false,
+    error: false,
+    refresh: vi.fn(),
+    loadMore: vi.fn(),
+    setKind: vi.fn(),
+    toggleGenre: vi.fn(),
+    clearGenres: vi.fn(),
+  }),
+}))
 
 function findButton(wrapper: VueWrapper<unknown>, label: string): DOMWrapper<Element> | undefined {
   return wrapper.findAll('button').find(button => button.text() === label)
@@ -50,24 +85,24 @@ describe('display locale resolution through the app shell', () => {
   it('falls back to en without any country signal', async () => {
     const wrapper = await mountSuspended(App, { route: '/?probe=4' })
 
-    expect(wrapper.text()).toContain('Decide what to watch')
+    expect(wrapper.text()).toContain('Movies')
   })
 
   it('honors the persisted choice over the resolved default', async () => {
     writeLocaleCookie('zh-TW')
     const wrapper = await mountSuspended(App, { route: '/?probe=5' })
 
-    expect(wrapper.text()).toContain('決定接下來看什麼')
+    expect(wrapper.text()).toContain('電影')
   })
 
-  it('re-renders scaffold strings without reload', async () => {
+  it('re-renders landing strings without reload', async () => {
     const wrapper = await mountSuspended(App, { route: '/?probe=6' })
 
     await findButton(wrapper, '繁體中文')!.trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('決定接下來看什麼')
-    expect(wrapper.text()).not.toContain('Decide what to watch')
+    expect(wrapper.text()).toContain('電影')
+    expect(wrapper.text()).not.toContain('Movies')
     await vi.waitFor(() => expect(document.documentElement.lang).toBe('zh-TW'))
   })
 })

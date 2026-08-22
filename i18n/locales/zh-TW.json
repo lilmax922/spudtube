@@ -1,7 +1,14 @@
 {
-  "home": {
-    "title": "決定接下來看什麼",
-    "tagline": "探索電影與電視劇，查看你所在地區有哪些串流平台，並保存你的私人評分與片單。"
+  "browse": {
+    "sectionLabel": "瀏覽片單",
+    "kindLabel": "類型",
+    "kindMovies": "電影",
+    "kindTvShows": "電視劇",
+    "genresLabel": "類型",
+    "clearAll": "清除全部",
+    "loading": "載入中…",
+    "empty": "沒有符合條件的片單",
+    "error": "載入片單時發生錯誤"
   },
   "language": {
     "label": "語言"

@@ -10,6 +10,15 @@
     "empty": "No titles match your filters",
     "error": "Something went wrong while loading titles"
   },
+  "search": {
+    "sectionLabel": "Search results",
+    "label": "Search",
+    "placeholder": "Search movies and TV shows",
+    "clear": "Clear search",
+    "noResults": "No results for \"{query}\"",
+    "loading": "Searching…",
+    "error": "Something went wrong while searching"
+  },
   "language": {
     "label": "Language"
   },

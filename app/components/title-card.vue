@@ -2,9 +2,15 @@
 import type { TitleSummary } from '#server/tmdb/types'
 import { Clapperboard } from '@lucide/vue'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { kindLabelKey } from '../lib/kind'
 import { posterUrl } from '../lib/tmdb-image'
 
-const props = defineProps<{ title: TitleSummary }>()
+const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean }>(), {
+  showKind: false,
+})
+
+const { t } = useI18n()
 
 const imageFailed = ref(false)
 
@@ -17,7 +23,14 @@ const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
 
 <template>
   <article class="group flex flex-col">
-    <div class="aspect-[2/3] overflow-hidden rounded-lg bg-muted">
+    <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted">
+      <span
+        v-if="showKind"
+        data-testid="kind-badge"
+        class="absolute left-2 top-2 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-foreground backdrop-blur"
+      >
+        {{ t(kindLabelKey(title.kind)) }}
+      </span>
       <img
         v-if="posterSrc && !imageFailed"
         :src="posterSrc"

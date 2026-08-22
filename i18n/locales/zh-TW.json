@@ -10,6 +10,15 @@
     "empty": "沒有符合條件的片單",
     "error": "載入片單時發生錯誤"
   },
+  "search": {
+    "sectionLabel": "搜尋結果",
+    "label": "搜尋",
+    "placeholder": "搜尋電影和電視劇",
+    "clear": "清除搜尋",
+    "noResults": "沒有與「{query}」相符的結果",
+    "loading": "搜尋中…",
+    "error": "搜尋時發生錯誤"
+  },
   "language": {
     "label": "語言"
   },

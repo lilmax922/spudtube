@@ -1,5 +1,5 @@
 import type { TitleSummary } from '#server/tmdb/types'
-import { mount } from '@vue/test-utils'
+import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { describe, expect, it } from 'vitest'
 import TitleCard from './title-card.vue'
 
@@ -14,15 +14,15 @@ const baseTitle: TitleSummary = {
 }
 
 describe('title-card', () => {
-  it('renders the localized name and release year', () => {
-    const wrapper = mount(TitleCard, { props: { title: baseTitle } })
+  it('renders the localized name and release year', async () => {
+    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
 
     expect(wrapper.text()).toContain('沙丘')
     expect(wrapper.text()).toContain('2021')
   })
 
-  it('renders the poster from the TMDB image CDN when artwork exists', () => {
-    const wrapper = mount(TitleCard, { props: { title: baseTitle } })
+  it('renders the poster from the TMDB image CDN when artwork exists', async () => {
+    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
 
     const img = wrapper.find('img')
     expect(img.exists()).toBe(true)
@@ -32,8 +32,8 @@ describe('title-card', () => {
     expect(img.attributes('alt')).toBe('沙丘')
   })
 
-  it('degrades gracefully to a placeholder when artwork is missing', () => {
-    const wrapper = mount(TitleCard, {
+  it('degrades gracefully to a placeholder when artwork is missing', async () => {
+    const wrapper = await mountSuspended(TitleCard, {
       props: { title: { ...baseTitle, posterPath: null } },
     })
 
@@ -43,11 +43,35 @@ describe('title-card', () => {
   })
 
   it('degrades to the placeholder when the poster fails to load', async () => {
-    const wrapper = mount(TitleCard, { props: { title: baseTitle } })
+    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
 
     await wrapper.find('img').trigger('error')
 
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.find('svg').exists()).toBe(true)
+  })
+
+  it('labels the kind on the poster when showKind is set', async () => {
+    const wrapper = await mountSuspended(TitleCard, {
+      props: { title: baseTitle, showKind: true },
+    })
+
+    const badge = wrapper.find('[data-testid="kind-badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Movie')
+  })
+
+  it('shows the TV show label for TV_SHOW titles', async () => {
+    const wrapper = await mountSuspended(TitleCard, {
+      props: { title: { ...baseTitle, kind: 'TV_SHOW' }, showKind: true },
+    })
+
+    expect(wrapper.find('[data-testid="kind-badge"]').text()).toBe('TV Show')
+  })
+
+  it('hides the kind badge by default', async () => {
+    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
+
+    expect(wrapper.find('[data-testid="kind-badge"]').exists()).toBe(false)
   })
 })

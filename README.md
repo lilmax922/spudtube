@@ -59,7 +59,8 @@ pnpm production:wizard   # interactive checklist — prints wrangler + dashboard
 ```
 
 See [`docs/agents/production-deploy.md`](./docs/agents/production-deploy.md) for the
-full checklist (Pages project, `wrangler.toml` / `HYPERDRIVE`, `wrangler hyperdrive create`,
+full checklist (Pages project, `wrangler.jsonc` / `HYPERDRIVE` + `smart` placement &
+`observability`, `npx wrangler types`, `wrangler hyperdrive create`,
 `.dev.vars` for local Pages preview, and post-deploy verification: live TMDB,
 Google round-trip, Hyperdrive Availability, footer attribution).
 

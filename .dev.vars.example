@@ -1,0 +1,11 @@
+# Local Pages preview secrets — copy to `.dev.vars` (git-ignored) for `wrangler pages dev`.
+# Never commit real secrets. For prod, set these in Cloudflare Dashboard → Pages → Settings → Variables and Secrets.
+# Hyperdrive binding `HYPERDRIVE` is configured in wrangler.jsonc; these are the additional secrets.
+TMDB_TOKEN=
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# DATABASE_URL is NOT set on Pages when Hyperdrive is attached; for local `wrangler pages dev`
+# against the Supabase pooler (not Docker), uncomment and paste the pooler URL:
+# DATABASE_URL=postgresql://user:pass@host:6543/db?pgbouncer=true&sslmode=require

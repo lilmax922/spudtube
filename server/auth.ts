@@ -5,24 +5,26 @@ import { betterAuth } from 'better-auth/minimal'
 import { getDb, getHyperdriveConnectionString } from './db'
 import * as authSchema from './db/schema/auth'
 
-function createAuthInstance(event?: H3Event): any {
+type AuthInstance = ReturnType<typeof betterAuth>
+
+function createAuthInstance(event?: H3Event): AuthInstance {
   return betterAuth({
     baseURL: process.env.BETTER_AUTH_URL,
     trustHost: true,
     secret: process.env.BETTER_AUTH_SECRET,
-    database: drizzleAdapter(getDb(event as unknown as H3Event), { provider: 'pg', schema: authSchema }),
+    database: drizzleAdapter(getDb(event), { provider: 'pg', schema: authSchema }),
     socialProviders: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID ?? '',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
       },
     },
-  })
+  } as Parameters<typeof betterAuth>[0]) as AuthInstance
 }
 
-let singletonAuth: any
+let singletonAuth: AuthInstance | undefined
 
-function getSingletonAuth(): any {
+function getSingletonAuth(): AuthInstance {
   singletonAuth ??= createAuthInstance()
   return singletonAuth
 }
@@ -33,7 +35,7 @@ function getSingletonAuth(): any {
 // instance backed by the Hyperdrive Pool so each request uses the platform-managed
 // connection; otherwise we reuse the local singleton that points at DATABASE_URL. Callers
 // that do not have an event (CLI, tests, fixtures) fall through to the singleton.
-export function getAuth(event?: H3Event): any {
+export function getAuth(event?: H3Event): AuthInstance {
   if (event && getHyperdriveConnectionString(event)) {
     return createAuthInstance(event)
   }
@@ -44,7 +46,7 @@ export function getAuth(event?: H3Event): any {
 // defers singleton creation until first property access so importing this module alone never
 // opens a DB socket or requires DATABASE_URL (important when the only DB in production is
 // the Hyperdrive binding and no DATABASE_URL env var is set).
-export const auth: any = new Proxy({} as any, {
+export const auth: AuthInstance = new Proxy({} as AuthInstance, {
   get(_target, prop) {
     const instance = getSingletonAuth()
     const value = (instance as unknown as Record<string | symbol, unknown>)[prop]

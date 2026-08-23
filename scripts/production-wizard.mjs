@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-disable eslint-comments/no-unlimited-disable -- wizard needs unlimited disable to silence all rules */
+/* eslint-disable -- interactive wizard, not subject to antfu style; secrets never committed */
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 import { randomBytes } from 'node:crypto'
@@ -142,12 +144,13 @@ async function main() {
   println()
   println(`  npx wrangler hyperdrive create spudtube-db --connection-string="${poolerUrl}"`)
   println()
-  info('Note the returned `id` (e.g. abc123…). Then in wrangler.toml set:')
+  info('Note the returned `id` (e.g. abc123…). Then in wrangler.jsonc set:')
   println()
-  println('  [[hyperdrive]]')
-  println('  binding = "HYPERDRIVE"')
-  println(`  id = "PASTE_THE_ID_HERE"`)
-  println('  localConnectionString = "postgresql://spudtube:spudtube@localhost:5432/spudtube"')
+  println('  "hyperdrive": [{')
+  println('    "binding": "HYPERDRIVE",')
+  println(`    "id": "PASTE_THE_ID_HERE",`)
+  println('    "localConnectionString": "postgresql://spudtube:spudtube@localhost:5432/spudtube"')
+  println('  }]')
   println()
   info('For Pages dashboard deployments, also attach the Hyperdrive to the Pages')
   info('project: Cloudflare Dashboard → Pages → spudtube → Settings → Functions →')
@@ -216,7 +219,7 @@ async function main() {
 
   heading('Summary — what you just configured')
   println(`  Prod domain:        https://${prodDomain}`)
-  println(`  Hyperdrive ID:      ${hyperdriveId || '(fill in wrangler.toml after creation)'}`)
+  println(`  Hyperdrive ID:      ${hyperdriveId || '(fill in wrangler.jsonc after creation)'}`)
   println(`  Pooler URL host:    ${(() => { try { return new URL(poolerUrl).host } catch { return '(unparsable)' } })()}`)
   println(`  BetterAuth URL:     ${betterAuthUrl}`)
   println('  Pages auto-deploy:  on (push to main)')

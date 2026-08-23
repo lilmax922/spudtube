@@ -10,9 +10,15 @@ repeatable checklist the wizard prints and the code expects.
 - **Auto-deploy:** Pages project connected to the GitHub repo, branch `main`, build command
   `pnpm build`. Every push to `main` builds and deploys automatically — verify in the
   Pages dashboard that Branch = `main` and Auto-deploy is on.
-- **Local preview of the Pages runtime:** `npx wrangler pages dev .output/public --compatibility-date=2026-08-01`
-  after `pnpm build`. For secrets during local Pages preview use `.dev.vars` (git-ignored,
-  same shape as `.env`); the file is never committed.
+- **Local preview of the Pages runtime:** `npx wrangler pages dev ./dist` (or `dist` after
+  `pnpm build` with `cloudflare_pages` preset). For secrets during local Pages preview use
+  `.dev.vars` (git-ignored, see `.dev.vars.example`); the file is never committed.
+- **Config:** `wrangler.jsonc` is the source of truth (JSONC preferred per Wrangler docs).
+  `compatibility_date` is kept current (`2026-08-23`), `compatibility_flags: ["nodejs_compat"]`
+  is required for `pg`/`drizzle-orm`, `placement: {mode:"smart"}` optimizes multi-query
+  routes near the DB, and `observability` enables logs/traces. Run `npx wrangler types`
+  after any binding change — `worker-configuration.d.ts` is committed and provides the typed
+  `Env` (`HYPERDRIVE: Hyperdrive` plus secrets).
 
 ## Database: Supabase Postgres via Hyperdrive
 
@@ -25,23 +31,28 @@ Browser → Pages Worker → event.context.cloudflare.env.HYPERDRIVE.connectionS
                          → Hyperdrive cache/pool → Supabase pooler (6543) → Postgres
 ```
 
-- `server/db/index.ts` — `getHyperdriveConnectionString(event)` reads `event.context.cloudflare.env.HYPERDRIVE`
-  (also tolerates the older `event.context.cloudflare.HYPERDRIVE` shape). `resolveDatabaseUrl(event)`
-  prefers that binding over `process.env.DATABASE_URL`. `getDb(event)` creates a Pool per
-  request when Hyperdrive is present (so the platform's pooling applies) and reuses a
-  singleton otherwise. Tests use the singleton (`DATABASE_URL`).
-- `server/auth.ts` — `getAuth(event)` builds a Better Auth instance per hyperdrive request;
-  `server/utils/auth.ts` and `server/api/auth/[...all].ts` now thread `event` through.
-  The bare `auth` export remains as a lazy singleton for fixtures/tests.
-- `wrangler.toml` documents the binding (`[[hyperdrive]] binding = "HYPERDRIVE"`). The
-  `id` is replaced after `wrangler hyperdrive create`. `localConnectionString` lets
-  `wrangler pages dev` fall back to the Docker DB.
+- `server/db/index.ts` — `getHyperdriveConnectionString(event)` reads the single canonical
+  `event.context.cloudflare.env.HYPERDRIVE.connectionString` (typed via generated `Env`);
+  mis-placed bindings return `undefined` and cause an explicit `DATABASE_URL is required`
+  error instead of silently falling back. `resolveDatabaseUrl(event)` prefers Hyperdrive over
+  `process.env.DATABASE_URL`. `getDb(event)` creates a **per-request `Pool` (max 5)** when
+  Hyperdrive is present (respects Workers 6-connection limit, lets Hyperdrive pool) and reuses
+  a singleton `localDb` otherwise. Tests call `getDb()` without an event and use the singleton.
+- `server/auth.ts` — `getAuth(event)` builds a typed `AuthInstance` per hyperdrive request;
+  `server/utils/auth.ts` and `server/api/auth/[...all].ts` thread `event` through.
+  The bare `auth` export remains as a lazy singleton for fixtures/tests (deferred creation so
+  importing the module never requires `DATABASE_URL` when prod only has Hyperdrive).
+- `wrangler.jsonc` documents the binding (`hyperdrive: [{binding:"HYPERDRIVE",id:"…",localConnectionString}]`).
+  The `id` is replaced after `wrangler hyperdrive create`. `localConnectionString` lets
+  `wrangler pages dev` fall back to the Docker DB. `smart` placement and `observability`
+  are enabled per `workers-best-practices`.
 
 Steps (also printed by the wizard):
 
 1. `npx wrangler hyperdrive create spudtube-db --connection-string="postgresql://…:6543/…?pgbouncer=true&sslmode=require"`
    → note the returned `id`.
-2. Put that `id` into `wrangler.toml` (`[[hyperdrive]] id = "…"`) and, for a Pages dashboard
+2. Put that `id` into `wrangler.jsonc` (`hyperdrive[0].id = "…"`) and regenerate types:
+   `npx wrangler types` → commit `worker-configuration.d.ts`. For a Pages dashboard
    project, Dashboard → Pages → spudtube → Settings → Functions → Hyperdrive bindings →
    Add binding → variable `HYPERDRIVE` → pick `spudtube-db`.
 3. Do **not** set `DATABASE_URL` as a Pages secret when Hyperdrive is attached — the binding

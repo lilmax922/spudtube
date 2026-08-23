@@ -61,6 +61,9 @@ describe('tv detail route', () => {
     await vi.waitFor(() => {
       expect(wrapper.text()).toContain('提供平台')
     })
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('訂閱')
+    })
 
     const providerAlts = wrapper.findAll('img').map((image: DOMWrapper<Element>) => image.attributes('alt'))
     expect(providerAlts).toEqual(expect.arrayContaining(['CATCHPLAY+', 'Netflix']))

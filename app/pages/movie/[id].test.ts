@@ -63,8 +63,9 @@ describe('movie detail route', () => {
     await vi.waitFor(() => {
       expect(wrapper.text()).toContain('提供平台')
     })
-
-    expect(wrapper.text()).toContain('訂閱')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('訂閱')
+    })
     const providerAlts = wrapper.findAll('img').map(image => image.attributes('alt'))
     expect(providerAlts).toEqual(expect.arrayContaining(['CATCHPLAY+', 'Netflix']))
     expect(wrapper.text()).toContain('JustWatch')

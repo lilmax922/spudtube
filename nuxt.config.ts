@@ -11,8 +11,12 @@ export default defineNuxtConfig({
   imports: { autoImport: false },
   components: { dirs: [] },
   nitro: {
+    preset: 'cloudflare_pages',
     imports: false,
     ignore: ['**/*.test.ts'],
+    rollupConfig: {
+      external: ['pg-native'],
+    },
   },
   eslint: {
     config: { standalone: false },

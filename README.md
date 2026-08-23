@@ -37,14 +37,31 @@ pnpm db:migrate             # apply Drizzle schema
 pnpm dev
 ```
 
-Environment variables (see `.env.example`):
+Environment variables (see `.env.example`); in production all secrets live only
+in Cloudflare Pages → Settings → Variables and Secrets — never committed:
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Postgres connection string (local Docker or Supabase pooler) |
-| `TMDB_TOKEN` | TMDB API v4 read access token |
-| `BETTER_AUTH_SECRET` | Better Auth signing secret |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth client credentials |
+| `DATABASE_URL` | Local Docker Postgres URL; for prod migrations use the Supabase **transaction pooler** URL temporarily (`DATABASE_URL="…" pnpm db:migrate`); Pages runtime uses a **Hyperdrive** binding `HYPERDRIVE` instead |
+| `TMDB_TOKEN` | TMDB API v4 read access token (Bearer, starts with `eyJ…`) |
+| `BETTER_AUTH_SECRET` | Better Auth signing secret (`openssl rand -hex 32`) |
+| `BETTER_AUTH_URL` | Public base URL (`http://localhost:3000` locally, `https://YOUR_DOMAIN` in prod) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth web client — add both localhost and prod origins/redirects |
+
+Production deploy (ticket 13): Cloudflare Pages builds `main` automatically
+(`nuxt.config.ts` → `nitro.preset: "cloudflare_pages"`). The wizard script walks
+through the human-only steps — TMDB token, Supabase pooler + Hyperdrive binding,
+GCP OAuth prod redirect URIs, secrets on the platform, and migrations:
+
+```sh
+pnpm production:wizard   # interactive checklist — prints wrangler + dashboard steps
+# or: node scripts/production-wizard.mjs
+```
+
+See [`docs/agents/production-deploy.md`](./docs/agents/production-deploy.md) for the
+full checklist (Pages project, `wrangler.toml` / `HYPERDRIVE`, `wrangler hyperdrive create`,
+`.dev.vars` for local Pages preview, and post-deploy verification: live TMDB,
+Google round-trip, Hyperdrive Availability, footer attribution).
 
 Quality gates — every change must leave all four green before it counts as done:
 

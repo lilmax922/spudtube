@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "production:wizard": "node scripts/production-wizard.mjs"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.1",

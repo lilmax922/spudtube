@@ -7,6 +7,6 @@ import { parseStatusParams } from '../params'
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
   const { kind, id } = parseStatusParams(event)
-  const found = await findTitleStatus(getDb(), session.user.id, kind, id)
+  const found = await findTitleStatus(getDb(event), session.user.id, kind, id)
   return { status: found?.status ?? null }
 })

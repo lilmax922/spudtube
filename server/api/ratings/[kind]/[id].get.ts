@@ -7,6 +7,6 @@ import { parseRatingParams } from '../params'
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
   const { kind, id } = parseRatingParams(event)
-  const found = await findRating(getDb(), session.user.id, kind, id)
+  const found = await findRating(getDb(event), session.user.id, kind, id)
   return { label: found?.label ?? null }
 })

@@ -37,3 +37,14 @@ Findings from the two-axis code review, all resolved:
 - **Route dedup**: `ratingParamsSchema` + segment mapping consolidated into `server/api/ratings/params.ts` (`parseRatingParams`), collapsing the three copies.
 
 Full suite now 32 files / 133 tests green; typecheck, lint, build exit 0.
+
+### UI review fixes (2026-08-23, live dev-server session)
+
+- **Home cards link (pre-existing bug from ticket 04)**: `TitleCard` never had a link — now a `NuxtLink` to `/movie/:id` / `/tv/:id` per the recommendations-strip pattern; browse-grid test updated to assert card hrefs.
+- **Netflix-style overlay trio**: flyout now centers directly over the rating button (`left-1/2 top-1/2`, translate -50%) instead of floating above/side; mouse resting on the button lands on the middle GOOD option, AWESOME / SUCKS flank it. Flush overlay means no hover dead zone.
+- **Enter animation**: reveal is a pop-in (`opacity` + `scale 0.85→1`, 0.25s) rather than a slide.
+- **shadcn Tooltips**: added via `shadcn-vue add tooltip`, renamed to kebab-case per code-standard (`app/components/ui/tooltip/`), `@vueuse/core` promoted to a declared dependency; tooltips on the trigger and all three options with a 500ms dwell delay (replacing the `title` attributes).
+- **Anonymous Netflix gating**: the trio reveals on hover for everyone; signed-out clicks on any option (or the trigger) emit `signInRequested` → Google sign-in, never a rating.
+- **Hover scoped to the button**: `mouseenter`/`mouseleave` moved from the root row (which included the average-rating label) onto the button wrapper, so hovering the `★ 平均評分` label alone never pops the trio (regression-tested).
+
+Full suite now 32 files / 136 tests green; typecheck, lint exit 0.

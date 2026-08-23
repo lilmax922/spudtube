@@ -53,12 +53,33 @@ describe('rating trio', () => {
     expect(options(wrapper)).toHaveLength(0)
   })
 
-  it('idle anonymous: click requests sign-in and never reveals the options', async () => {
+  it('idle anonymous: click on the button requests sign-in', async () => {
     const wrapper = await render({ label: null, signedIn: false })
 
     await findButton(wrapper, '評價這部片')!.trigger('click')
 
     expect(wrapper.emitted('signInRequested')).toHaveLength(1)
+    expect(options(wrapper)).toHaveLength(0)
+  })
+
+  it('idle anonymous: hovering reveals the trio and clicking an option requests sign-in', async () => {
+    const wrapper = await render({ label: null, signedIn: false })
+
+    await wrapper.find('div.relative').trigger('mouseenter')
+    expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['超棒', '不錯', '不行'])
+
+    await findButton(wrapper, '超棒')!.trigger('click')
+
+    expect(wrapper.emitted('signInRequested')).toHaveLength(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('clear')).toBeUndefined()
+  })
+
+  it('hovering the average-rating label alone never reveals the trio', async () => {
+    const wrapper = await render({ label: null, signedIn: true, voteAverage: 8.1 })
+
+    await wrapper.find('div.flex').trigger('mouseenter')
+
     expect(options(wrapper)).toHaveLength(0)
   })
 
@@ -78,7 +99,7 @@ describe('rating trio', () => {
   it('rated: the flyout marks the active option, selecting another re-rates', async () => {
     const wrapper = await render({ label: 'GOOD', signedIn: true })
 
-    await wrapper.trigger('mouseenter')
+    await wrapper.find('div.relative').trigger('mouseenter')
     const good = findButton(wrapper, '不錯')!
     expect(good.attributes('aria-pressed')).toBe('true')
     await findButton(wrapper, '超棒')!.trigger('click')

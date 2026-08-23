@@ -1,26 +1,34 @@
 <script setup lang="ts">
 import type { RatingLabel } from '#server/db/schema/rating'
+import type { WatchStatus } from '#server/db/schema/title-status'
 import type { TitleDetail } from '#server/tmdb/types'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropUrl, posterUrl } from '../lib/images'
 import RatingTrio from './rating-trio.vue'
+import TitleStatusToggle from './title-status-toggle.vue'
 
 interface Props {
   detail: TitleDetail
   rating?: RatingLabel | null
+  status?: WatchStatus | null
   signedIn?: boolean
   ratingPending?: boolean
+  statusPending?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
   rating: null,
+  status: null,
   signedIn: false,
   ratingPending: false,
+  statusPending: false,
 })
 
 const emit = defineEmits<{
   selectRating: [label: RatingLabel]
   clearRating: []
+  setStatus: [status: WatchStatus]
+  clearStatus: []
   signInRequested: []
 }>()
 
@@ -88,7 +96,7 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
           </span>
         </div>
 
-        <div class="mt-4">
+        <div class="mt-4 flex flex-wrap items-center gap-3">
           <RatingTrio
             :label="rating"
             :signed-in="signedIn"
@@ -96,6 +104,14 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
             :vote-average="detail.voteAverage"
             @select="emit('selectRating', $event)"
             @clear="emit('clearRating')"
+            @sign-in-requested="emit('signInRequested')"
+          />
+          <TitleStatusToggle
+            :status="status"
+            :signed-in="signedIn"
+            :pending="statusPending"
+            @set-status="emit('setStatus', $event)"
+            @clear-status="emit('clearStatus')"
             @sign-in-requested="emit('signInRequested')"
           />
         </div>

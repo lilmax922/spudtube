@@ -90,4 +90,39 @@ describe('title identity block', () => {
 
     expect(wrapper.emitted('signInRequested')).toHaveLength(1)
   })
+
+  it('forwards watch status actions from the toggle to the page', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=8',
+      props: { detail: MOVIE_DETAIL, signedIn: true },
+    })
+
+    const watchlistButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '加入待看清單')
+    expect(watchlistButton).toBeDefined()
+    await watchlistButton!.trigger('click')
+
+    expect(wrapper.emitted('setStatus')).toEqual([['WATCHLISTED']])
+  })
+
+  it('renders the persisted status when signed in and clears on demand', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=9',
+      props: { detail: MOVIE_DETAIL, status: 'WATCHED', signedIn: true },
+    })
+
+    const watchedButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '已看過 — 點擊清除')
+    expect(watchedButton).toBeDefined()
+    expect(watchedButton!.attributes('aria-pressed')).toBe('true')
+    await watchedButton!.trigger('click')
+
+    expect(wrapper.emitted('clearStatus')).toHaveLength(1)
+  })
+
+  it('emits signInRequested when an anonymous visitor clicks the toggle', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=10')
+
+    await wrapper.findAll('button').find(button => button.attributes('aria-label') === '加入待看清單')!.trigger('click')
+
+    expect(wrapper.emitted('signInRequested')).toHaveLength(1)
+  })
 })

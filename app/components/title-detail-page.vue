@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { RatingLabel } from '#server/db/schema/rating'
+import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
 import { computed } from 'vue'
@@ -7,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
 import { useTitleDetail } from '../composables/use-title-detail'
 import { useTitleRating } from '../composables/use-title-rating'
+import { useTitleStatus } from '../composables/use-title-status'
 import { authClient, signIn } from '../lib/auth-client'
 import AvailabilityPanel from './availability-panel.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
@@ -33,6 +35,7 @@ const session = authClient.useSession()
 const signedIn = computed(() => session.value.data?.user != null)
 
 const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(props.kind, titleId, signedIn)
+const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(props.kind, titleId, signedIn)
 
 function onSelectRating(label: RatingLabel): void {
   void rate(label)
@@ -40,6 +43,14 @@ function onSelectRating(label: RatingLabel): void {
 
 function onClearRating(): void {
   void clear()
+}
+
+function onSetStatus(next: WatchStatus): void {
+  void set(next)
+}
+
+function onClearStatus(): void {
+  void clearStatus()
 }
 
 function onSignInRequested(): void {
@@ -94,10 +105,14 @@ const failed = computed(() => {
           <TitleIdentityBlock
             :detail="detail.data.value"
             :rating="rating"
+            :status="status"
             :signed-in="signedIn"
             :rating-pending="ratingPending"
+            :status-pending="statusPending"
             @select-rating="onSelectRating"
             @clear-rating="onClearRating"
+            @set-status="onSetStatus"
+            @clear-status="onClearStatus"
             @sign-in-requested="onSignInRequested"
           />
         </div>

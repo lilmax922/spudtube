@@ -59,6 +59,14 @@
     "signIn": "登入",
     "signOut": "登出"
   },
+  "watchStatus": {
+    "watchlist": "待看清單",
+    "watched": "已看過",
+    "watchlistAdd": "加入待看清單",
+    "watchlistRemove": "已在待看清單 — 點擊移除",
+    "watchedMark": "標記為已看過",
+    "watchedClear": "已看過 — 點擊清除"
+  },
   "rating": {
     "group": "你的評價",
     "rate": "評價這部片",
@@ -90,5 +98,21 @@
       "body": "它可能已從目錄中移除，或是連結有誤。",
       "backHome": "回到首頁"
     }
+  },
+  "myList": {
+    "heading": "我的片單",
+    "loading": "載入中…",
+    "error": "暫時無法取得你的片單，請稍後再試。",
+    "tabs": {
+      "watchlist": "待看清單",
+      "watched": "已看過",
+      "rated": "已評分"
+    },
+    "empty": {
+      "watchlist": "待看清單還沒有任何作品。",
+      "watched": "還沒有看過任何作品。",
+      "rated": "還沒有評過任何作品。"
+    },
+    "removed": "已從目錄移除"
   }
 }

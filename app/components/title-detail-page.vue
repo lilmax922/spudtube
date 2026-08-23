@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import type { RatingLabel } from '#server/db/schema/rating'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
 import { useTitleDetail } from '../composables/use-title-detail'
+import { useTitleRating } from '../composables/use-title-rating'
+import { authClient, signIn } from '../lib/auth-client'
 import AvailabilityPanel from './availability-panel.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
 import TitleFactsPanel from './title-facts-panel.vue'
@@ -20,10 +23,28 @@ const props = defineProps<Props>()
 const route = useRoute()
 const { t } = useI18n()
 
-const { detail, recommendations } = useTitleDetail(
-  props.kind,
-  computed(() => route.params.id ?? ''),
-)
+const titleId = computed(() => route.params.id ?? '')
+
+const { detail, recommendations } = useTitleDetail(props.kind, titleId)
+
+// Subscribes to the shared session atom that app.vue's useSession(useFetch) feeds;
+// no second get-session request, and sign-in/sign-out updates land reactively here.
+const session = authClient.useSession()
+const signedIn = computed(() => session.value.data?.user != null)
+
+const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(props.kind, titleId, signedIn)
+
+function onSelectRating(label: RatingLabel): void {
+  void rate(label)
+}
+
+function onClearRating(): void {
+  void clear()
+}
+
+function onSignInRequested(): void {
+  void signIn.social({ provider: 'google' })
+}
 
 const notFound = computed(() => {
   if (detail.pending.value)
@@ -70,7 +91,15 @@ const failed = computed(() => {
         </div>
 
         <div class="mb-8">
-          <TitleIdentityBlock :detail="detail.data.value" />
+          <TitleIdentityBlock
+            :detail="detail.data.value"
+            :rating="rating"
+            :signed-in="signedIn"
+            :rating-pending="ratingPending"
+            @select-rating="onSelectRating"
+            @clear-rating="onClearRating"
+            @sign-in-requested="onSignInRequested"
+          />
         </div>
 
         <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr] md:gap-8">

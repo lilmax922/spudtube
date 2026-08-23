@@ -1,13 +1,28 @@
 <script setup lang="ts">
+import type { RatingLabel } from '#server/db/schema/rating'
 import type { TitleDetail } from '#server/tmdb/types'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropUrl, posterUrl } from '../lib/images'
+import RatingTrio from './rating-trio.vue'
 
 interface Props {
   detail: TitleDetail
+  rating?: RatingLabel | null
+  signedIn?: boolean
+  ratingPending?: boolean
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  rating: null,
+  signedIn: false,
+  ratingPending: false,
+})
+
+const emit = defineEmits<{
+  selectRating: [label: RatingLabel]
+  clearRating: []
+  signInRequested: []
+}>()
 
 const { t } = useI18n()
 
@@ -71,6 +86,18 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
           >
             {{ genre.name }}
           </span>
+        </div>
+
+        <div class="mt-4">
+          <RatingTrio
+            :label="rating"
+            :signed-in="signedIn"
+            :pending="ratingPending"
+            :vote-average="detail.voteAverage"
+            @select="emit('selectRating', $event)"
+            @clear="emit('clearRating')"
+            @sign-in-requested="emit('signInRequested')"
+          />
         </div>
 
         <p v-if="detail.tagline" class="mt-4 text-sm italic text-foreground/85">

@@ -13,16 +13,26 @@ const baseTitle: TitleSummary = {
   voteAverage: 7.8,
 }
 
+async function render(title: TitleSummary = baseTitle, showKind = false) {
+  return await mountSuspended(TitleCard, { route: '/?probe=1', props: { title, showKind } })
+}
+
 describe('title-card', () => {
+  it('links the card to its own title detail page', async () => {
+    const wrapper = await render()
+
+    expect(wrapper.find('a').attributes('href')).toBe('/movie/419430')
+  })
+
   it('renders the localized name and release year', async () => {
-    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
+    const wrapper = await render()
 
     expect(wrapper.text()).toContain('沙丘')
     expect(wrapper.text()).toContain('2021')
   })
 
   it('renders the poster from the TMDB image CDN when artwork exists', async () => {
-    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
+    const wrapper = await render()
 
     const img = wrapper.find('img')
     expect(img.exists()).toBe(true)
@@ -33,9 +43,7 @@ describe('title-card', () => {
   })
 
   it('degrades gracefully to a placeholder when artwork is missing', async () => {
-    const wrapper = await mountSuspended(TitleCard, {
-      props: { title: { ...baseTitle, posterPath: null } },
-    })
+    const wrapper = await render({ ...baseTitle, posterPath: null })
 
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.find('svg').exists()).toBe(true)
@@ -43,7 +51,7 @@ describe('title-card', () => {
   })
 
   it('degrades to the placeholder when the poster fails to load', async () => {
-    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
+    const wrapper = await render()
 
     await wrapper.find('img').trigger('error')
 
@@ -52,9 +60,7 @@ describe('title-card', () => {
   })
 
   it('labels the kind on the poster when showKind is set', async () => {
-    const wrapper = await mountSuspended(TitleCard, {
-      props: { title: baseTitle, showKind: true },
-    })
+    const wrapper = await render(baseTitle, true)
 
     const badge = wrapper.find('[data-testid="kind-badge"]')
     expect(badge.exists()).toBe(true)
@@ -62,15 +68,13 @@ describe('title-card', () => {
   })
 
   it('shows the TV show label for TV_SHOW titles', async () => {
-    const wrapper = await mountSuspended(TitleCard, {
-      props: { title: { ...baseTitle, kind: 'TV_SHOW' }, showKind: true },
-    })
+    const wrapper = await render({ ...baseTitle, kind: 'TV_SHOW' }, true)
 
     expect(wrapper.find('[data-testid="kind-badge"]').text()).toBe('TV Show')
   })
 
   it('hides the kind badge by default', async () => {
-    const wrapper = await mountSuspended(TitleCard, { props: { title: baseTitle } })
+    const wrapper = await render()
 
     expect(wrapper.find('[data-testid="kind-badge"]').exists()).toBe(false)
   })

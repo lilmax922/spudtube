@@ -116,7 +116,9 @@ describe('browse-grid', () => {
 
     expect(wrapper.text()).toContain('沙丘')
     expect(wrapper.text()).toContain('沙丘：第二部')
-    expect(wrapper.findAll('article')).toHaveLength(2)
+    const links = wrapper.findAll('a').filter(link => link.attributes('href')?.startsWith('/movie/'))
+    expect(links).toHaveLength(2)
+    expect(links.map(link => link.attributes('href'))).toEqual(['/movie/419430', '/movie/693134'])
   })
 
   it('switches kind and refetches the grid for the other catalog', async () => {

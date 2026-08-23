@@ -2,6 +2,7 @@
 import type { TitleSummary } from '#server/tmdb/types'
 import { Clapperboard } from '@lucide/vue'
 import { computed, ref } from 'vue'
+import { titleDetailPath } from '../lib/kind'
 import { posterUrl } from '../lib/tmdb-image'
 
 const props = defineProps<{ title: TitleSummary }>()
@@ -16,7 +17,10 @@ const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
 </script>
 
 <template>
-  <article class="group flex flex-col">
+  <NuxtLink
+    :to="titleDetailPath(title.kind, title.tmdbId)"
+    class="group flex flex-col rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+  >
     <div class="aspect-[2/3] overflow-hidden rounded-lg bg-muted">
       <img
         v-if="posterSrc && !imageFailed"
@@ -40,5 +44,5 @@ const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
     <p v-if="year" class="mt-0.5 text-xs text-muted-foreground">
       {{ year }}
     </p>
-  </article>
+  </NuxtLink>
 </template>

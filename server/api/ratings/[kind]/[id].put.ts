@@ -14,6 +14,6 @@ export default defineEventHandler(async (event) => {
   const parsed = setRatingBodySchema.safeParse(await readBody(event))
   if (!parsed.success)
     return apiValidationError(event, parsed.error)
-  const saved = await upsertRating(getDb(), session.user.id, { kind, tmdbId: id, label: parsed.data.label })
+  const saved = await upsertRating(getDb(event), session.user.id, { kind, tmdbId: id, label: parsed.data.label })
   return { label: saved.label }
 })

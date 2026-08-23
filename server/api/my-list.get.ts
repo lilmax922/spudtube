@@ -33,7 +33,7 @@ function toTitleSummary(detail: TitleDetail): TitleSummary {
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
-  const db = getDb()
+  const db = getDb(event)
 
   const [statuses, ratings] = await Promise.all([
     findTitleStatuses(db, session.user.id),

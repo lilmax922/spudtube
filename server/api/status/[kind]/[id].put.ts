@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const parsed = setStatusBodySchema.safeParse(await readBody(event))
   if (!parsed.success)
     return apiValidationError(event, parsed.error)
-  const saved = await upsertTitleStatus(getDb(), session.user.id, {
+  const saved = await upsertTitleStatus(getDb(event), session.user.id, {
     kind,
     tmdbId: id,
     status: parsed.data.status,

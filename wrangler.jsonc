@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Cloudflare Pages project for SpudTube (Nuxt SSR). Pushing to `main` triggers an
+  // automatic Pages build (`nuxt build` → `cloudflare_pages` Nitro preset). Secrets are
+  // never committed — they live only in the dashboard (Settings → Variables and Secrets)
+  // and are accessed at runtime via `event.context.cloudflare.env` (see server/db).
+  "name": "spudtube",
+  "compatibility_date": "2026-08-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": "./dist",
+  "placement": {
+    "mode": "smart"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "58dd30fac53f459bab7b2108c3d1d0e9",
+      "localConnectionString": "postgresql://spudtube:spudtube@localhost:5432/spudtube"
+    }
+  ]
+}

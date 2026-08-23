@@ -3,6 +3,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { navigateTo, useFetch, useHead } from '#imports'
 import AccountMenu from './components/account-menu.vue'
+import AttributionFooter from './components/attribution-footer.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import SearchField from './components/search-field.vue'
 import { useSearchState } from './composables/use-search-state'
@@ -77,5 +78,6 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
     <main class="flex-1">
       <NuxtPage />
     </main>
+    <AttributionFooter />
   </div>
 </template>

@@ -1,11 +1,12 @@
 import type { H3Event } from 'h3'
+import type { auth } from '../auth'
 import { createError } from 'h3'
-import { auth } from '../auth'
+import { getAuth } from '../auth'
 
 export type AuthSession = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>
 
 export async function getAuthSession(event: H3Event): Promise<AuthSession | null> {
-  return await auth.api.getSession({ headers: event.headers })
+  return await getAuth(event).api.getSession({ headers: event.headers })
 }
 
 // The single guard for mutating endpoints: every write route calls this first and

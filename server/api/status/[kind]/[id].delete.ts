@@ -7,6 +7,6 @@ import { parseStatusParams } from '../params'
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
   const { kind, id } = parseStatusParams(event)
-  await clearTitleStatus(getDb(), session.user.id, kind, id)
+  await clearTitleStatus(getDb(event), session.user.id, kind, id)
   return { status: null }
 })

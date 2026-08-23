@@ -52,7 +52,6 @@
     "heading": "My List",
     "loading": "Loading…",
     "error": "Couldn't load your list right now. Please try again later.",
-    "signInPrompt": "Sign in to see your watchlist, watched titles, and ratings.",
     "tabs": {
       "watchlist": "Watchlist",
       "watched": "Watched",

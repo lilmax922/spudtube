@@ -52,7 +52,6 @@
     "heading": "我的片單",
     "loading": "載入中…",
     "error": "暫時無法取得你的片單，請稍後再試。",
-    "signInPrompt": "登入以查看你的待看清單、已看過與評分。",
     "tabs": {
       "watchlist": "待看清單",
       "watched": "已看過",

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { useFetch, useHead } from '#imports'
+import { navigateTo, useFetch, useHead } from '#imports'
 import AccountMenu from './components/account-menu.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import { authClient, signIn, signOut } from './lib/auth-client'
@@ -15,6 +15,7 @@ async function onSignIn(): Promise<void> {
 
 async function onSignOut(): Promise<void> {
   await signOut()
+  await navigateTo('/')
 }
 
 useHead(() => ({ htmlAttrs: { lang: locale.value } }))

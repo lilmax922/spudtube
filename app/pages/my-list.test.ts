@@ -69,16 +69,6 @@ async function renderPage(): Promise<VueWrapper<InstanceType<typeof MyListPage>>
 }
 
 describe('my list route', () => {
-  it('shows a sign-in prompt to signed-out visitors without tabs', async () => {
-    signedIn.value = null
-
-    const wrapper = await renderPage()
-    await vi.waitFor(() => {
-      expect(wrapper.text()).toContain('登入以查看你的待看清單、已看過與評分。')
-    })
-    expect(wrapper.findAll('button[role="tab"]')).toHaveLength(0)
-  })
-
   it('renders three tabs and the empty watchlist state for a signed-in user', async () => {
     signedIn.value = { user: { name: 'Max' } }
 

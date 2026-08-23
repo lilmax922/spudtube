@@ -1,6 +1,8 @@
+import type { DOMWrapper } from '@vue/test-utils'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { PROVIDER_CATALOG } from '../../lib/availability-fixtures'
 import { RECOMMENDATIONS_PAGE, TV_DETAIL } from '../../lib/title-detail-fixtures'
 import TvPage from './[id].vue'
 
@@ -10,6 +12,16 @@ function detailUrl(tmdbId: number): string {
 
 function recommendationsUrl(tmdbId: number): string {
   return `/api/catalog/tv/${tmdbId}/recommendations`
+}
+
+function providersUrl(tmdbId: number): string {
+  return `/api/catalog/tv/${tmdbId}/providers`
+}
+
+function registerEndpoints(tmdbId: number): void {
+  registerEndpoint(detailUrl(tmdbId), () => TV_DETAIL)
+  registerEndpoint(recommendationsUrl(tmdbId), () => RECOMMENDATIONS_PAGE)
+  registerEndpoint(providersUrl(tmdbId), () => PROVIDER_CATALOG)
 }
 
 async function renderPage(route: string): Promise<ReturnType<typeof mountSuspended>> {
@@ -26,8 +38,7 @@ afterEach(() => {
 
 describe('tv detail route', () => {
   it('renders the identity block for a known tv show', async () => {
-    registerEndpoint(detailUrl(94605), () => TV_DETAIL)
-    registerEndpoint(recommendationsUrl(94605), () => RECOMMENDATIONS_PAGE)
+    registerEndpoints(94605)
 
     const wrapper = await renderPage('/tv/94605')
     await vi.waitFor(() => {
@@ -41,6 +52,21 @@ describe('tv detail route', () => {
     expect(wrapper.text()).toContain('42 分鐘')
     expect(wrapper.find('iframe').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('預告片')
+  })
+
+  it('renders the availability panel with providers for the default region', async () => {
+    registerEndpoints(94605)
+
+    const wrapper = await renderPage('/tv/94605')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('提供平台')
+    })
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('訂閱')
+    })
+
+    const providerAlts = wrapper.findAll('img').map((image: DOMWrapper<Element>) => image.attributes('alt'))
+    expect(providerAlts).toEqual(expect.arrayContaining(['CATCHPLAY+', 'Netflix']))
   })
 
   it('renders a friendly not-found state for a removed show', async () => {

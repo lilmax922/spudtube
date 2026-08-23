@@ -10,8 +10,50 @@
     "empty": "沒有符合條件的片單",
     "error": "載入片單時發生錯誤"
   },
+  "search": {
+    "sectionLabel": "搜尋結果",
+    "label": "搜尋",
+    "placeholder": "搜尋電影和電視劇",
+    "clear": "清除搜尋",
+    "noResults": "沒有與「{query}」相符的結果",
+    "loading": "搜尋中…",
+    "error": "搜尋時發生錯誤"
+  },
   "language": {
     "label": "語言"
+  },
+  "region": {
+    "label": "選擇區域",
+    "names": {
+      "TW": "台灣",
+      "HK": "香港",
+      "JP": "日本",
+      "KR": "韓國",
+      "SG": "新加坡",
+      "US": "美國",
+      "GB": "英國",
+      "CA": "加拿大",
+      "AU": "澳洲",
+      "DE": "德國",
+      "FR": "法國",
+      "IN": "印度",
+      "BR": "巴西",
+      "MX": "墨西哥"
+    }
+  },
+  "availability": {
+    "heading": "提供平台",
+    "groups": {
+      "subscription": "訂閱",
+      "free": "免費",
+      "rent": "租借",
+      "buy": "購買"
+    },
+    "unavailable": "此區域暫無串流資訊",
+    "unavailableHint": "作品仍會正常出現在所有列表，不會被隱藏。",
+    "loading": "載入串流資訊中…",
+    "error": "暫時無法取得串流資訊。",
+    "attribution": "提供者資料由 JustWatch 授權 · 本產品使用 TMDB API 但未被 TMDB 認可或認證"
   },
   "auth": {
     "signIn": "登入",
@@ -24,6 +66,15 @@
     "watchlistRemove": "已在待看清單 — 點擊移除",
     "watchedMark": "標記為已看過",
     "watchedClear": "已看過 — 點擊清除"
+  },
+  "rating": {
+    "group": "你的評價",
+    "rate": "評價這部片",
+    "rated": "已評價：{label}",
+    "awesome": "超棒",
+    "good": "不錯",
+    "sucks": "不行",
+    "average": "平均評分"
   },
   "detail": {
     "loading": "載入中…",

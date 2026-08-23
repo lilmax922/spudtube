@@ -53,9 +53,47 @@ describe('title identity block', () => {
     expect(wrapper.findAll('span.rounded-full')).toHaveLength(0)
   })
 
-  it('forwards watch status actions from the toggle to the page', async () => {
+  it('forwards rating actions from the trio to the page', async () => {
     const wrapper = await mountSuspended(TitleIdentityBlock, {
       route: '/?probe=5',
+      props: { detail: MOVIE_DETAIL, signedIn: true },
+    })
+
+    const rateButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '評價這部片')
+    expect(rateButton).toBeDefined()
+    await rateButton!.trigger('click')
+    await wrapper.findAll('button').find(button => button.attributes('aria-label') === '超棒')!.trigger('click')
+
+    expect(wrapper.emitted('selectRating')).toEqual([['AWESOME']])
+  })
+
+  it('renders the persisted rating when signed in and clears on demand', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=6',
+      props: { detail: MOVIE_DETAIL, rating: 'GOOD', signedIn: true },
+    })
+
+    const ratedButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '已評價：不錯')
+    expect(ratedButton).toBeDefined()
+    await ratedButton!.trigger('click')
+    const good = wrapper.findAll('button').find(button => button.attributes('aria-label') === '不錯')
+    expect(good?.attributes('aria-pressed')).toBe('true')
+    await good!.trigger('click')
+
+    expect(wrapper.emitted('clearRating')).toHaveLength(1)
+  })
+
+  it('emits signInRequested when an anonymous visitor clicks the trio', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=7')
+
+    await wrapper.findAll('button').find(button => button.attributes('aria-label') === '評價這部片')!.trigger('click')
+
+    expect(wrapper.emitted('signInRequested')).toHaveLength(1)
+  })
+
+  it('forwards watch status actions from the toggle to the page', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=8',
       props: { detail: MOVIE_DETAIL, signedIn: true },
     })
 
@@ -68,7 +106,7 @@ describe('title identity block', () => {
 
   it('renders the persisted status when signed in and clears on demand', async () => {
     const wrapper = await mountSuspended(TitleIdentityBlock, {
-      route: '/?probe=6',
+      route: '/?probe=9',
       props: { detail: MOVIE_DETAIL, status: 'WATCHED', signedIn: true },
     })
 
@@ -81,7 +119,7 @@ describe('title identity block', () => {
   })
 
   it('emits signInRequested when an anonymous visitor clicks the toggle', async () => {
-    const wrapper = await render(MOVIE_DETAIL, '/?probe=7')
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=10')
 
     await wrapper.findAll('button').find(button => button.attributes('aria-label') === '加入待看清單')!.trigger('click')
 

@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useFetch, useRoute } from '#imports'
+import { useRoute } from '#imports'
 import { useTitleDetail } from '../composables/use-title-detail'
+import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
 import { authClient, signIn } from '../lib/auth-client'
+import AvailabilityPanel from './availability-panel.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
 import TitleFactsPanel from './title-facts-panel.vue'
 import TitleIdentityBlock from './title-identity-block.vue'
@@ -26,17 +29,28 @@ const titleId = computed(() => route.params.id ?? '')
 
 const { detail, recommendations } = useTitleDetail(props.kind, titleId)
 
-const { data: session } = await authClient.useSession(useFetch)
-const signedIn = computed(() => session.value?.user != null)
+// Subscribes to the shared session atom that app.vue's useSession(useFetch) feeds;
+// no second get-session request, and sign-in/sign-out updates land reactively here.
+const session = authClient.useSession()
+const signedIn = computed(() => session.value.data?.user != null)
 
-const { status, pending: statusPending, set, clear } = useTitleStatus(props.kind, titleId, signedIn)
+const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(props.kind, titleId, signedIn)
+const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(props.kind, titleId, signedIn)
+
+function onSelectRating(label: RatingLabel): void {
+  void rate(label)
+}
+
+function onClearRating(): void {
+  void clear()
+}
 
 function onSetStatus(next: WatchStatus): void {
   void set(next)
 }
 
 function onClearStatus(): void {
-  void clear()
+  void clearStatus()
 }
 
 function onSignInRequested(): void {
@@ -90,9 +104,13 @@ const failed = computed(() => {
         <div class="mb-8">
           <TitleIdentityBlock
             :detail="detail.data.value"
+            :rating="rating"
             :status="status"
             :signed-in="signedIn"
+            :rating-pending="ratingPending"
             :status-pending="statusPending"
+            @select-rating="onSelectRating"
+            @clear-rating="onClearRating"
             @set-status="onSetStatus"
             @clear-status="onClearStatus"
             @sign-in-requested="onSignInRequested"
@@ -104,6 +122,7 @@ const failed = computed(() => {
             <TitleFactsPanel :detail="detail.data.value" />
           </aside>
           <main class="flex min-w-0 flex-col gap-4">
+            <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
             <TitleTrailer :trailer-key="detail.data.value.trailerKey" />
           </main>
         </div>

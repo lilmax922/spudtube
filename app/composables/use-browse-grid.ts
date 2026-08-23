@@ -1,6 +1,8 @@
+import type { ComputedRef, Ref } from 'vue'
 import type { Genre, Kind, Page, TitleSummary } from '#server/tmdb/types'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { $fetch } from '#imports'
+import { usePagedResults } from './use-paged-results'
 
 const KIND_SEGMENT: Record<Kind, 'movie' | 'tv'> = {
   MOVIE: 'movie',
@@ -29,67 +31,43 @@ export function createApiBrowseFetcher(): BrowseFetcher {
   }
 }
 
-export function useBrowseGrid(fetcher: BrowseFetcher = createApiBrowseFetcher()) {
+export interface BrowseGridState {
+  kind: Ref<Kind>
+  selectedGenreIds: Ref<number[]>
+  genres: Ref<Genre[]>
+  items: Ref<TitleSummary[]>
+  page: Ref<number>
+  totalPages: Ref<number>
+  loading: Ref<boolean>
+  loadingMore: Ref<boolean>
+  error: Ref<boolean>
+  hasMore: ComputedRef<boolean>
+  refresh: () => Promise<void>
+  loadMore: () => Promise<void>
+  setKind: (kind: Kind) => void
+  toggleGenre: (genreId: number) => void
+  clearGenres: () => void
+}
+
+export function useBrowseGrid(fetcher: BrowseFetcher = createApiBrowseFetcher()): BrowseGridState {
   const kind = ref<Kind>('MOVIE')
   const selectedGenreIds = ref<number[]>([])
   const genres = ref<Genre[]>([])
-  const items = ref<TitleSummary[]>([])
-  const page = ref(0)
-  const totalPages = ref(1)
-  const loading = ref(false)
-  const loadingMore = ref(false)
-  const error = ref(false)
-  let generation = 0
-
-  const hasMore = computed(() => page.value < totalPages.value)
+  const { loadFirstPage, loadNextPage, ...paged } = usePagedResults<TitleSummary>(page =>
+    fetcher.fetchDiscover(kind.value, selectedGenreIds.value, page),
+  )
 
   async function refresh(): Promise<void> {
-    const current = ++generation
-    loading.value = true
-    loadingMore.value = false
-    error.value = false
     try {
-      const [genreList, firstPage] = await Promise.all([
+      const [genreList, applied] = await Promise.all([
         fetcher.fetchGenres(kind.value),
-        fetcher.fetchDiscover(kind.value, selectedGenreIds.value, 1),
+        loadFirstPage(),
       ])
-      if (current !== generation)
-        return
-      genres.value = genreList
-      items.value = firstPage.results
-      page.value = firstPage.page
-      totalPages.value = firstPage.totalPages
+      if (applied)
+        genres.value = genreList
     }
     catch {
-      if (current === generation)
-        error.value = true
-    }
-    finally {
-      if (current === generation)
-        loading.value = false
-    }
-  }
-
-  async function loadMore(): Promise<void> {
-    if (loading.value || loadingMore.value || !hasMore.value)
-      return
-    const current = generation
-    loadingMore.value = true
-    error.value = false
-    try {
-      const next = await fetcher.fetchDiscover(kind.value, selectedGenreIds.value, page.value + 1)
-      if (current !== generation)
-        return
-      items.value = [...items.value, ...next.results]
-      page.value = next.page
-      totalPages.value = next.totalPages
-    }
-    catch {
-      if (current === generation)
-        error.value = true
-    }
-    finally {
-      loadingMore.value = false
+      paged.markFailed(paged.attempt())
     }
   }
 
@@ -116,18 +94,12 @@ export function useBrowseGrid(fetcher: BrowseFetcher = createApiBrowseFetcher())
   }
 
   return {
+    ...paged,
     kind,
     selectedGenreIds,
     genres,
-    items,
-    page,
-    totalPages,
-    loading,
-    loadingMore,
-    error,
-    hasMore,
     refresh,
-    loadMore,
+    loadMore: loadNextPage,
     setKind,
     toggleGenre,
     clearGenres,

@@ -3,6 +3,7 @@ allowBuilds:
   simple-git-hooks: true
   unrs-resolver: true
   vue-demi: true
+  workerd: true
 minimumReleaseAgeExclude:
   - '@vue/language-core@3.3.11'
   - eslint@10.9.0

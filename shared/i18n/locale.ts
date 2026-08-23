@@ -16,6 +16,16 @@ export const LOCALE_COOKIE = 'spudtube-locale'
 /** useState key carrying the request's detected country from server into the client payload. */
 export const DETECTED_COUNTRY_KEY = 'detected-country'
 
+export type CountryHeaderValue = string | string[] | undefined
+
+/** Extracts the country code from the platform-injected header object. */
+export function readDetectedCountry(
+  headers: Record<string, CountryHeaderValue | null>,
+): string | null {
+  const value = headers[COUNTRY_HEADER]
+  return Array.isArray(value) ? (value[0] ?? null) : value ?? null
+}
+
 const COUNTRY_TO_LOCALE: Record<string, AppLocale> = {
   TW: 'zh-TW',
 }

@@ -13,8 +13,8 @@ const baseTitle: TitleSummary = {
   voteAverage: 7.8,
 }
 
-async function render(title: TitleSummary = baseTitle) {
-  return await mountSuspended(TitleCard, { route: '/?probe=1', props: { title } })
+async function render(title: TitleSummary = baseTitle, showKind = false) {
+  return await mountSuspended(TitleCard, { route: '/?probe=1', props: { title, showKind } })
 }
 
 describe('title-card', () => {
@@ -57,5 +57,25 @@ describe('title-card', () => {
 
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.find('svg').exists()).toBe(true)
+  })
+
+  it('labels the kind on the poster when showKind is set', async () => {
+    const wrapper = await render(baseTitle, true)
+
+    const badge = wrapper.find('[data-testid="kind-badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Movie')
+  })
+
+  it('shows the TV show label for TV_SHOW titles', async () => {
+    const wrapper = await render({ ...baseTitle, kind: 'TV_SHOW' }, true)
+
+    expect(wrapper.find('[data-testid="kind-badge"]').text()).toBe('TV Show')
+  })
+
+  it('hides the kind badge by default', async () => {
+    const wrapper = await render()
+
+    expect(wrapper.find('[data-testid="kind-badge"]').exists()).toBe(false)
   })
 })

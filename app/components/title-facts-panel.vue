@@ -2,6 +2,7 @@
 import type { TitleDetail } from '#server/tmdb/types'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { kindLabelKey } from '../lib/kind'
 
 interface Props {
   detail: TitleDetail
@@ -10,9 +11,7 @@ const props = defineProps<Props>()
 
 const { t } = useI18n()
 
-const kindLabel = computed(() => {
-  return props.detail.kind === 'MOVIE' ? t('detail.kind.movie') : t('detail.kind.tv')
-})
+const kindLabel = computed(() => t(kindLabelKey(props.detail.kind)))
 
 const releaseYear = computed(() => props.detail.releaseDate?.slice(0, 4) ?? null)
 const releaseLabel = computed(() => releaseYear.value ?? '—')

@@ -7,5 +7,10 @@
     "javascript",
     "typescript",
     "vue"
+  ],
+  "i18n-ally.localesPaths": [
+    "i18n",
+    "i18n/locales",
+    "shared/i18n"
   ]
 }

@@ -63,8 +63,7 @@ export function useTitleStatus(
         status.value = fetched
     }
     catch {
-      if (version === refreshVersion)
-        status.value = null
+      // A transient failure never destroys a displayed status: keep the current state.
     }
   }
 
@@ -75,6 +74,13 @@ export function useTitleStatus(
     }
     void refresh()
   }, { immediate: true, flush: 'sync' })
+
+  watch(id, () => {
+    status.value = null
+    refreshVersion++
+    if (signedIn.value)
+      void refresh()
+  }, { flush: 'sync' })
 
   async function set(next: WatchStatus): Promise<void> {
     if (!signedIn.value || pending.value)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import { Bookmark, CircleCheck } from '@lucide/vue'
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 interface Props {
@@ -21,70 +21,65 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const watchlisted = computed(() => props.status === 'WATCHLISTED')
-const watched = computed(() => props.status === 'WATCHED')
-
-function onWatchlistClick(): void {
-  if (!props.signedIn) {
-    emit('signInRequested')
-    return
-  }
-  if (watchlisted.value)
-    emit('clearStatus')
-  else
-    emit('setStatus', 'WATCHLISTED')
+interface StatusAction {
+  status: WatchStatus
+  icon: Component
+  label: string
+  labelAdd: string
+  labelRemove: string
 }
 
-function onWatchedClick(): void {
+const ACTIONS: StatusAction[] = [
+  {
+    status: 'WATCHLISTED',
+    icon: Bookmark,
+    label: 'watchStatus.watchlist',
+    labelAdd: 'watchStatus.watchlistAdd',
+    labelRemove: 'watchStatus.watchlistRemove',
+  },
+  {
+    status: 'WATCHED',
+    icon: CircleCheck,
+    label: 'watchStatus.watched',
+    labelAdd: 'watchStatus.watchedMark',
+    labelRemove: 'watchStatus.watchedClear',
+  },
+]
+
+function onActionClick(action: StatusAction): void {
   if (!props.signedIn) {
     emit('signInRequested')
     return
   }
-  if (watched.value)
+  if (props.status === action.status)
     emit('clearStatus')
   else
-    emit('setStatus', 'WATCHED')
+    emit('setStatus', action.status)
 }
 </script>
 
 <template>
   <div class="flex items-center gap-2">
     <button
+      v-for="action in ACTIONS"
+      :key="action.status"
       type="button"
       class="inline-flex h-[38px] items-center gap-1.5 rounded-[10px] border border-input bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-2"
-      :class="watchlisted && 'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'"
-      :aria-label="watchlisted ? t('watchStatus.watchlistRemove') : t('watchStatus.watchlistAdd')"
-      :aria-pressed="watchlisted"
-      :title="watchlisted ? t('watchStatus.watchlistRemove') : t('watchStatus.watchlistAdd')"
+      :class="status === action.status && 'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'"
+      :aria-label="status === action.status ? t(action.labelRemove) : t(action.labelAdd)"
+      :aria-pressed="status === action.status"
+      :title="status === action.status ? t(action.labelRemove) : t(action.labelAdd)"
       :disabled="pending"
-      @click="onWatchlistClick"
+      @click="onActionClick(action)"
     >
-      <Bookmark
+      <component
+        :is="action.icon"
         :size="16"
         :stroke-width="1.75"
-        :fill="watchlisted ? 'currentColor' : 'none'"
+        :fill="status === action.status ? 'currentColor' : 'none'"
         aria-hidden="true"
       />
-      {{ t('watchStatus.watchlist') }}
-    </button>
-
-    <button
-      type="button"
-      class="inline-flex h-[38px] items-center gap-1.5 rounded-[10px] border border-input bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-2"
-      :class="watched && 'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'"
-      :aria-label="watched ? t('watchStatus.watchedClear') : t('watchStatus.watchedMark')"
-      :aria-pressed="watched"
-      :title="watched ? t('watchStatus.watchedClear') : t('watchStatus.watchedMark')"
-      :disabled="pending"
-      @click="onWatchedClick"
-    >
-      <CircleCheck
-        :size="16"
-        :stroke-width="1.75"
-        :fill="watched ? 'currentColor' : 'none'"
-        aria-hidden="true"
-      />
-      {{ t('watchStatus.watched') }}
+      {{ t(action.label) }}
     </button>
   </div>
 </template>

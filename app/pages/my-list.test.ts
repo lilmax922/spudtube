@@ -1,29 +1,10 @@
 import type { VueWrapper } from '@vue/test-utils'
 import type { Ref } from 'vue'
+import type { MyList } from '#server/api/my-list.get'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import MyListPage from './my-list.vue'
-
-interface MyListEntry {
-  kind: 'MOVIE' | 'TV_SHOW'
-  tmdbId: number
-  title: {
-    kind: 'MOVIE' | 'TV_SHOW'
-    tmdbId: number
-    name: string
-    posterPath: string | null
-    backdropPath: string | null
-    releaseDate: string | null
-    voteAverage: number | null
-  } | null
-}
-
-interface MyList {
-  watchlist: MyListEntry[]
-  watched: MyListEntry[]
-  rated: MyListEntry[]
-}
 
 const signedIn = ref<{ user: { name: string } } | null>({ user: { name: 'Max' } })
 

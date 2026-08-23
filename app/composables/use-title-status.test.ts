@@ -127,4 +127,34 @@ describe('use-title-status', () => {
     expect(deleteStatus).not.toHaveBeenCalled()
     expect(state.status.value).toBeNull()
   })
+
+  it('refetches and resets the status when the title id changes', async () => {
+    const { fetcher, getStatus } = createFakeFetcher()
+    getStatus.mockResolvedValueOnce('WATCHLISTED').mockResolvedValueOnce('WATCHED')
+    const id = ref('424')
+
+    const state = useTitleStatus('MOVIE', id, ref(true), fetcher)
+    await vi.waitFor(() => expect(state.status.value).toBe('WATCHLISTED'))
+
+    id.value = '425'
+
+    expect(state.status.value).toBeNull()
+    await vi.waitFor(() => expect(state.status.value).toBe('WATCHED'))
+    expect(getStatus).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the current status when a refresh fails', async () => {
+    const { fetcher, getStatus } = createFakeFetcher()
+    getStatus.mockResolvedValueOnce('WATCHED').mockRejectedValueOnce(new Error('boom'))
+    const id = ref('424')
+
+    const state = useTitleStatus('MOVIE', id, ref(true), fetcher)
+    await vi.waitFor(() => expect(state.status.value).toBe('WATCHED'))
+
+    id.value = '425'
+    expect(state.status.value).toBeNull()
+    await vi.waitFor(() => expect(getStatus).toHaveBeenCalledTimes(2))
+    expect(state.status.value).toBeNull()
+    expect(state.pending.value).toBe(false)
+  })
 })

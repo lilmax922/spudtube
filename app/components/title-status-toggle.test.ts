@@ -1,8 +1,9 @@
+import type { WatchStatus } from '#server/db/schema/title-status'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { describe, expect, it } from 'vitest'
 import TitleStatusToggle from './title-status-toggle.vue'
 
-async function render(props: { status?: 'WATCHLISTED' | 'WATCHED' | null, signedIn?: boolean, pending?: boolean } = {}) {
+async function render(props: { status?: WatchStatus | null, signedIn?: boolean, pending?: boolean } = {}) {
   return await mountSuspended(TitleStatusToggle, {
     props: {
       status: props.status ?? null,

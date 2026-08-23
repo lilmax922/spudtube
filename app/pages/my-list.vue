@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Kind, TitleSummary } from '#server/tmdb/types'
+import type { MyList, MyListEntry } from '#server/api/my-list.get'
 import { Clapperboard, ListVideo } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -7,18 +7,6 @@ import { useFetch } from '#imports'
 import { authClient, signIn } from '../lib/auth-client'
 import { toMediaSegment } from '../lib/kind'
 import { posterUrl } from '../lib/tmdb-image'
-
-interface MyListEntry {
-  kind: Kind
-  tmdbId: number
-  title: TitleSummary | null
-}
-
-interface MyList {
-  watchlist: MyListEntry[]
-  watched: MyListEntry[]
-  rated: MyListEntry[]
-}
 
 type MyListTab = 'watchlist' | 'watched' | 'rated'
 
@@ -62,7 +50,7 @@ async function onSignIn(): Promise<void> {
       v-if="!signedIn"
       class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
     >
-      <ListVideo :size="40" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
+      <ListVideo :size="24" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
       <p class="text-sm text-muted-foreground">
         {{ t('myList.signInPrompt') }}
       </p>
@@ -136,7 +124,7 @@ async function onSignIn(): Promise<void> {
                 {{ entry.title.name }}
               </p>
               <p class="mt-0.5 text-xs text-muted-foreground">
-                {{ entry.title.releaseDate?.slice(0, 4) ?? t(`detail.kind.${entry.kind === 'MOVIE' ? 'movie' : 'tv'}`) }}
+                {{ entry.title.releaseDate?.slice(0, 4) ?? t(`detail.kind.${toMediaSegment(entry.kind)}`) }}
               </p>
             </div>
           </NuxtLink>

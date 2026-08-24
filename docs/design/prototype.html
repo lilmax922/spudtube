@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<!-- TEMPORARY REFERENCE ONLY — docs/design/prototype.html 僅為可視化參考的暫定互動稿，不作為設計依據；最終產品實際樣式以 docs/agents/design-system.md 與各功能 spec 為準，並隨製作過程透過票證動態調整與收斂。 -->
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpudTube</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --background: oklch(0.105 0.012 275);
+  --foreground: oklch(0.96 0.008 280);
+  --card: oklch(0.155 0.018 278);
+  --card-foreground: oklch(0.96 0.008 280);
+  --popover: oklch(0.17 0.018 278);
+  --popover-foreground: oklch(0.96 0.008 280);
+  /* v2 primary: Neutral (owner choice) - other accents discarded */
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.24 0.02 282);
+  --secondary-foreground: oklch(0.96 0.008 280);
+  --muted: oklch(0.22 0.02 282);
+  --muted-foreground: oklch(0.72 0.015 285);
+  --accent: oklch(0.24 0.025 285);
+  --accent-foreground: oklch(0.96 0.008 280);
+  /* destructive separated from brand red */
+  --destructive: oklch(0.52 0.18 26);
+  --destructive-foreground: oklch(0.96 0 0);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.556 0 0);
+  --radius: 0.625rem;
+  --font-sans: 'Inter','Noto Sans TC',ui-sans-serif,system-ui,sans-serif;
+  /* header height */
+  --header-h: 64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-sans);font-size:14px;line-height:1.7;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font-family:inherit;font-size:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+
+/* ---------- Header: Netflix 透明->不透明 ---------- */
+#siteHeader{position:fixed;top:0;left:0;right:0;z-index:60;height:var(--header-h);display:flex;align-items:center;gap:18px;padding:0 24px;background:linear-gradient(to bottom, rgba(0,0,0,.65) 0%, rgba(0,0,0,.35) 45%, transparent 100%);border-bottom:none;transition:background .28s ease, transform .28s ease, opacity .28s ease, backdrop-filter .28s ease}
+#siteHeader.scrolled{background:rgba(15,15,15,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#siteHeader.detail-hidden{transform:translateY(-100%);opacity:0;pointer-events:none}
+#siteHeader.detail-visible{transform:translateY(0);opacity:1;pointer-events:auto}
+.header-inner{max-width:1280px;width:100%;margin:0 auto;display:flex;align-items:center;gap:18px}
+.logo{display:inline-flex;align-items:center;gap:9px;font-size:19px;font-weight:800;letter-spacing:-.02em;padding:6px 8px;border-radius:var(--radius);cursor:pointer}
+.logo .pot{color:#FF0000; /* YouTube red only for logo */ display:inline-flex}
+.logo:hover{background:rgba(255,255,255,.06)}
+.search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid var(--input);border-radius:999px;background:rgba(255,255,255,.08);color:var(--muted-foreground)}
+.search:focus-within{border-color:var(--ring);background:rgba(255,255,255,.12)}
+.search input{flex:1;background:none;border:none;outline:none;color:var(--foreground)}
+.search input::placeholder{color:var(--muted-foreground)}
+.search button{display:inline-flex;align-items:center;padding:4px;border-radius:6px;color:var(--muted-foreground)}
+.search button:hover{color:var(--foreground);background:rgba(255,255,255,.12)}
+#appnav{display:flex;gap:4px;align-items:center;margin-left:auto}
+#appnav a{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;font-weight:600;transition:background .15s,color .15s,border-color .15s}
+#appnav a.ghost{background:transparent;border:1px solid transparent;color:var(--muted-foreground)}
+#appnav a.ghost:hover{background:var(--muted);color:var(--foreground)}
+#appnav a.outline{background:transparent;border:1px solid var(--border);color:var(--foreground)}
+#appnav a.outline:hover{background:var(--muted);border-color:var(--ring);color:var(--foreground)}
+#appnav a.on{color:var(--foreground);background:var(--muted);border-color:var(--border)}
+#searchOpenBtn.ghost{background:transparent;border:1px solid transparent;color:var(--muted-foreground)}
+#searchOpenBtn.ghost:hover{background:var(--muted);color:var(--foreground)}
+/* 語言切換器 — 右側導覽最左（Netflix/Prime 慣例：右上角、不搶主導覽） */
+#langWrap{position:relative}
+#langBtn{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:999px;font-weight:600;font-size:13px;color:var(--muted-foreground);background:transparent;border:1px solid transparent}
+#langBtn:hover{background:var(--muted);color:var(--foreground)}
+#langMenu{position:absolute;top:calc(100% + 8px);right:0;min-width:168px;background:var(--popover);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 16px 48px rgba(0,0,0,.55);z-index:80}
+#langMenu[hidden]{display:none}
+#langMenu button{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--foreground);background:none;border:none}
+#langMenu button:hover{background:var(--muted)}
+#langMenu .check{display:inline-flex;color:var(--foreground)}
+/* Prime Video 式主導覽：Movies / TV shows 緊貼 brand */
+#primeNav{display:flex;gap:2px;align-items:center;margin-left:4px}
+.primeNavBtn{height:32px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:600;color:rgba(255,255,255,.72);transition:background .16s,color .16s}
+.primeNavBtn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.primeNavBtn.on{background:rgba(255,255,255,.16);color:#fff}
+#siteHeader.scrolled .primeNavBtn.on{background:rgba(255,255,255,.14)}
+/* ---------- Search Overlay ---------- */
+#searchOverlay{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;padding:72px 16px 24px;background:color-mix(in oklab, var(--background) 72%, transparent);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);overflow:auto}
+#searchOverlay[hidden]{display:none !important}
+.searchSheet{width:min(720px,100%);background:var(--popover);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.searchBarRow{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card);margin:12px}
+.searchBarRow:focus-within{border-color:var(--ring);box-shadow:0 0 0 2px color-mix(in oklab, var(--ring) 20%, transparent)}
+.searchBarRow input{flex:1;background:none;border:none;outline:none;color:var(--foreground);font-size:16px}
+.searchBarRow input::placeholder{color:var(--muted-foreground)}
+.searchBarRow button{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--muted-foreground)}
+.searchBarRow button:hover{color:var(--foreground);background:var(--muted)}
+/* 移除原生 search cancel，避免雙 X */
+input[type='search']::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+input[type='search']::-webkit-search-decoration{-webkit-appearance:none}
+.searchPanel{max-height:62vh;overflow:auto}
+.searchTabs{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.searchTabs button{height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);color:var(--muted-foreground);background:var(--muted)}
+.searchTabs button.on{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.searchSection{padding:18px 16px}
+.searchSection h4{font-size:13px;font-weight:700;color:var(--foreground);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.searchSection h4 .clearAll{margin-left:auto;font-size:12px;font-weight:500;color:var(--muted-foreground);cursor:pointer}
+.trendingChips{display:flex;flex-wrap:wrap;gap:8px}
+.trendingChips button{height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--muted);color:var(--muted-foreground)}
+.trendingChips button:hover{border-color:var(--ring);color:var(--foreground)}
+.recentItem{display:flex;align-items:center;gap:10px;padding:10px 4px;border-radius:8px;cursor:pointer;color:var(--foreground)}
+.recentItem:hover{background:var(--muted);color:var(--foreground)}
+.searchResultList{display:flex;flex-direction:column}
+.searchResultItem{display:flex;gap:16px;padding:16px;cursor:pointer;border-bottom:1px solid var(--border);align-items:center}
+.searchResultItem:hover{background:var(--muted)}
+.searchResultItem .thumb{width:96px;height:144px;border-radius:12px;flex-shrink:0;overflow:hidden;background:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:28px}
+.searchResultItem .meta{display:flex;flex-direction:column;gap:6px;min-width:0;justify-content:center}
+.searchResultItem .meta b{font-size:16px;font-weight:700;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:8px}
+.searchResultItem .meta span{font-size:13px;color:var(--muted-foreground);display:inline-flex;align-items:center;gap:6px}
+.searchResultItem .meta .star{color:#facc15}
+
+/* ---------- Hero Full-bleed (Home) ---------- */
+.heroFull{position:relative;min-height:520px;display:flex;align-items:center;padding:calc(var(--header-h) + 28px) 24px 48px;overflow:hidden;isolation:isolate}
+.heroFull::before{content:"";position:absolute;inset:0;background:var(--hero-tone, #991b1b);z-index:-2}
+.heroFull::after{content:"";position:absolute;inset:0;background:
+  linear-gradient(to right, rgba(0,0,0,.78) 0%, rgba(0,0,0,.55) 42%, rgba(0,0,0,.18) 68%, transparent 88%),
+  linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 38%);z-index:-1}
+.heroInner{max-width:1280px;width:100%;margin:0 auto;display:flex;align-items:center}
+.heroInfo{max-width:560px}
+.kicker{font-size:11.5px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.72)}
+.heroTitle{font-size:38px;line-height:1.15;font-weight:800;color:#fff;margin-top:6px;text-wrap:balance}
+.heroMeta{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:rgba(255,255,255,.84);margin-top:10px;flex-wrap:wrap}
+.heroMeta .star{color:#fbbf24}
+.heroOv{font-size:14px;line-height:1.7;color:rgba(255,255,255,.86);margin-top:12px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.heroActions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+.btn{height:40px;padding:0 20px;border-radius:999px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:filter .15s, background .15s}
+.btn.primary{background:var(--primary);color:var(--primary-foreground)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{border:1px solid rgba(255,255,255,.38);color:#fff}
+.btn.ghost:hover{background:rgba(255,255,255,.12)}
+.btn.muted{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.14)}
+.btn.muted:hover{background:rgba(255,255,255,.18)}
+
+/* ---------- Hero Carousel — Prime Video 輪播（Image1） ---------- */
+.heroCarousel{position:relative;min-height:560px;overflow:hidden;isolation:isolate;width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);background:#0a0a0a}
+.heroSlide{position:absolute;inset:0;display:flex;align-items:flex-end;padding:calc(var(--header-h) + 28px) 64px 64px;opacity:0;transition:opacity .55s ease;isolation:isolate}
+.heroSlide.active{opacity:1;z-index:1}
+.heroSlide::before{content:"";position:absolute;inset:0;background:var(--hero-tone,#1a1a2e);z-index:-2}
+.heroSlide::after{content:"";position:absolute;inset:0;background:
+  /* cinemap 式：左右兩側遮罩保留海報中心，底部加深（與 detailHeroFull 同款 mask） */
+  linear-gradient(to right, rgba(0,0,0,.72) 0%, rgba(0,0,0,.45) 18%, transparent 32%, transparent 68%, rgba(0,0,0,.45) 82%, rgba(0,0,0,.72) 100%),
+  linear-gradient(to top, rgba(0,0,0,.62) 0%, rgba(0,0,0,.22) 36%, transparent 58%);z-index:-1}
+.heroCarousel .heroInner{max-width:1280px;width:100%;margin:0 auto;display:flex;align-items:flex-end}
+.heroCarousel .heroInfo{max-width:560px;padding-bottom:8px}
+.heroCarousel .kicker{font-size:12px;font-weight:800;letter-spacing:.12em;color:#0ea5e9;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px}
+.heroCarousel .kicker span{color:#fff;font-weight:700;letter-spacing:0;text-transform:none}
+.heroArrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,.38);color:#fff;backdrop-filter:blur(6px);z-index:4;transition:background .15s}
+.heroArrow:hover{background:rgba(0,0,0,.58)}
+.heroArrow.prev{left:14px}
+.heroArrow.next{right:14px}
+.heroDots{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:4}
+.heroDot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.38);transition:all .22s;border:none;padding:0}
+.heroDot.active{background:#fff;width:22px;border-radius:999px}
+.heroAge{position:absolute;bottom:18px;right:24px;background:rgba(20,20,20,.72);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;padding:5px 9px;border-radius:4px;z-index:4}
+/* Apple TV hero 5 列版型 */
+.heroSub{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:rgba(255,255,255,.92);flex-wrap:wrap}
+.heroSub .providerDot,.heroMetaLine .providerDot{width:26px;height:26px;border-radius:50%;background:#111;border:1px solid rgba(255,255,255,.18);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
+.heroSub .score{color:#fbbf24}
+.heroOvWrap{position:relative;margin-top:12px;max-width:460px}
+.heroOvApple{font-size:14.5px;line-height:1.65;color:rgba(255,255,255,.88);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-right:2px}
+.heroOvApple.is-truncated{
+  /* Apple TV truncate 淡出：第二行尾端由實色漸變到透明（參考 The Mist 頁 mask：right 44px transparent → 76px black） */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 76px), transparent calc(100% - 16px));
+  mask-image: linear-gradient(to right, #000 calc(100% - 76px), transparent calc(100% - 16px));
+}
+.morePill{position:absolute;right:2px;bottom:2px;background:rgba(255,255,255,.92);color:#0a0a0a;font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.heroMetaLine{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;font-weight:600;color:rgba(255,255,255,.88);flex-wrap:wrap}
+.heroMetaLine .score{color:#fbbf24}
+.heroMetaLine .adultBadge{font-size:11px;font-weight:600;color:rgba(255,255,255,.64);white-space:nowrap}
+.heroActionsApple{display:flex;align-items:center;gap:12px;margin-top:18px}
+.heroActionsApple .btnApplePrimary{height:44px;padding:0 28px;border-radius:999px;background:#fff;color:#111;font-weight:800;font-size:15px;letter-spacing:-.01em;border:none;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+.heroActionsApple .btnApplePrimary:hover{filter:brightness(1.04)}
+.heroActionsApple .btnAppleCircle{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;display:inline-flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.heroActionsApple .btnAppleCircle:hover{background:rgba(255,255,255,.18)}
+
+/* ---------- Filter Bar (sticky, Cinemap) ---------- */
+#filterBar{position:sticky;top:var(--header-h);z-index:40;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 24px;background:rgba(20,20,22,.92);border-top:1px solid var(--border);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.filter-inner{max-width:1280px;width:100%;margin:0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--muted);border-radius:999px;padding:3px;gap:2px}
+.seg button{height:30px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted-foreground)}
+.seg button.on{background:var(--primary);color:var(--primary-foreground)}
+.divider{width:1px;height:24px;background:var(--border);margin:0 2px}
+.chip{height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:500;color:var(--muted-foreground);border:1px solid var(--input);background:transparent;transition:all .15s}
+.chip:hover{color:var(--foreground);border-color:var(--ring)}
+.chip.on{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.chip.ghost{color:var(--foreground);border-color:var(--border)}
+.filterCount{margin-left:auto;font-size:12.5px;color:var(--muted-foreground);font-weight:500}
+
+/* ---------- Main frame ---------- */
+#mockframe{max-width:1280px;margin:0 auto;padding:0 24px 40px}
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);z-index:90;padding:10px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--popover);color:var(--popover-foreground);font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Rows — Prime 5 欄橫滑，hover 外溢不被裁切 · See more 靠標題 + 右側半露 + hover 箭頭 ---------- */
+.rows{display:flex;flex-direction:column;gap:40px;padding-top:24px}
+.rowhead{display:flex;align-items:baseline;gap:14px;padding:0 2px 12px}
+.rowhead h3{font-size:16.5px;font-weight:700;letter-spacing:.01em}
+.rowhead .seeMore{font-size:13px;font-weight:700;color:rgba(255,255,255,.72);display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;transition:color .15s,background .15s}
+.rowhead .seeMore:hover{color:#fff;background:rgba(255,255,255,.08)}
+.rowhead .seeMore svg{opacity:.9}
+.morecta{font-size:12.5px;font-weight:600;color:var(--muted-foreground);padding:4px 8px;border-radius:8px}
+.morecta:hover{color:var(--foreground);background:var(--muted)}
+.stripScroll{position:relative;overflow-x:auto;overflow-y:visible;padding-bottom:300px;margin-bottom:-280px;scrollbar-width:none;scroll-snap-type:x proximity;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+.stripScroll.breakout{width:calc(100% + (100vw - 100%)/2);margin-right:calc(-1 * (100vw - 100%)/2);padding-left:0;padding-right:60px;box-sizing:border-box}
+.stripScroll::-webkit-scrollbar{display:none}
+.strip{display:flex;gap:16px;overflow:visible;scroll-snap-type:x proximity;padding-bottom:0;margin-bottom:0;padding-right:12px}
+.poster{width:240px;flex-shrink:0;cursor:pointer;outline:none;border-radius:12px;scroll-snap-align:start;overflow:visible;position:relative}
+.poster:focus-visible{box-shadow:0 0 0 2px var(--ring)}
+.art{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--muted);box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.art .glyph{font-size:42px;font-weight:800;color:#fff;opacity:.88;transition:opacity .2s;letter-spacing:-.02em}
+.poster:hover .glyph{opacity:.22}
+.wlbtn{position:absolute;top:10px;left:10px;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#fff;backdrop-filter:blur(4px);opacity:0;transition:opacity .18s,background .15s;z-index:2}
+.poster:hover .wlbtn,.wlbtn:focus-visible{opacity:1}
+.wlbtn.on{background:var(--foreground);color:var(--background)}
+/* 右上白 pill — TMDB 衍生發現標籤（見 getPrimeBadge 註解） */
+.trendingBadge{position:absolute;top:0;right:0;background:#fff;color:#000;font-size:10px;font-weight:800;letter-spacing:.06em;padding:6px 11px;border-radius:0 12px 0 8px;z-index:2;line-height:1;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.primeBag{position:absolute;left:8px;bottom:8px;width:26px;height:26px;background:#facc15;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#000;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.posterHoverBar{position:absolute;left:0;right:0;bottom:0;padding:10px 10px 8px;background:linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.0) 100%);display:flex;align-items:center;justify-content:space-between;opacity:0;transition:opacity .2s;z-index:2}
+.poster:hover .posterHoverBar{opacity:1}
+.posterHoverBar .provMini{display:inline-flex;align-items:center}
+.posterHoverBar .ratingMini{display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:999px;backdrop-filter:blur(4px)}
+.posterHoverBar .ratingMini .star{color:#facc15}
+/* hover 卡：比靜態卡更大（~320px）且圓角與靜態卡 12px 完全對齊 — 修復 z-index 被下一列 carousel 蓋住 */
+.row{position:relative;z-index:1}
+.row:hover{z-index:20}
+.stripScroll{z-index:1}
+.stripScroll:hover{z-index:5}
+.poster{position:relative;z-index:1}
+.poster:hover{z-index:40}
+/* Prime 式 carousel 箭頭 — 僅在 hover 該列時顯現，左右各一，置於 stripScroll 內側貼邊（垂直置中於 16:9 卡片） */
+.rowArrow{position:absolute;top:68px;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(12,12,12,.72);color:#fff;border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:16;opacity:0;visibility:hidden;transition:opacity .18s,visibility .18s,background .15s,transform .18s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.55)}
+.row:hover .rowArrow{opacity:1;visibility:visible;pointer-events:auto}
+.rowArrow:hover{background:rgba(20,20,20,.92);transform:translateY(-50%) scale(1.04)}
+.rowArrow:active{transform:translateY(-50%) scale(.97)}
+.rowArrow.prev{left:10px}
+.rowArrow.next{right:10px}
+.rowArrow[hidden]{display:none !important}
+@media (max-width:560px){.rowArrow{display:none !important}}
+.primeHover{position:absolute;top:-14px;left:-24px;right:-24px;bottom:auto;min-height:calc(100% + 28px);background:#0a0a0a;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;opacity:0;visibility:hidden;transform:translateY(8px) scale(.96);transition:opacity .22s,visibility .22s,transform .22s;z-index:50;box-shadow:0 24px 48px rgba(0,0,0,.82), 0 8px 20px rgba(0,0,0,.5);display:flex;flex-direction:column;pointer-events:none}
+.poster:hover .primeHover{opacity:1;visibility:visible;transform:translateY(0) scale(1);pointer-events:auto}
+/* 首尾對齊：最左貼齊左側，最右貼齊右側，避免外溢視口 */
+.strip .poster:first-child .primeHover{left:0;right:-48px}
+.strip .poster:last-child .primeHover{left:-48px;right:0}
+.pgrid .poster .primeHover{left:-14px;right:-14px;top:-10px}
+.pgrid .poster:first-child .primeHover{left:0;right:-28px;top:-10px}
+.pgrid .poster:last-child .primeHover{left:-28px;right:0;top:-10px}
+.primeHover .primeArt{position:relative;aspect-ratio:16/9;overflow:hidden;background:var(--muted);border-radius:12px 12px 0 0;flex-shrink:0}
+.primeHover .primeBody{padding:14px 16px 16px;background:#000;display:flex;flex-direction:column;gap:8px}
+.primeHover .primeTitle{font-size:17px;font-weight:800;color:#fff;line-height:1.25;letter-spacing:-.01em}
+.primeHover .primeWatch{font-size:12.5px;color:#facc15;display:flex;align-items:center;gap:6px;font-weight:600}
+.primeHover .primeActions{display:flex;gap:8px;margin-top:2px}
+.primeHover .primeActions button{width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);color:#fff;transition:background .15s,transform .15s}
+.primeHover .primeActions button:hover{background:rgba(255,255,255,.18);transform:scale(1.04)}
+.primeHover .primeActions button.primaryPlay{background:#fff;color:#000;border-color:#fff}
+.primeHover .primeActions button.primaryPlay:hover{background:#e8e8e8}
+.primeHover .primeActions button.on{background:var(--foreground);color:var(--background);border-color:var(--foreground)}
+.primeHover .primeRank{font-size:12px;font-weight:700;color:#22c55e;display:flex;align-items:center;gap:5px}
+.primeHover .primeMeta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:rgba(255,255,255,.66);font-weight:500}
+.primeHover .primeMeta .pill{font-size:9px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:4px;background:#fff;color:#000}
+.primeHover .primeMeta .ageBox{border:1px solid rgba(255,255,255,.28);padding:2px 6px;border-radius:4px;font-size:11px;color:rgba(255,255,255,.88);font-weight:600}
+.primeHover .primeDesc{font-size:12.5px;line-height:1.55;color:rgba(255,255,255,.80);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ovl{position:absolute;inset:0;background:rgba(8,6,12,.0);opacity:0;transition:opacity .2s}
+.cap{display:none}
+
+/* ---------- Grid ---------- */
+.resultbar{padding:20px 0 14px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.resultbar h3{font-size:16.5px;font-weight:700}
+.xs{font-size:12px;font-weight:500}
+.muted{color:var(--muted-foreground)}
+.small{font-size:12.5px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.pgrid .poster{width:100%}
+.pgrid .art{aspect-ratio:16/9}
+.sentinel{grid-column:1/-1;display:flex;justify-content:center;padding:16px 0}
+.spinner{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--ring);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;color:var(--muted-foreground);text-align:center}
+.empty b{font-size:15px;color:var(--foreground)}
+
+/* ---------- Detail: Disney+ Full-bleed + cinemap 左右遮罩 ---------- */
+.detailHeroFull{position:relative;min-height:72vh;display:flex;align-items:center;padding:calc(var(--header-h) + 40px) 24px 56px;overflow:hidden;isolation:isolate;
+  /* breakout full viewport despite being inside #mockframe max-width */
+  width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+}
+.detailHeroFull::before{content:"";position:absolute;inset:0;background:var(--detail-tone, #1a1a2e);z-index:-2}
+.detailHeroFull::after{content:"";position:absolute;inset:0;background:
+  /* cinemap 式：左右兩側遮罩保留海報中心，底部加深 */
+  linear-gradient(to right, rgba(0,0,0,.72) 0%, rgba(0,0,0,.45) 18%, transparent 32%, transparent 68%, rgba(0,0,0,.45) 82%, rgba(0,0,0,.72) 100%),
+  linear-gradient(to top, rgba(0,0,0,.62) 0%, rgba(0,0,0,.22) 36%, transparent 58%);
+  z-index:-1}
+.detailInner{max-width:1280px;width:100%;margin:0 auto;display:flex;gap:28px;align-items:flex-end}
+.detailPoster{width:200px;flex-shrink:0;aspect-ratio:2/3;border-radius:var(--radius);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:800;color:#fff;overflow:hidden}
+.detailInfo{flex:1;min-width:0;max-width:560px}
+.dtitle{font-size:30px;line-height:1.15;font-weight:800;color:#fff;letter-spacing:-.01em}
+.dyear{font-size:20px;font-weight:600;color:rgba(255,255,255,.62)}
+.metarow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:13px;font-weight:600;color:rgba(255,255,255,.88)}
+.tag{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.32);color:rgba(255,255,255,.92);background:rgba(255,255,255,.08)}
+.drating{display:flex;align-items:center;gap:8px;margin-top:14px}
+.avg{font-size:18px;font-weight:700;color:#fbbf24}
+.avglab{font-size:12.5px;color:rgba(255,255,255,.7)}
+.dact{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+.tagline{margin-top:16px;font-style:italic;font-size:14px;color:rgba(255,255,255,.86)}
+.overview{margin-top:10px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.88)}
+.crewline{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:12.5px;color:rgba(255,255,255,.66)}
+.crewline b{color:rgba(255,255,255,.92);font-weight:600}
+.backrow{max-width:1280px;margin:0 auto;padding:12px 24px 0}
+.linkbtn{font-size:13px;font-weight:600;color:var(--muted-foreground);padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+.linkbtn:hover{color:var(--foreground);background:rgba(255,255,255,.1)}
+
+/* ---------- Detail lower — TMDB 雙欄 + 分隔線（無卡片邊框），左右互換：主欄左、Facts 右 ---------- */
+.dgrid{max-width:1280px;margin:0 auto;padding:32px 24px 40px;display:grid;grid-template-columns:1fr 320px;gap:32px;align-items:start}
+.dmain{order:1; display:flex;flex-direction:column;gap:0;min-width:0}
+.dside{order:2; position:sticky;top:calc(var(--header-h) + 16px);display:flex;flex-direction:column;gap:0;min-width:0}
+.detailSection{padding:24px 0;border-top:1px solid var(--border)}
+.detailSection:first-child{border-top:none}
+.detailSection h3{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--muted-foreground)}
+.detailSection .sectionHint{font-size:11px;color:var(--muted-foreground);font-weight:500;margin-left:auto;text-transform:none;letter-spacing:0}
+.detailFacts{background:transparent;border:none;padding:0}
+.detailFacts dl{display:grid;grid-template-columns:110px 1fr;gap:10px 12px;font-size:13px;margin-top:4px}
+.detailFacts dt{color:var(--muted-foreground);font-weight:500}
+.detailFacts dd{color:var(--foreground);font-weight:600}
+/* legacy .panel kept for non-detail pages; detail uses detailSection */
+.panel{background:color-mix(in oklab,var(--card) 78%,transparent);border:1px solid var(--border);border-radius:var(--radius);padding:20px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.panel h3{font-size:16.5px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dfact dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px}
+.dfact dt{color:var(--muted-foreground)}
+.dfact dd{color:var(--foreground);font-weight:500;text-align:right}
+.kwrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.kwrow .tag{border-color:var(--input);color:var(--muted-foreground);background:var(--muted)}
+.provgroup{margin-bottom:12px}
+.glabel{font-size:12px;font-weight:600;color:var(--muted-foreground);display:block;margin-bottom:6px}
+.provrow{display:flex;gap:8px;flex-wrap:wrap}
+.prov{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border:1px solid var(--input);border-radius:999px;font-size:12.5px;font-weight:500;background:var(--muted)}
+.pdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.castrow{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
+.castcard{width:96px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.castavatar{width:64px;height:64px;border-radius:50%;background:var(--muted);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--muted-foreground)}
+.trailer{position:relative;aspect-ratio:16/9;border-radius:var(--radius);background:#0b0b0d;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+.trailer .play{width:54px;height:54px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.trailer:hover .play{transform:scale(1.08)}
+.recstrip{display:flex;gap:16px;overflow-x:auto;overflow-y:visible;padding-bottom:300px;margin-bottom:-280px;scrollbar-width:thin}
+.recstrip::-webkit-scrollbar{height:6px}
+.recstrip::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.ratepop{position:relative;display:inline-flex}
+.rateicon{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.14)}
+.rateicon.on{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.ratefly{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);display:flex;gap:4px;padding:6px;border-radius:var(--radius);background:var(--popover);border:1px solid var(--border);opacity:0;visibility:hidden;transition:opacity .16s,transform .16s;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.ratepop:hover .ratefly{opacity:1;visibility:visible;transform:translateX(-50%)}
+.rateopt{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--muted);color:var(--muted-foreground)}
+.rateopt:hover{background:var(--secondary);color:var(--secondary-foreground)}
+.rateopt.on{background:var(--primary);color:var(--primary-foreground)}
+.statusrow{display:inline-flex;gap:6px}
+.sbtn{width:38px;height:38px;border-radius:var(--radius);display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.72)}
+.sbtn[data-active="1"]{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+
+/* ---------- My List ---------- */
+.listtabs{display:flex;gap:8px;margin-bottom:20px;padding-top:24px}
+.listitem{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);background:color-mix(in oklab,var(--card) 70%,transparent);cursor:pointer}
+.listitem:hover{background:var(--card)}
+.thumb{width:46px;height:66px;border-radius:8px;flex-shrink:0}
+
+/* responsive — 保持 Prime 的 5→3→2 欄節奏，hover 在觸控設備改為點擊展開 */
+@media (max-width: 880px){
+  .heroTitle{font-size:28px}
+  .detailInner{flex-direction:column;align-items:flex-start}
+  .dgrid{grid-template-columns:1fr}
+  .dmain{order:1}
+  .dside{order:2;position:static}
+  .detailHeroFull{min-height:56vh}
+  #siteFooter > div:first-child{grid-template-columns:1fr 1fr}
+  .poster{width:220px}
+  .pgrid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+}
+@media (max-width: 560px){
+  #siteFooter > div:first-child{grid-template-columns:1fr}
+  .poster{width:168px}
+  .pgrid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr))}
+  .art .glyph{font-size:32px}
+  .primeHover{display:none} /* 手機不做 hover，避免誤觸 */
+}
+</style>
+</head>
+<body>
+<header id="siteHeader">
+  <div class="header-inner">
+    <span class="logo" id="logoBtn" tabindex="0" role="button" aria-label="SpudTube 首頁">
+      <span class="pot">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#FF0000"><path d="M12 3c-3.8 0-6.5 1.8-7.4 4.4C3.2 8.2 3 9 3 10c0 2 .8 3.4 2 4.8V19c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-4.2c1.2-1.4 2-2.8 2-4.8 0-1-.2-1.8-.6-2.6C18.5 4.8 15.8 3 12 3zM8.5 8.5A1.5 1.5 0 1 1 8.5 11.5 1.5 1.5 0 0 1 8.5 8.5zm7 0a1.5 1.5 0 1 1-1.5 1.5 1.5 1.5 0 0 1 1.5-1.5zM12 13a1.5 1.5 0 1 1-1.5 1.5A1.5 1.5 0 0 1 12 13z"/></svg>
+      </span>
+      SpudTube
+    </span>
+    <nav id="primeNav" aria-label="影片類型">
+      <button type="button" class="primeNavBtn" data-kind="movie">Movies</button>
+      <button type="button" class="primeNavBtn" data-kind="tv">TV shows</button>
+    </nav>
+    <nav id="appnav" aria-label="主要導覽">
+      <button id="searchOpenBtn" aria-label="搜尋" class="ghost" style="width:38px;height:38px;border-radius:999px;padding:0;justify-content:center;margin-right:2px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+      <a href="#" data-nav="list" class="ghost">我的清單</a>
+      <div id="langWrap">
+        <button type="button" id="langBtn" class="ghost" aria-label="選擇語言" aria-haspopup="menu" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span id="langLabel">繁中</span>
+        </button>
+        <div id="langMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-lang="zh-TW" aria-pressed="true"><span>繁體中文</span><span class="check"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></button>
+          <button type="button" role="menuitem" data-lang="en" aria-pressed="false"><span>English</span><span class="check" style="visibility:hidden"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></button>
+        </div>
+      </div>
+      <a href="#" data-nav="login" class="outline">登入</a>
+    </nav>
+  </div>
+</header>
+
+<div id="searchOverlay" hidden aria-modal="true" role="dialog" aria-label="搜尋">
+  <div class="searchSheet" role="search">
+    <div class="searchBarRow">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="overlaySearch" type="search" placeholder="Search for any movie or TV show..." autocomplete="off" />
+      <button id="overlayClose" aria-label="關閉搜尋"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div id="searchPanel" class="searchPanel"></div>
+  </div>
+</div>
+<div id="heroSlot"></div>
+<div id="filterBar">
+  <div class="filter-inner" id="filterInner"></div>
+</div>
+
+<main id="mockframe">
+  <div id="screenroot"></div>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="trailerDialog" style="width:min(860px,92vw);padding:0;border:1px solid var(--border);border-radius:calc(var(--radius) + 4px);background:#0a0a0c;color:var(--foreground);overflow:hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+    <span style="font-size:14px;font-weight:700">預告片</span>
+    <button type="button" data-trailer-close style="width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--muted-foreground)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div style="padding:14px 16px 18px">
+    <div style="position:relative;aspect-ratio:16/9;border-radius:var(--radius);background:#000;border:1px solid var(--border);display:flex;align-items:center;justify-content:center">
+      <div style="width:60px;height:60px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="#111"><path d="M8 5v14l11-7z"/></svg></div>
+      <span style="position:absolute;bottom:14px;left:16px;font-size:12.5px;font-weight:600;color:#fff">▶ 正在播放：官方預告片</span>
+    </div>
+  </div>
+</dialog>
+<dialog id="overviewDialog" style="width:min(640px,92vw);padding:0;border:1px solid var(--border);border-radius:12px;background:#111;color:var(--foreground);overflow:hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
+    <span style="font-size:14px;font-weight:700">完整簡介</span>
+    <button type="button" data-overview-close style="width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--muted-foreground)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div style="padding:16px 18px 20px">
+    <h3 id="overviewTitle" style="font-size:18px;font-weight:800;margin-bottom:8px"></h3>
+    <p id="overviewText" style="font-size:14px;line-height:1.7;color:rgba(255,255,255,.88)"></p>
+  </div>
+</dialog>
+
+<footer id="siteFooter" style="margin-top:40px;background:var(--card);border-top:1px solid var(--border);padding:44px 24px;color:var(--muted-foreground)">
+  <div style="max-width:1280px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;color:var(--foreground)"><span style="color:#FF0000"><svg width="18" height="18" viewBox="0 0 24 24" fill="#FF0000"><path d="M12 3c-3.8 0-6.5 1.8-7.4 4.4C3.2 8.2 3 9 3 10c0 2 .8 3.4 2 4.8V19c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-4.2c1.2-1.4 2-2.8 2-4.8 0-1-.2-1.8-.6-2.6C18.5 4.8 15.8 3 12 3z"/></svg></span> SpudTube</div>
+    <p style="font-size:13px;line-height:1.7;max-width:520px">幫你快速決定今晚看什麼：依類型、評分與關鍵字找到理想作品，查看在哪個平台可看，並收藏你的 Watchlist 與評分。</p>
+    <p style="font-size:12px;line-height:1.6;max-width:560px">Movie &amp; TV data provided by <a href="https://www.themoviedb.org" style="color:var(--primary);text-decoration:underline">The Movie Database (TMDB)</a>. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const TITLES=[
+ {id:"shogun",kind:"tv",t:"幕府將軍",en:"Shōgun",y:2024,runtime:"第1季 · 10集",g:["history","drama"],pop:96,r:8.9,glyph:"將",tone:"#991b1b",adult:false,
+  ov:"1600年的日本：一位英國領航員、一位瀕死的大名與一位神祕譯者，被捲入足以改變國家的權力鬥爭。這段史詩旅程深入描寫武士精神、政治陰謀與文化衝突，並透過四個獨立故事展現人性在極端環境下的抉擇與救贖。",
+  prov:{TW:{sub:["Disney+"],free:[],rent:[],buy:[]}}},
+ {id:"dune2",kind:"movie",t:"沙丘：第二部",en:"Dune: Part Two",y:2024,runtime:"2小時46分",g:["scifi","adventure"],pop:98,r:8.3,glyph:"沙",tone:"#b45309",adult:false,
+  ov:"保羅·亞崔迪與荃妮、史帝格率領的弗瑞曼人結盟，踏上對毀滅家族的陰謀者的戰爭之路。當他必須在生涯摯愛與已知宇宙命運之間抉擇時，他僅能力阻只有自己能預見的可怕未來。",
+  prov:{TW:{sub:["Netflix"],free:[],rent:["Apple TV"],buy:[]}}},
+ {id:"oppenheimer",kind:"movie",t:"奧本海默",en:"Oppenheimer",y:2023,runtime:"3小時",g:["drama","history"],pop:95,r:8.4,glyph:"奧",tone:"#7f1d1d",adult:true,ov:"曼哈頓計畫的核心人物羅伯特·奧本海默，必須冒著毀滅世界的風險拯救世界。從理論物理的殿堂到洛斯阿拉莫斯的沙漠，他與團隊在道德與科學的夾縫中打造出足以改變人類命運的武器。",prov:{TW:{sub:[],free:[],rent:["Apple TV"],buy:[]}}},
+ {id:"tlou",kind:"tv",t:"最後生還者",en:"The Last of Us",y:2023,runtime:"第1季 · 9集",g:["drama","thriller"],pop:94,r:8.6,glyph:"末",tone:"#4d7c0f",adult:true,ov:"真菌瘟疫摧毀文明二十年後，硬漢走私客喬爾受託護送14歲少女伊莉橫越崩壞的美國。兩人在破敗城市與感染者威脅下，建立起超越血緣的羈絆。",prov:{TW:{sub:["CATCHPLAY+"],free:[],rent:[],buy:[]}}},
+ {id:"io2",kind:"movie",t:"腦筋急轉彎2",en:"Inside Out 2",y:2024,runtime:"1小時37分",g:["animation","comedy"],pop:92,r:7.6,glyph:"轉",tone:"#7c3aed",adult:false,ov:"萊莉進入青春期，總部突然迎來焦慮、羨慕、無聊與尷尬等新情緒。當舊情緒與新情緒在控制台上爭奪主導權，萊莉的自我認同也面臨前所未有的動盪。",prov:{TW:{sub:["Disney+"],free:[],rent:[],buy:[]}}},
+ {id:"rickmorty",kind:"tv",t:"瑞克和莫蒂",en:"Rick and Morty",y:2013,runtime:"第8季",g:["animation","comedy"],pop:90,r:9.1,glyph:"R",tone:"#22c55e",adult:true,ov:"酗酒天才科學家瑞克帶著膽小孫子莫蒂穿梭多重宇宙，兩人在無限次元中展開荒誕又黑暗的冒險，探討家庭、存在與虛無的邊界。",prov:{TW:{sub:["Netflix"],free:[],rent:[],buy:[]}}},
+ {id:"heron",kind:"movie",t:"蒼鷺與少年",en:"The Boy and the Heron",y:2023,runtime:"2小時4分",g:["animation","fantasy"],pop:88,r:8.0,glyph:"鷺",tone:"#0e7490",adult:false,ov:"喪母的少年牧真人隨父親搬至鄉間，意外結識一隻會說話的蒼鷺，並被引領進入一座神秘高塔，展開關於生死與創作的奇幻旅程。",prov:{TW:{sub:["Netflix"],free:[],rent:[],buy:[]}}},
+ {id:"blackmirror",kind:"tv",t:"黑鏡",en:"Black Mirror",y:2011,runtime:"第7季 · 6集",g:["scifi","drama"],pop:87,r:8.5,glyph:"鏡",tone:"#334155",adult:true,ov:"每集獨立的寓言劇：當科技放大人性最幽微的恐懼與慾望，近未來的社會如何在演算法、記憶與虛擬實境中迷失自我。",prov:{TW:{sub:["Netflix"],free:[],rent:[],buy:[]}}},
+ {id:"godzilla",kind:"movie",t:"哥吉拉-1.0",en:"Godzilla Minus One",y:2023,runtime:"2小時5分",g:["scifi","thriller"],pop:85,r:8.2,glyph:"哥",tone:"#374151",adult:false,ov:"戰後歸零的日本，經濟與精神皆陷入谷底之際，史上最強怪獸哥吉拉現身東京灣，以輻射熱線將希望再次碾碎。",prov:{TW:{sub:["Prime Video"],free:[],rent:[],buy:[]}}},
+ {id:"truedetective",kind:"tv",t:"真探",en:"True Detective",y:2014,runtime:"第4季 · 6集",g:["crime","drama"],pop:83,r:8.3,glyph:"探",tone:"#0891b2",adult:true,ov:"每季一樁懸案：從路易斯安那的邪教儀式到阿拉斯加的永夜，兩位警探在時間的扁平圓環中追兇，也追問自身的救贖與墮落。",prov:{TW:{sub:["CATCHPLAY+"],free:[],rent:[],buy:[]}}}
+];
+const GENRES=[["action","動作"],["adventure","冒險"],["animation","動畫"],["comedy","喜劇"],["crime","犯罪"],["drama","戲劇"],["thriller","驚悚"],["scifi","科幻"],["fantasy","奇幻"],["history","歷史"]];
+const GLABEL={action:"動作",adventure:"冒險",animation:"動畫",comedy:"喜劇",crime:"犯罪",drama:"戲劇",thriller:"驚悚",scifi:"科幻",fantasy:"奇幻",history:"歷史"};
+const PROVCOLOR={"Netflix":"#e50914","Disney+":"#0ea5e9","Prime Video":"#00a8e1","CATCHPLAY+":"#16a34a","Max":"#7c3aed","Hulu":"#10b981","Apple TV":"#8e8e93","Google Play 電影":"#f59e0b"};
+const GROUPS=[["sub","訂閱"],["free","免費"],["rent","租借"],["buy","購買"]];
+const BEST=[["最佳動作與冒險",["action","adventure"]],["最佳喜劇",["comedy"]],["最佳科幻與奇幻",["scifi","fantasy"]],["最佳犯罪與驚悚",["crime","thriller"]],["最佳戲劇",["drama"]]];
+const PAGE=8;
+const store={ratings:{"dune2":"awesome",shogun:"good"},status:{},watchlist:new Set(["dune2","heron"]),watched:new Set(["godzilla","tlou"]),region:"TW",lang:"zh-TW",screen:{name:"home"},listTab:"watchlist",listKind:"all",listProvider:"",listProviderExpanded:false,listRatingFilter:"all",listView:"grid",home:{kind:"movie",genres:new Set(),rating:"",provider:"",query:"",shown:PAGE},topic:null};
+const $=s=>document.querySelector(s);
+const root=$("#screenroot");
+const heroSlot=$("#heroSlot");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const byId=id=>TITLES.find(x=>x.id===id);
+const KLABEL={movie:"電影",tv:"影集"};
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._h);toast._h=setTimeout(()=>t.classList.remove("show"),2200);}
+function getAllProviders(x){
+ const p=(x.prov&&x.prov[store.region])||{sub:[],free:[],rent:[],buy:[]};
+ return [...(p.sub||[]), ...(p.free||[]), ...(p.rent||[]), ...(p.buy||[])];
+}
+function providerGroupAvatar(providers, size=22){
+ if(!providers||!providers.length) return `<span class="small muted" style="font-size:11px">—</span>`;
+ const max=3;
+ const shown=providers.slice(0,max);
+ const extra=providers.length - max;
+ const dots=shown.map((name,i)=>`<span title="${esc(name)}" style="width:${size}px;height:${size}px;border-radius:50%;background:${PROVCOLOR[name]||"#888"};border:2px solid var(--background);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800;margin-left:${i===0?0:-6}px;flex-shrink:0">${esc(name[0])}</span>`).join("");
+ const more= extra>0 ? `<span style="width:${size}px;height:${size}px;border-radius:50%;background:var(--muted);border:2px solid var(--background);margin-left:-6px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted-foreground)">+${extra}</span>` : "";
+ return `<span style="display:inline-flex;align-items:center">${dots}${more}</span>`;
+}
+function getPrimeBadge(x){
+ // 白 pill 的 TMDB 資訊定位（右上，不與 provider 黃袋衝突）：
+ // 依 Image1「MOST LIKED」範例，SpudTube 將白 pill 定義為「TMDB 衍生發現標籤」，
+ // 用來呈現去中心化的社會證明與時效訊號，而非營運手寫：
+ //  - TOP RATED / MOST LIKED：由 vote_average / vote_count 衍生（白底黑字強調權威感）
+ //  - TRENDING / MOST REWATCHED：由 popularity / trending 衍生
+ //  - RECENTLY ADDED / NEW：由 release_date / first_air_date 衍生
+ // 實作以本地 pop/r/y 模擬 TMDB 欄位，未來接 TMDB 後直接替換為 /trending 與 /discover 結果
+ if(x.pop >= 98) return "RECENTLY ADDED";
+ if(x.pop >= 96) return "MOST REWATCHED";
+ if(x.pop >= 93) return "LEAVING SOON";
+ if(x.r >= 8.8) return "MOST LIKED";
+ if(x.pop >= 90) return "TRENDING";
+ return "";
+}
+function getMaturity(x){
+ if(x.kind==="tv" && x.pop>=94) return "16+";
+ if(x.r>=8.6) return "ALL";
+ return "16+";
+}
+function ratingIconFor(x){
+ const cur=store.ratings[x.id];
+ if(cur==="awesome") return {svg:`<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6"><path d="M11.5 2.5l2.3 4.7l5.2 .8l-3.8 3.7l.9 5.2l-4.6-2.4l-4.6 2.4l.9-5.2l-3.8-3.7l5.2-.8z"/></svg>`,label:"已評 Awesome"};
+ if(cur==="good") return {svg:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>`,label:"已評 Good"};
+ if(cur==="sucks") return {svg:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>`,label:"已評 Sucks"};
+ return {svg:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2l2.4 4.9l5.4 .8l-3.9 3.8l.9 5.3L12 14.9l-4.8 2.5l.9-5.3l-3.9-3.8l5.4-.8z"/></svg>`,label:"評分"};
+}
+function posterCard(x){
+ const wl=store.watchlist.has(x.id);
+ const providers=getAllProviders(x);
+ const badge = getPrimeBadge(x);
+ const badgeHtml = badge ? `<span class="trendingBadge">${badge}</span>` : ``;
+ const multiWatchText = providers.length>1 ? `Watch with ${providers.length} providers` : providers.length===1 ? `Watch with a ${esc(providers[0])} membership` : `尚未提供串流`;
+ const isOscar = x.r>=8.4 && ["dune2","oppenheimer","heron","godzilla"].includes(x.id);
+ const rankText = isOscar ? `OSCAR® nominee` : (x.pop >= 96 ? `#${Math.max(1, Math.round(10 - x.pop/10))} in Taiwan` : "");
+ const rankIsOscar = isOscar;
+ const maturity = getMaturity(x);
+ const runtimeShort = x.runtime.replace("第","").replace("季 · "," S").replace("小時","h").replace("分","m").replace(" ","");
+ const rIcon = ratingIconFor(x);
+ const wlOn = wl ? " on" : "";
+ return `<article class="poster" data-open="${x.id}" role="button" tabindex="0" aria-label="${esc(x.t)}">
+    <div class="art" style="background:${x.tone}">
+      ${badgeHtml}
+      <span class="glyph">${esc(x.glyph)}</span>
+      <button type="button" class="wlbtn${wlOn}" data-wl="${x.id}" aria-label="${wl?"從待看清單移除":"加入待看清單"}">${wl?'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>'}</button>
+      <div class="ovl"></div>
+    </div>
+    <div class="primeHover" data-hover>
+      <div class="primeArt" style="background:${x.tone};display:flex;align-items:center;justify-content:center"><span style="font-size:42px;font-weight:800;color:#fff;opacity:.92;letter-spacing:-.02em">${esc(x.glyph)}</span></div>
+      <div class="primeBody">
+        <div class="primeTitle">${esc(x.t)}</div>
+        <div class="primeWatch"><svg width="13" height="13" viewBox="0 0 24 24" fill="#facc15" stroke="#facc15"><path d="M9.5 2.2a5.5 5.5 0 0 1 5 0l1 1h.01" stroke-width="1.2" fill="none"/><path d="M6 7V6a6 6 0 0 1 12 0v1"/><rect x="3" y="7" width="18" height="13" rx="2"/></svg> ${esc(multiWatchText)}</div>
+        <div class="primeActions">
+          <button type="button" class="primaryPlay" data-trailer title="播放預告"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7z"/></svg></button>
+          <button type="button" data-wl="${x.id}" class="${wl?"on":""}" title="${wl?"移除待看":"加入待看"}"><svg width="16" height="16" viewBox="0 0 24 24" fill="${wl?"currentColor":"none"}" stroke="currentColor" stroke-width="1.9"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
+          <button type="button" data-rate-hover="${x.id}" class="${store.ratings[x.id]?"on":""}" title="${rIcon.label}">${rIcon.svg}</button>
+        </div>
+        ${rankText?`<div class="primeRank" style="${rankIsOscar?"color:#22c55e":"color:#22c55e"}">${rankIsOscar?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 14c-1 0-2 1-2 3 0 1 .5 2 2 2"/><path d="M17 14c1 0 2 1 2 3 0 1-.5 2-2 2"/><path d="M12 14a5 5 0 0 0 5-5c0-2-1-4-5-4s-5 2-5 4a5 5 0 0 0 5 5z"/><path d="M12 14v4"/><path d="M9 18h6"/></svg>`:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M3 17L9 11L13 15L21 7"/><path d="M14 7h7v7"/></svg>`} ${esc(rankText)}</div>`:""}
+        <div class="primeMeta">${badge?`<span class="pill">${esc(badge)}</span>`:""}<span class="ageBox">${esc(maturity)}</span><span>${x.y}</span><span>·</span><span>${esc(runtimeShort)}</span><span>·</span><span>${KLABEL[x.kind]}</span></div>
+        <div class="primeDesc">${esc(x.ov)}</div>
+      </div>
+    </div>
+  </article>`;
+}
+function resetFilters(){const h=store.home;h.genres.clear();h.rating="";h.provider="";h.query="";h.shown=PAGE;store.topic=null;}
+function goHome(){store.screen={name:"home"};resetFilters();render();}
+function bindOpen(scope){(scope||root).querySelectorAll("[data-open]").forEach(el=>{
+ el.addEventListener("click",()=>{store.screen={name:"detail",id:el.dataset.open};render();});
+ el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();store.screen={name:"detail",id:el.dataset.open};render();}});
+});(scope||root).querySelectorAll("[data-wl]").forEach(el=>el.addEventListener("click",e=>{
+ e.stopPropagation();e.preventDefault();
+ const id=el.dataset.wl;
+ if(store.watchlist.has(id)){store.watchlist.delete(id);toast("已從待看清單移除");}
+ else{store.watchlist.add(id);toast("已加入待看清單");}
+ render();
+}));(scope||root).querySelectorAll("[data-trailer]").forEach(el=>el.addEventListener("click",e=>{
+ e.stopPropagation();e.preventDefault();
+ const dlg=document.getElementById("trailerDialog");
+ if(dlg && typeof dlg.showModal==="function") dlg.showModal();
+}));(scope||root).querySelectorAll("[data-rate-hover]").forEach(el=>el.addEventListener("click",e=>{
+ e.stopPropagation();e.preventDefault();
+ const id=el.dataset.rateHover;
+ const cur=store.ratings[id];
+ const next = cur==="awesome" ? "good" : cur==="good" ? "sucks" : cur==="sucks" ? null : "awesome";
+ if(next) {store.ratings[id]=next; toast("已評價："+next);} else {delete store.ratings[id]; toast("已清除評價");}
+ render();
+}));}
+function syncFilterBar(){
+ const h=store.home;
+ document.querySelectorAll("[data-kind]").forEach(b=>{const on=b.dataset.kind===h.kind;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+ document.querySelectorAll("[data-rate]").forEach(b=>{const on=(b.dataset.rate||"")===h.rating;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+ document.querySelectorAll("[data-genre]").forEach(b=>{const on=h.genres.has(b.dataset.genre);b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+ document.querySelectorAll("[data-provider]").forEach(b=>{const on=b.dataset.provider===h.provider;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);});
+ const countEl=$("#filterCount");
+ if(countEl){
+   let list=TITLES.filter(x=>x.kind===h.kind);
+   if(h.genres.size)list=list.filter(x=>x.g.some(g=>h.genres.has(g)));
+   if(h.rating)list=list.filter(x=>x.r>=Number(h.rating));
+   if(h.provider)list=list.filter(x=>getAllProviders(x).includes(h.provider));
+   countEl.textContent=`篩選結果 · ${list.length} 部`;
+ }
+ syncPrimeNav();
+}
+function syncPrimeNav(){
+  const isHome=store.screen.name==="home";
+  document.querySelectorAll("#primeNav [data-kind]").forEach(b=>{
+    const on=isHome&&b.dataset.kind===store.home.kind;
+    b.classList.toggle("on",on);
+    b.setAttribute("aria-pressed",on);
+  });
+}
+function renderFilterBar(){
+ const h=store.home;
+ const allProviders=[...new Set(TITLES.flatMap(t=>getAllProviders(t)))];
+ $("#filterInner").innerHTML=`
+    <div style="display:inline-flex;gap:6px;align-items:center" role="group" aria-label="最低評分">
+      <button type="button" class="chip" data-rate="" aria-pressed="false">★ 全部</button>
+      <button type="button" class="chip" data-rate="7" aria-pressed="false">★ 7+</button>
+      <button type="button" class="chip" data-rate="8" aria-pressed="false">★ 8+</button>
+    </div>
+    <span class="divider" aria-hidden="true"></span>
+    ${GENRES.map(([k,l])=>`<button type="button" class="chip" data-genre="${k}" aria-pressed="false">${l}</button>`).join("")}
+    <span class="divider" aria-hidden="true"></span>
+    <div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap" role="group" aria-label="依平台篩選">
+      ${allProviders.map(p=>`<button type="button" class="chip" data-provider="${esc(p)}" aria-pressed="false"><span style="width:10px;height:10px;border-radius:50%;background:${PROVCOLOR[p]||"#888"};display:inline-block"></span> ${esc(p)}</button>`).join("")}
+    </div>
+    <button type="button" class="chip ghost" data-clear>清除全部</button>
+    <span class="filterCount" id="filterCount"></span>
+  `;
+ document.querySelectorAll("#filterInner [data-rate]").forEach(el=>el.addEventListener("click",()=>{
+   store.home.rating=store.home.rating===el.dataset.rate?"":el.dataset.rate;
+   store.home.shown=PAGE;
+   syncFilterBar();renderContent();
+ }));
+ document.querySelectorAll("#filterInner [data-genre]").forEach(el=>el.addEventListener("click",()=>{
+   const key=el.dataset.genre;
+   store.home.genres.has(key)?store.home.genres.delete(key):store.home.genres.add(key);
+   store.home.shown=PAGE;
+   syncFilterBar();renderContent();
+ }));
+ document.querySelectorAll("#filterInner [data-provider]").forEach(el=>el.addEventListener("click",()=>{
+   const p=el.dataset.provider;
+   store.home.provider = store.home.provider===p ? "" : p;
+   store.home.shown=PAGE;
+   syncFilterBar();renderContent();
+ }));
+ $("#filterInner [data-clear]").addEventListener("click",()=>{resetFilters();syncFilterBar();renderContent();});
+ syncFilterBar();
+}
+let heroIdx=0;
+let heroTimer=null;
+function renderHero(){
+ let trending=[...TITLES].filter(x=>x.kind===store.home.kind).sort((a,b)=>b.pop-a.pop).slice(0,5);
+ if(!trending.length) trending=[...TITLES].sort((a,b)=>b.pop-a.pop).slice(0,5);
+ if(heroIdx>=trending.length) heroIdx=0;
+ // 清理舊輪播計時
+ if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
+ if(store.screen.name!=="home"){
+   heroSlot.style.display="none";
+   document.getElementById("filterBar").style.display="none";
+   heroSlot.innerHTML="";
+   return;
+ }
+ heroSlot.style.display="";
+ document.getElementById("filterBar").style.display="";
+  // 生成輪播 HTML — 參考 Apple TV 5 列版型（Image1）：title / provider+genre / overview+MORE / 分數年份時長成人 / 查看詳情+watchlist
+ heroSlot.innerHTML=`
+  <div class="heroCarousel" aria-roledescription="carousel" aria-label="本週 trending 輪播">
+    ${trending.map((feat,i)=>{
+      const featProviders=getAllProviders(feat);
+      const firstProv = featProviders[0]||"";
+      const providerInitial = firstProv ? esc(firstProv[0]) : "S";
+      const runtimeShort = feat.runtime.replace("第","").replace("季 · "," S").replace("小時","h").replace("分","m").replace(" ","");
+      return `<div class="heroSlide ${i===heroIdx?"active":""}" data-index="${i}" style="--hero-tone:${feat.tone}" aria-hidden="${i===heroIdx?"false":"true"}">
+        <div class="heroInner">
+          <div class="heroInfo">
+            <div class="heroTitle">${esc(feat.t)}</div>
+            <div class="heroSub"><span class="score">★ ${feat.r}</span><span>${KLABEL[feat.kind]} · ${feat.g.map(g=>GLABEL[g]).join("、")}</span></div>
+            <div class="heroOvWrap">
+              <p class="heroOvApple">${esc(feat.ov)}</p>
+              <button type="button" class="morePill" data-more="${feat.id}" aria-label="展開完整簡介">MORE</button>
+            </div>
+            <div class="heroMetaLine"><span class="providerDot">${providerInitial}</span><span>${feat.y}</span><span>·</span><span>${esc(runtimeShort)}</span>${feat.adult?`<span class="adultBadge">18+</span>`:""}</div>
+            <div class="heroActionsApple">
+              <button type="button" class="btnApplePrimary" data-open="${feat.id}">查看詳情</button>
+              <button type="button" class="btnAppleCircle" data-watch="${feat.id}" title="${store.watchlist.has(feat.id)?"已在待看清單":"加入待看清單"}">${store.watchlist.has(feat.id)?`<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 5l1.4 2.8 3.1.5-2.2 2.1.5 3-2.8-1.5-2.8 1.5.5-3L8.5 8.3l3.1-.5z"/></svg>`:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14"/></svg>`}</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join("")}
+    <button class="heroArrow prev" aria-label="上一部" data-hero-prev><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M15 18L9 12l6-6"/></svg></button>
+    <button class="heroArrow next" aria-label="下一部" data-hero-next><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <div class="heroDots" role="tablist">${trending.map((_,i)=>`<button class="heroDot ${i===heroIdx?"active":""}" data-dot="${i}" aria-label="第 ${i+1} 張" role="tab" aria-selected="${i===heroIdx}"></button>`).join("")}</div>
+  </div>`;
+   // 綁定 — MORE 僅在 overview 超過 2 行時顯示；超出時以漸變淡出至 MORE（Apple TV 雙層 mask 原理简化為單層右側淡出）
+ heroSlot.querySelectorAll(".heroSlide").forEach(sl=>{
+    const p=sl.querySelector(".heroOvApple"), btn=sl.querySelector(".morePill");
+    if(!p||!btn) return;
+    const maxH=p.clientHeight;
+    const probe=p.cloneNode(true);
+    probe.style.webkitLineClamp="unset";
+    probe.style.overflow="visible";
+    probe.style.maxHeight="none";
+    probe.style.position="absolute";
+    probe.style.visibility="hidden";
+    p.parentNode.appendChild(probe);
+    const fullH=probe.getBoundingClientRect().height;
+    probe.remove();
+    if(fullH<=maxH+1){ btn.remove(); p.classList.remove("is-truncated"); }
+    else p.classList.add("is-truncated");
+  });
+ heroSlot.querySelectorAll("[data-open]").forEach(el=>el.addEventListener("click",()=>{store.screen={name:"detail",id:el.dataset.open};render();}));
+ heroSlot.querySelectorAll("[data-watch]").forEach(btn=>btn.addEventListener("click",()=>{
+   const id=btn.dataset.watch;
+   const isCircle = btn.classList.contains("btnAppleCircle");
+   if(store.watchlist.has(id)){
+     store.watchlist.delete(id);
+     if(isCircle) btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14"/></svg>`;
+     else btn.textContent="＋ 待看清單";
+     toast("已從待看清單移除");
+   } else {
+     store.watchlist.add(id);
+     if(isCircle) btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 5l1.4 2.8 3.1.5-2.2 2.1.5 3-2.8-1.5-2.8 1.5.5-3L8.5 8.3l3.1-.5z"/></svg>`;
+     else btn.textContent="在待看清單";
+     toast("已加入待看清單");
+   }
+ }));
+ heroSlot.querySelectorAll("[data-more]").forEach(btn=>btn.addEventListener("click",(e)=>{
+   e.stopPropagation();
+   const id=btn.dataset.more;
+   const x=byId(id);
+   if(!x) return;
+   const dlg=document.getElementById("overviewDialog");
+   if(dlg){
+     document.getElementById("overviewTitle").textContent=x.t;
+     document.getElementById("overviewText").textContent=x.ov;
+     if(typeof dlg.showModal==="function") dlg.showModal();
+   }
+ }));
+ const go = (nextIdx)=>{
+   heroIdx=(nextIdx+trending.length)%trending.length;
+   heroSlot.querySelectorAll(".heroSlide").forEach((el,i)=>{el.classList.toggle("active",i===heroIdx);el.setAttribute("aria-hidden",i===heroIdx?"false":"true");});
+   heroSlot.querySelectorAll(".heroDot").forEach((el,i)=>{el.classList.toggle("active",i===heroIdx);el.setAttribute("aria-selected",i===heroIdx);});
+ };
+  heroSlot.querySelector("[data-hero-prev]")?.addEventListener("click",()=>go(heroIdx-1));
+  heroSlot.querySelector("[data-hero-next]")?.addEventListener("click",()=>go(heroIdx+1));
+  heroSlot.querySelectorAll("[data-dot]").forEach(el=>el.addEventListener("click",()=>go(Number(el.dataset.dot))));
+  // 自動輪播 5s，滑鼠懸停暫停
+ const carousel=heroSlot.querySelector(".heroCarousel");
+ heroTimer=setInterval(()=>go(heroIdx+1),5000);
+ carousel?.addEventListener("mouseenter",()=>{if(heroTimer){clearInterval(heroTimer);heroTimer=null;}});
+ carousel?.addEventListener("mouseleave",()=>{if(!heroTimer) heroTimer=setInterval(()=>go(heroIdx+1),5000);});
+ // 確保 header Movies/TV 與 hero 同步
+ syncPrimeNav();
+}
+function renderRows(area){
+  const k=store.home.kind,kl=KLABEL[k];
+  const pool=TITLES.filter(x=>x.kind===k);
+  const byPop=(a,b)=>b.pop-a.pop;
+  const byRate=(a,b)=>b.r-a.r;
+  const byNew=(a,b)=>b.y-a.y||b.pop-a.pop;
+  let rows=[
+   {key:"trending",label:`本週熱門${kl}`,items:pool.slice().sort(byPop)},
+   {key:"top",label:`高評價${kl}`,items:pool.slice().sort(byRate)},
+   k==="movie"?{key:"now",label:"現正熱映",items:pool.slice().sort(byNew)}:{key:"airing",label:"本季播映中",items:pool.slice().sort(byNew)},
+   ...BEST.map(([name,gs],i)=>({key:"g"+i,label:`${name}${kl}`,items:pool.filter(x=>x.g.some(g=>gs.includes(g)))}))
+   ].filter(r=>r.items.length);
+  // 確保每列至少 8 張以呈現 Prime 式右側半露（peek）暗示可橫滑
+  rows = rows.map(r=>{
+    let items=r.items;
+    if(items.length>0 && items.length<8){
+      const expanded=[];
+      while(expanded.length<9) expanded.push(...items);
+      items=expanded.slice(0, Math.min(10, Math.max(8, items.length*2)));
+    }
+    return {...r, items};
+  });
+      area.innerHTML=`<div class="rows">${rows.map((r,idx)=>`
+       <section class="row" data-row="${idx}"><div class="rowhead"><h3>${esc(r.label)}</h3><button class="seeMore" data-see="${r.key}" aria-label="查看更多 ${esc(r.label)}">See more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button></div>
+     <div class="stripScroll breakout" data-strip="${idx}"><div class="strip">${r.items.map(posterCard).join("")}</div>
+       <button class="rowArrow prev" aria-label="向左捲動" data-prev="${idx}" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18L9 12l6-6"/></svg></button>
+       <button class="rowArrow next" aria-label="向右捲動" data-next="${idx}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+     </div></section>`).join("")}</div>`;
+   bindOpen(area);
+   area.querySelectorAll("[data-see]").forEach(el=>el.addEventListener("click",()=>{
+     const key=el.dataset.see;
+     const row=rows.find(r=>r.key===key);
+     if(!row) return;
+     store.topic={label:row.label, kind:k, items:row.items, shown:PAGE};
+     store.screen={name:"topic"};
+     render();
+    }));
+  }
+function renderGrid(area){
+ const h=store.home;
+ let list;
+ const q=h.query.trim().toLowerCase();
+ if(q){
+   list=TITLES.filter(x=>(x.t+x.en).toLowerCase().includes(q));
+   if(h.genres.size)list=list.filter(x=>x.g.some(g=>h.genres.has(g)));
+   if(h.rating)list=list.filter(x=>x.r>=Number(h.rating));
+   if(h.provider)list=list.filter(x=>getAllProviders(x).includes(h.provider));
+ }else{
+   list=TITLES.filter(x=>x.kind===h.kind);
+   if(h.genres.size)list=list.filter(x=>x.g.some(g=>h.genres.has(g)));
+   if(h.rating)list=list.filter(x=>x.r>=Number(h.rating));
+   if(h.provider)list=list.filter(x=>getAllProviders(x).includes(h.provider));
+ }
+ list.sort((a,b)=>b.pop-a.pop);
+ const shown=list.slice(0,h.shown);
+ const more=list.length>h.shown;
+ const bits=[];
+ if(q)bits.push(`「${esc(h.query)}」`,"跨電影與影集（疊加篩選）");
+ else{bits.push(KLABEL[h.kind]);if(h.genres.size)bits.push(`類型：${[...h.genres].map(g=>GLABEL[g]).join("、")}（OR）`);if(h.rating)bits.push(`★ ${h.rating}+ 以上`);if(h.provider)bits.push(`平台：${esc(h.provider)}`);}
+ area.innerHTML=`
+ <div class="resultbar">
+   <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+     <h3>${q?"搜尋結果":"篩選結果"}</h3>
+     ${bits.map(b=>`<span class="xs muted">${b}</span>`).join("")}
+     <span class="xs muted">共 ${list.length} 部 · 依熱門度排序 · 捲動自動載入更多</span>
+   </div>
+ </div>
+ <div class="pgrid">
+   ${shown.map(posterCard).join("")||`<div class="empty" style="grid-column:1/-1"><b>查無結果</b><span class="small">${q?"換個關鍵字或放寬篩選":"清掉幾個條件再試試"}</span></div>`}
+   ${more?`<div class="sentinel" id="sentinel"><div class="spinner" aria-label="載入中"></div></div>`:""}
+ </div>`;
+ bindOpen(area);
+ const sent=$("#sentinel");
+ if(sent){const ob=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){ob.disconnect();setTimeout(()=>{store.home.shown+=PAGE;renderContent();toast("已載入更多結果");},550);}},{rootMargin:"160px"});ob.observe(sent);}
+}
+function renderContent(){
+ const area=document.getElementById("contentarea");
+ if(!area)return;
+ const h=store.home;
+ if(h.query || h.genres.size || h.rating || h.provider)renderGrid(area);
+ else renderRows(area);
+ syncFilterBar();
+}
+function renderTopic(){
+ const t=store.topic;
+ if(!t){goHome();return;}
+ const shown=t.items.slice(0,t.shown);
+ const more=t.items.length>t.shown;
+ const kindLabel=KLABEL[t.kind]||"作品";
+  heroSlot.style.display="none";
+  document.getElementById("filterBar").style.display="none";
+   root.innerHTML=`
+    <div style="padding:calc(var(--header-h) + 28px) 2px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+     <div>
+       <span class="xs muted" style="letter-spacing:.06em;text-transform:uppercase">${kindLabel} · 主題</span>
+       <h1 style="font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin-top:6px">${esc(t.label)}</h1>
+       <p class="small muted" style="margin-top:6px">共 ${t.items.length} 部${kindLabel} · 點擊 Logo 回首頁</p>
+     </div>
+     <button type="button" class="chip ghost" data-topic-filter style="height:36px;padding:0 16px;border-radius:8px;background:var(--muted);border:1px solid var(--border);display:inline-flex;align-items:center;gap:8px;font-weight:600">Filter <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+   </div>
+  <div class="pgrid">
+   ${shown.map(posterCard).join("")}
+   ${more?`<div class="sentinel" id="sentinel"><div class="spinner" aria-label="載入中"></div></div>`:""}
+ </div>`;
+  bindOpen(root);
+ root.querySelector("[data-topic-filter]")?.addEventListener("click",()=>toast("Filter 為示意（對照 Prime browse 的 Filter）"));
+ const sent=$("#sentinel");
+ if(sent){const ob=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){ob.disconnect();setTimeout(()=>{store.topic.shown+=PAGE;renderTopic();toast("已載入更多結果");},550);}},{rootMargin:"160px"});ob.observe(sent);}
+}
+function providerPanel(x){
+ const p=(x.prov&&x.prov[store.region])||{sub:[],free:[],rent:[],buy:[]};
+ const any=GROUPS.some(([k])=>p[k].length);
+ return `<section class="panel"><h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> 提供平台 <select class="input" style="margin-left:auto;min-width:120px;height:30px;padding:0 10px;border:1px solid var(--input);border-radius:var(--radius);background:var(--muted)">${[["TW","台灣"],["US","美國"],["JP","日本"],["GB","英國"]].map(([c,n])=>`<option value="${c}" ${c===store.region?"selected":""}>${n}</option>`).join("")}</select></h3>${any?GROUPS.filter(([k])=>p[k].length).map(([k,label])=>`<div class="provgroup"><span class="glabel">${label}</span><div class="provrow">${p[k].map(n=>`<span class="prov"><span class="pdot" style="background:${PROVCOLOR[n]||"#888"}"></span>${esc(n)}</span>`).join("")}</div></div>`).join(""):`<p class="small muted">此區域暫無串流資訊——作品仍會正常出現在所有列表。</p>`}<p style="margin-top:8px;font-size:11.5px;color:var(--muted-foreground)">提供者資料由 JustWatch 授權 · 本產品使用 TMDB API</p></section>`;
+}
+const iconStar=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>';
+const iconThumbUp=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+const iconThumbDown=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+function rateButtons(x){
+ const cur=store.ratings[x.id];
+ const icons={awesome:iconStar(),good:iconThumbUp(),sucks:iconThumbDown()};
+ const labels={awesome:"超棒",good:"不錯",sucks:"不行"};
+ return `<div class="ratepop"><button type="button" class="rateicon${cur?" on":""}" data-rate-toggle title="${cur?labels[cur]:"評價"}">${icons[cur]||iconThumbUp()}</button><div class="ratefly">${["awesome","good","sucks"].map(k=>`<button type="button" class="rateopt${cur===k?" on":""}" data-rate="${k}" title="${labels[k]}">${icons[k]}</button>`).join("")}</div></div>`;
+}
+function statusButtons(x){
+ const isWL=store.watchlist.has(x.id);
+ const isWatched=store.watched.has(x.id);
+ return `<div class="statusrow"><button type="button" class="sbtn" data-status="watchlist" data-active="${isWL?1:0}" title="待看清單">${'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>'}</button><button type="button" class="sbtn" data-status="watched" data-active="${isWatched?1:0}" title="已看"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></button></div>`;
+}
+const KWPOOL=["原作改編","獲獎無數","史詩","口碑之作","經典系列","年度話題","獲獎無數","改編小說","獨立小品","大製作"];
+const FACTS_POOL={
+  shogun:{orig:"Shōgun",status:"已完結",lang:"日語 / 英語",budget:"—",revenue:"—"},
+  dune2:{orig:"Dune: Part Two",status:"已上映",lang:"英語",budget:"$190,000,000",revenue:"$711,844,358"},
+  oppenheimer:{orig:"Oppenheimer",status:"已上映",lang:"英語",budget:"$100,000,000",revenue:"$957,800,000"},
+  tlou:{orig:"The Last of Us",status:"播映中",lang:"英語",budget:"—",revenue:"—"},
+  io2:{orig:"Inside Out 2",status:"已上映",lang:"英語",budget:"$200,000,000",revenue:"$1,698,000,000"},
+  rickmorty:{orig:"Rick and Morty",status:"播映中",lang:"英語",budget:"—",revenue:"—"},
+  heron:{orig:"The Boy and the Heron",status:"已上映",lang:"日語",budget:"—",revenue:"$167,000,000"},
+  blackmirror:{orig:"Black Mirror",status:"播映中",lang:"英語",budget:"—",revenue:"—"},
+  godzilla:{orig:"Godzilla Minus One",status:"已上映",lang:"日語",budget:"$15,000,000",revenue:"$116,000,000"},
+  truedetective:{orig:"True Detective",status:"已完結",lang:"英語",budget:"—",revenue:"—"},
+};
+function renderDetail(id){
+ const x=byId(id)||TITLES[0];
+ heroSlot.style.display="none";
+ document.getElementById("filterBar").style.display="none";
+ const st=store.status[x.id];
+ const recs=TITLES.filter(t=>t.id!==x.id).slice(0,6);
+ const facts=FACTS_POOL[x.id]||{orig:x.en,status:"—",lang:"—",budget:"—",revenue:"—"};
+ // TMDB+Disney 融合：hero 滿版沉浸，下方為 TMDB 式雙欄（主內容 + 右側 Facts），皆與 hero 同寬對齊，分隔線取代卡片
+ root.innerHTML=`
+ <div class="detailHeroFull" style="--detail-tone:${x.tone}">
+   <div class="detailInner">
+     <div class="detailPoster">${esc(x.glyph)}</div>
+     <div class="detailInfo">
+       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span class="dtitle">${esc(x.t)}</span><span class="dyear">${x.y}</span></div>
+        <div class="metarow"><span style="padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);font-size:11.5px">${KLABEL[x.kind]}</span><span>${x.runtime}</span><span>·</span><span>${x.g.map(g=>GLABEL[g]).join("、")}</span><span>·</span><span style="border:1px solid rgba(255,255,255,.28);padding:2px 6px;border-radius:4px;font-size:11px">★ ${x.r}</span></div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+          ${providerGroupAvatar(getAllProviders(x),26)}
+          <span style="font-size:12px;color:rgba(255,255,255,.78)">${(()=>{const ps=getAllProviders(x); if(!ps.length)return "暫無串流平台"; if(ps.length===1)return `可在 ${esc(ps[0])} 觀看 · 單一平台範例`; return `可在 ${ps.length} 個平台觀看 · 多平台 group avatar 範例`;})()}</span>
+        </div>
+        <div class="drating"><span class="avg">★ ${x.r}</span><span class="avglab">均分 · ${Math.floor(x.pop*123+400)} 人評分</span>${rateButtons(x)}</div>
+       <div class="dact"><button type="button" class="btn primary" data-trailer>▶ 播放預告</button><div data-status-wrap>${statusButtons(x)}</div><span class="small" style="color:rgba(255,255,255,.62);margin-left:4px">點擊 Logo 回首頁</span></div>
+       <div class="tagline">「${esc({shogun:"權力，比刀劍更鋒利。",dune2:"每一次沙暴，都是戰爭的序曲。",oppenheimer:"我成了死神。",tlou:"愛是唯一的疫苗。",io2:"成長就是風暴。",rickmorty:"Wubba Lubba Dub Dub！",heron:"為自己找個去處。",blackmirror:"科技越近人性越遠。",godzilla:"王者的怒吼。",truedetective:"時間是扁平的圓。"}[x.id]||"值得一看的作品。")}"</div>
+       <p class="overview">${esc(x.ov)}</p>
+       <div class="crewline"><span><b>導演</b> 範例導演</span><span><b>編劇</b> 範例編劇</span><span><b>原作</b> 範例原作</span></div>
+     </div>
+   </div>
+ </div>
+  <div class="dgrid">
+    <!-- 主欄（左）— 依要求：WHERE TO WATCH 排第一，移除 OVERVIEW/SOCIAL/CONTENT SCORE，MEDIA 去 trailer -->
+    <div class="dmain">
+      <section class="detailSection" style="border-top:none">
+        <h3 style="align-items:center">WHERE TO WATCH <span class="sectionHint">提供平台</span>
+          <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">
+            <select class="input" style="height:28px;padding:0 10px;border:1px solid var(--border);border-radius:999px;background:var(--muted);font-size:12px">${[["TW","台灣"],["US","美國"],["JP","日本"],["GB","英國"]].map(([c,n])=>`<option value="${c}" ${c===store.region?"selected":""}>${n}</option>`).join("")}</select>
+          </span>
+        </h3>
+        ${(() => {
+          const p=(x.prov&&x.prov[store.region])||{sub:[],free:[],rent:[],buy:[]};
+          const any=GROUPS.some(([k])=>p[k].length);
+          if(!any) return `<p class="small muted">此區域暫無串流資訊。</p>`;
+          return GROUPS.filter(([k])=>p[k].length).map(([k,label])=>`<div class="provgroup"><span class="glabel">${label}</span><div class="provrow">${p[k].map(n=>`<span class="prov" style="border-radius:999px"><span class="pdot" style="background:${PROVCOLOR[n]||"#888"}"></span>${esc(n)}</span>`).join("")}</div></div>`).join("");
+        })()}
+      </section>
+      <section class="detailSection">
+        <h3>TOP BILLED CAST <span class="sectionHint">主要演員</span></h3>
+        <div class="castrow">${Array.from({length:9},(_,i)=>`<div class="castcard"><div class="castavatar">${String.fromCharCode(65+(i%6))}</div><b>演員 ${i+1}</b><span>${["主角","配角","客串"][i%3]}</span></div>`).join("")}</div>
+        <div style="margin-top:12px"><a href="#" class="small" style="color:var(--primary);font-weight:600" data-fullcast>Full Cast & Crew →</a></div>
+      </section>
+      <section class="detailSection">
+        <h3>MEDIA <span class="sectionHint">Backdrops · Logos · Posters</span></h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${[1,2,3,4,5,6].map(i=>`<div style="aspect-ratio:16/9;border-radius:12px;background:${x.tone};opacity:.9;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">劇照 ${i}</div>`).join("")}</div>
+        <div style="margin-top:8px;display:flex;gap:6px"><span class="small muted">Backdrops 67</span><span class="small muted">·</span><span class="small muted">Logos 49</span><span class="small muted">·</span><span class="small muted">Posters 393</span></div>
+      </section>
+    </div>
+    <!-- 側欄（右）— FACTS + KEYWORDS -->
+    <div class="dside">
+      <section class="detailSection detailFacts" style="border-top:none">
+        <h3>FACTS <span class="sectionHint">事實</span></h3>
+        <dl><dt>原名</dt><dd>${esc(facts.orig)}</dd><dt>狀態</dt><dd>${esc(facts.status)}</dd><dt>原語言</dt><dd>${esc(facts.lang)}</dd><dt>預算</dt><dd>${esc(facts.budget)}</dd><dt>票房</dt><dd>${esc(facts.revenue)}</dd><dt>片長</dt><dd>${esc(x.runtime)}</dd><dt>分級</dt><dd>輔導級</dd></dl>
+      </section>
+      <section class="detailSection">
+        <h3>KEYWORDS</h3>
+        <div class="kwrow">${KWPOOL.slice(0,8).map(k=>`<span class="tag" style="border-color:var(--input);background:var(--muted);color:var(--muted-foreground);border-radius:999px">${k}</span>`).join("")}</div>
+      </section>
+    </div>
+  </div>
+  <!-- YOU MAY ALSO LIKE — 全寬整列，移出 grid，放最下方 -->
+  <div style="max-width:1280px;margin:0 auto;padding:32px 24px 0;border-top:1px solid var(--border)">
+    <h3 style="font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-foreground);margin-bottom:16px;display:flex;align-items:center;gap:8px">RECOMMENDATIONS <span style="font-size:11px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted-foreground)">You May Also Like</span></h3>
+    <div class="recstrip">${recs.map(posterCard).join("")}</div>
+  </div>`;
+ root.querySelectorAll("[data-trailer]").forEach(el=>el.addEventListener("click",()=>{$("#trailerDialog").showModal();}));
+ const fullCast=root.querySelector("[data-fullcast]");
+ if(fullCast) fullCast.addEventListener("click",e=>{e.preventDefault();toast("完整演員清單為示意");});
+ bindOpen(root);
+ // rating
+ root.querySelectorAll(".ratepop").forEach(pop=>{
+   const cur=store.ratings[x.id];
+   pop.querySelectorAll("[data-rate]").forEach(btn=>btn.addEventListener("click",()=>{
+     const v=btn.dataset.rate;
+     if(store.ratings[x.id]===v)delete store.ratings[x.id];
+     else store.ratings[x.id]=v;
+     toast(store.ratings[x.id]?"已評價："+v:"已取消評價");
+     renderDetail(x.id);
+   }));
+   const tog=pop.querySelector("[data-rate-toggle]");
+   if(tog) tog.addEventListener("click",()=>{if(store.ratings[x.id]){delete store.ratings[x.id];toast("已取消評價");renderDetail(x.id);}});
+ });
+  // status — watchlist / watched 可共存
+ root.querySelectorAll("[data-status]").forEach(btn=>btn.addEventListener("click",()=>{
+   const v=btn.dataset.status;
+   if(v==="watchlist"){
+     if(store.watchlist.has(x.id)){store.watchlist.delete(x.id);toast("已從待看清單移除");}
+     else{store.watchlist.add(x.id);toast("已加入待看清單");}
+   } else if(v==="watched"){
+     if(store.watched.has(x.id)){store.watched.delete(x.id);toast("已取消已看");}
+     else{store.watched.add(x.id);toast("已標記為已看");}
+   }
+   renderDetail(x.id);
+ }));
+ // region
+ const sel=root.querySelector("select");
+ if(sel) sel.addEventListener("change",e=>{store.region=e.target.value;renderDetail(x.id);});
+}
+
+function renderList(){
+ heroSlot.style.display="none";
+ document.getElementById("filterBar").style.display="none";
+ const tabs=[["watchlist","待看清單"],["watched","已看"],["rated","已評價"]];
+ // 收集所有 provider 用於筛选
+ const allProviders = [...new Set(TITLES.flatMap(t=>getAllProviders(t)))];
+ // 依 tab 取得基礎清單（watchlist / watched 可共存，ratting 獨立 + rating 子篩選）
+ let baseItems=[];
+ if(store.listTab==="watchlist") baseItems=TITLES.filter(t=>store.watchlist.has(t.id));
+ else if(store.listTab==="watched") baseItems=TITLES.filter(t=>store.watched.has(t.id));
+ else {
+   baseItems=TITLES.filter(t=>store.ratings[t.id]);
+   if(store.listRatingFilter!=="all") baseItems=baseItems.filter(t=>store.ratings[t.id]===store.listRatingFilter);
+ }
+ // 再依 kind / provider 過濾
+ let items=baseItems.filter(t=>{
+   if(store.listKind!=="all" && t.kind!==store.listKind) return false;
+   if(store.listProvider && store.listProvider!=="__mine" && !getAllProviders(t).includes(store.listProvider)) return false;
+   return true;
+ });
+ // provider 計數（基於當前 tab 的 baseItems，未再疊 provider 過濾前的分布）
+ const providerCounts = {};
+ allProviders.forEach(p=> providerCounts[p]= baseItems.filter(t=>getAllProviders(t).includes(p)).length);
+ const totalCount = baseItems.length;
+ root.innerHTML=`
+ <div style="padding:calc(var(--header-h) + 20px) 0 16px;max-width:1280px;margin:0 auto;padding-left:24px;padding-right:24px">
+   <h1 style="font-size:28px;font-weight:800;letter-spacing:-.02em">我的清單</h1>
+   <p class="small muted" style="margin-top:4px">三個分頁即時反映詳情頁的操作 · 待看與已看可同時存在 · 點擊 Logo 回首頁</p>
+   <div style="margin-top:16px;display:inline-flex;background:var(--muted);border-radius:999px;padding:3px;gap:2px">
+     ${tabs.map(([k,l])=>`<button type="button" data-tab="${k}" style="height:32px;padding:0 18px;border-radius:999px;font-size:13px;font-weight:600;${store.listTab===k?"background:var(--foreground);color:var(--background)":"color:var(--muted-foreground)"}">${l} <span style="opacity:.6;margin-left:4px">${k==="watchlist"?store.watchlist.size:k==="watched"?store.watched.size:Object.keys(store.ratings).length}</span></button>`).join("")}
+   </div>
+ </div>
+  <!-- JustWatch 式 filter bar：All/Movies/TV + view + provider 373 + Filters — provider下排點擊上排才展開 -->
+  <div style="background:color-mix(in oklab, var(--card) 92%, transparent);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:sticky;top:var(--header-h);z-index:35;backdrop-filter:blur(8px);width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw)">
+    <div style="max-width:1280px;margin:0 auto;padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="seg" style="background:var(--muted)">
+        <button type="button" data-kind="all" class="${store.listKind==="all"?"on":""}">All</button>
+        <button type="button" data-kind="movie" class="${store.listKind==="movie"?"on":""}">Movies</button>
+        <button type="button" data-kind="tv" class="${store.listKind==="tv"?"on":""}">TV Shows</button>
+      </div>
+      <span class="small muted">${items.length} titles · 共 ${totalCount} 部</span>
+      <span id="providerToggle" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--muted);border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer">
+        <span style="display:inline-flex;margin-right:2px">${allProviders.slice(0,4).map((p,i)=>`<span style="width:22px;height:22px;border-radius:50%;background:${PROVCOLOR[p]||"#888"};border:2px solid var(--card);margin-left:${i===0?0:-6}px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800">${esc(p[0])}</span>`).join("")}</span>
+        ${allProviders.length} providers
+        <span style="background:var(--foreground);color:var(--background);border-radius:999px;padding:1px 6px;font-size:11px;font-weight:700">${totalCount}</span>
+      </span>
+      <button type="button" class="chip" style="background:var(--muted)" data-filters>▼ Filters</button>
+    </div>
+    <div id="providerFilterRow" style="max-width:1280px;margin:0 auto;padding:8px 24px 12px;gap:8px;overflow:auto;align-items:center;border-top:1px solid var(--border);display:${store.listProviderExpanded?"flex":"none"}">
+      <button type="button" class="chip ${!store.listProvider?"on":""}" data-provider="">All (${totalCount})</button>
+      <button type="button" class="chip ${store.listProvider==="__mine"?"on":""}" data-provider="__mine">My Services (${store.watchlist.size})</button>
+      ${allProviders.map(p=>`<button type="button" class="chip ${store.listProvider===p?"on":""}" data-provider="${esc(p)}">${esc(p)} (${providerCounts[p]||0})</button>`).join("")}
+      <span style="display:inline-flex;gap:8px;margin-left:8px;align-items:center">${allProviders.slice(0,6).map(p=>`<span title="${esc(p)}" style="width:32px;height:32px;border-radius:8px;background:${PROVCOLOR[p]||"#888"};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;border:1px solid var(--border)">${esc(p[0])}</span>`).join("")}<span style="font-size:11px;color:var(--muted-foreground)">›</span></span>
+    </div>
+    ${store.listTab==="rated" ? `<div style="max-width:1280px;margin:0 auto;padding:8px 24px 12px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--border)">
+      <span class="small muted" style="margin-right:4px">評價篩選</span>
+      ${[["all","All"],["awesome","Awesome"],["good","Good"],["sucks","Sucks"]].map(([k,l])=>`<button type="button" class="chip ${store.listRatingFilter===k?"on":""}" data-rating="${k}">${l} ${k!=="all"?`(${Object.values(store.ratings).filter(v=>v===k).length})`:""}</button>`).join("")}
+    </div>` : ``}
+  </div>
+ <div id="listarea" style="max-width:1280px;margin:0 auto;padding:24px"></div>`;
+ // tab handlers
+ root.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{store.listTab=b.dataset.tab; renderList();}));
+ root.querySelectorAll("[data-kind]").forEach(b=>b.addEventListener("click",()=>{store.listKind=b.dataset.kind; renderList();}));
+  root.querySelectorAll("[data-provider]").forEach(b=>b.addEventListener("click",()=>{
+    const v=b.dataset.provider;
+    if(v==="__mine"){
+      toast("My Services：顯示你 Watchlist 中的平台分布");
+      store.listProvider="";
+    } else {
+      store.listProvider=v;
+    }
+    renderList();
+  }));
+  root.querySelector("#providerToggle")?.addEventListener("click",()=>{store.listProviderExpanded=!store.listProviderExpanded; renderList();});
+  root.querySelectorAll("[data-rating]").forEach(b=>b.addEventListener("click",()=>{store.listRatingFilter=b.dataset.rating; renderList();}));
+  root.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{store.listView=b.dataset.view; renderList();}));
+  root.querySelector("[data-filters]")?.addEventListener("click",()=>toast("Filters 彈層示意（可接 TMDB discover / JustWatch）"));
+ const area=root.querySelector("#listarea");
+ if(!items.length){
+   area.innerHTML=`<div class="empty"><b>還沒有內容</b><span class="small">在「${tabs.find(([k])=>k===store.listTab)[1]}」中尚無資料 — 去首頁或詳情頁標記試試。待看與已看可同時存在</span></div>`;
+ } else {
+   if(store.listView==="grid"){
+     // 想像力：海報網格而非 1row1title，卡片帶 provider 與評分
+     area.innerHTML=`<div class="pgrid">${items.map(x=>posterCard(x)).join("")}</div>`;
+   } else {
+     // list 視圖：大圖 + 資訊（像搜尋結果的大圖）
+     area.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">${items.map(x=>`
+       <div class="searchResultItem" data-open="${x.id}" style="background:color-mix(in oklab, var(--card) 84%, transparent);border:1px solid var(--border);border-radius:16px">
+         <div class="thumb" style="background:${x.tone};width:84px;height:126px;border-radius:12px">${esc(x.glyph)}</div>
+         <div class="meta"><b>${esc(x.t)}</b><span>${KLABEL[x.kind]} · ${x.y} · <span class="star">★ ${x.r}</span></span><span style="margin-top:4px">${providerGroupAvatar(getAllProviders(x),22)} <span style="font-size:12px;color:var(--muted-foreground);margin-left:6px">${getAllProviders(x).length?getAllProviders(x).join(" · "):"暫無平台"}</span></span><span style="margin-top:6px;display:inline-flex;gap:6px">${store.watchlist.has(x.id)?`<span style="font-size:11px;background:var(--primary);color:var(--primary-foreground);padding:2px 8px;border-radius:999px">待看</span>`:""}${store.watched.has(x.id)?`<span style="font-size:11px;background:var(--muted);border:1px solid var(--border);padding:2px 8px;border-radius:999px">已看</span>`:""}${store.ratings[x.id]?`<span style="font-size:11px;background:var(--foreground);color:var(--background);padding:2px 8px;border-radius:999px">已評：${store.ratings[x.id]}</span>`:""}</span></div>
+       </div>
+     `).join("")}</div>`;
+   }
+ }
+ bindOpen(area);
+ // 使已看/待看按鈕在卡片內可直接切換（若卡片內有）
+ area.querySelectorAll("[data-wl]")?.forEach(()=>{});
+}
+function buildHomeShell(){
+ renderHero();
+ renderFilterBar();
+ root.innerHTML=`<div id="contentarea"></div>`;
+ renderContent();
+}
+function render(){
+ if(store.screen.name==="detail")renderDetail(store.screen.id);
+ else if(store.screen.name==="topic")renderTopic();
+ else if(store.screen.name==="list")renderList();
+ else buildHomeShell();
+ syncPrimeNav();
+ // header mode (detail hidden vs home transparent)
+ requestAnimationFrame(()=>{syncHeaderMode();});
+ window.scrollTo({top:0,behavior:"instant"});
+}
+
+// header scroll — home/topic/list: transparent→opaque at 80px, stays visible; detail-page only: hidden at top for immersion then appears at 80px
+const header=$("#siteHeader");
+function syncHeaderMode(){
+ header.classList.remove("detail-hidden","detail-visible");
+ onScroll();
+}
+function onScroll(){
+ const y=window.scrollY||document.documentElement.scrollTop;
+ const isDetailOnly = store.screen.name==="detail";
+ if(y>80){
+   header.classList.add("scrolled");
+   if(isDetailOnly){ header.classList.remove("detail-hidden"); header.classList.add("detail-visible"); }
+   else { header.classList.remove("detail-hidden","detail-visible"); }
+ } else {
+   header.classList.remove("scrolled");
+   if(isDetailOnly){ header.classList.add("detail-hidden"); header.classList.remove("detail-visible"); }
+   else { header.classList.remove("detail-hidden","detail-visible"); }
+ }
+}
+window.addEventListener("scroll",onScroll,{passive:true});
+
+// language switcher
+const langWrap=$("#langWrap"), langBtn=$("#langBtn"), langMenu=$("#langMenu"), langLabel=$("#langLabel");
+function setLang(code){
+  store.lang=code;
+  document.documentElement.lang=code;
+  langLabel.textContent=code==="zh-TW"?"繁中":"EN";
+  langMenu.querySelectorAll("[data-lang]").forEach(b=>{
+    const on=b.dataset.lang===code;
+    b.setAttribute("aria-pressed",String(on));
+    b.querySelector(".check").style.visibility=on?"visible":"hidden";
+  });
+  toast(code==="zh-TW"?"語言已切換為繁體中文（示意）":"Language switched to English (demo)");
+}
+langBtn.addEventListener("click",(e)=>{
+  e.stopPropagation();
+  langMenu.hidden=!langMenu.hidden;
+  langBtn.setAttribute("aria-expanded",String(!langMenu.hidden));
+});
+langMenu.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{
+  langMenu.hidden=true;
+  langBtn.setAttribute("aria-expanded","false");
+  setLang(b.dataset.lang);
+}));
+document.addEventListener("click",(e)=>{
+  if(!langMenu.hidden && !langWrap.contains(e.target)){
+    langMenu.hidden=true;
+    langBtn.setAttribute("aria-expanded","false");
+  }
+});
+
+// search — overlay 獨立於首頁，常駐 magnifier 按鈕打開彈層
+const searchOverlay=$("#searchOverlay");
+const overlaySearch=$("#overlaySearch");
+const searchPanel=$("#searchPanel");
+const searchOpenBtn=$("#searchOpenBtn");
+const overlayClose=$("#overlayClose");
+let searchTab="all"; // all | movie | tv | people
+const TRENDING = ["Toy Story 5","Mutiny","Spider-Man: Brand New Day","The Odyssey","Obsession","Insidious: Out of the Further","Minions & Monsters","The End of Oak Street"];
+function getRecent(){ try{return JSON.parse(localStorage.getItem("spudtube:recent")||"[]")}catch{return[]} }
+function addRecent(q){
+ let arr=getRecent().filter(x=>x!==q);
+ arr.unshift(q); arr=arr.slice(0,8);
+ localStorage.setItem("spudtube:recent", JSON.stringify(arr));
+}
+function clearRecent(){ localStorage.removeItem("spudtube:recent"); renderSearchPanel(); }
+function openSearch(){ searchOverlay.hidden=false; overlaySearch.focus(); renderSearchPanel(); document.body.style.overflow="hidden"; }
+function closeSearch(){ searchOverlay.hidden=true; document.body.style.overflow=""; overlaySearch.value=""; searchTab="all"; }
+searchOpenBtn.addEventListener("click", openSearch);
+overlayClose.addEventListener("click", ()=>{
+  if(overlaySearch.value.trim()){ overlaySearch.value=""; searchTab="all"; renderSearchPanel(); overlaySearch.focus(); }
+  else closeSearch();
+});
+searchOverlay.addEventListener("click", e=>{ if(e.target===searchOverlay) closeSearch(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !searchOverlay.hidden) closeSearch(); });
+function renderSearchPanel(){
+ const q=overlaySearch.value.trim().toLowerCase();
+ if(!q){
+   const recents=getRecent();
+    searchPanel.innerHTML=`
+      <div class="searchSection">
+        <h4>Recent Searches ${recents.length?`<span class="clearAll" data-clear>Clear all</span>`:""}</h4>
+        ${recents.length? recents.map(r=>`<div class="recentItem" data-q="${esc(r)}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${esc(r)}</div>`).join("") : `<p class="small muted" style="color:var(--muted-foreground)">尚無搜尋紀錄</p>`}
+      </div>
+      <div class="searchSection" style="border-top:1px solid var(--border)">
+        <h4><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M3 17L9 11L13 15L21 7"/><path d="M14 7h7v7"/></svg> Trending Searches</h4>
+        <div class="trendingChips">${TRENDING.map(t=>`<button data-q="${esc(t)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> ${esc(t)}</button>`).join("")}</div>
+      </div>
+    `;
+   searchPanel.querySelector("[data-clear]")?.addEventListener("click",e=>{e.stopPropagation();clearRecent();toast("已清除近期搜尋")});
+   searchPanel.querySelectorAll("[data-q]").forEach(el=>el.addEventListener("click",()=>{
+     overlaySearch.value=el.dataset.q; searchTab="all"; renderSearchPanel(); overlaySearch.focus();
+   }));
+   return;
+ }
+   // has query — show tabs + scrollable large-image results
+ let list=TITLES.filter(x=>(x.t+x.en).toLowerCase().includes(q));
+ if(searchTab==="movie") list=list.filter(x=>x.kind==="movie");
+ if(searchTab==="tv") list=list.filter(x=>x.kind==="tv");
+ list.sort((a,b)=>b.pop-a.pop);
+ const tabs=[["all","All"],["movie","Movies"],["tv","TV Shows"]];
+ searchPanel.innerHTML=`
+   <div class="searchTabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${searchTab===k?"on":""}">${k==="movie"?"<svg width=12 height=12 viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x=2 y=2 width=20 height=20 rx=2/><path d='M7 2v20'/></svg>":""}${k==="tv"?"<svg width=12 height=12 viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x=2 y=7 width=20 height=15 rx=2/><path d='M17 2v5'/></svg>":""} ${l}</button>`).join("")}</div>
+   <div class="searchResultList">
+     ${list.length? list.map(x=>`
+       <div class="searchResultItem" data-open="${x.id}">
+         <div class="thumb" style="background:${x.tone}">${esc(x.glyph)}</div>
+         <div class="meta"><b>${esc(x.t)} <span style="font-size:11px;border:1px solid var(--border);padding:1px 6px;border-radius:4px;color:var(--muted-foreground);font-weight:500">▭</span></b><span>${x.y} <span style="width:3px;height:3px;border-radius:50%;background:var(--border);display:inline-block"></span> <span class="star">★ ${x.r}</span> <span style="width:3px;height:3px;border-radius:50%;background:var(--border);display:inline-block"></span> ${KLABEL[x.kind]}</span></div>
+        </div>`).join("") : `<div style="padding:32px 16px;text-align:center;color:var(--muted-foreground)"><b style="color:var(--foreground);display:block;margin-bottom:6px">No results</b><span class="small">Try different keywords</span></div>`}
+   </div>
+ `;
+ searchPanel.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{searchTab=b.dataset.tab;renderSearchPanel();}));
+ searchPanel.querySelectorAll("[data-open]").forEach(el=>el.addEventListener("click",()=>{
+   const id=el.dataset.open;
+   const title=TITLES.find(t=>t.id===id);
+   if(title) addRecent(title.t);
+   closeSearch();
+   store.screen={name:"detail",id};
+   render();
+   toast("已開啟："+(title?.t||id));
+ }));
+}
+overlaySearch.addEventListener("input", renderSearchPanel);
+overlaySearch.addEventListener("keydown", e=>{
+ if(e.key==="Enter"){
+   const v=overlaySearch.value.trim();
+   if(!v) return;
+   const hit=TITLES.find(x=>(x.t+x.en).toLowerCase().includes(v.toLowerCase()));
+   if(hit){ addRecent(hit.t); closeSearch(); store.screen={name:"detail",id:hit.id}; render(); }
+ }
+});
+$("#logoBtn").addEventListener("click",goHome);
+$("#logoBtn").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" ")goHome();});
+document.querySelectorAll("#appnav [data-nav]").forEach(a=>a.addEventListener("click",e=>{
+ e.preventDefault();
+ if(a.dataset.nav==="list"){store.screen={name:"list"};render();}
+ else toast("登入為示意");
+}));
+// Prime 式 Header：Movies / TV shows（Image1），移除篩選列的電影/影集
+document.querySelectorAll("#primeNav [data-kind]").forEach(b=>b.addEventListener("click",()=>{
+ if(store.home.kind===b.dataset.kind) return;
+ store.home.kind=b.dataset.kind;
+ store.home.genres.clear();
+ store.home.shown=PAGE;
+ heroIdx=0;
+ if(heroTimer){clearInterval(heroTimer);heroTimer=null;}
+ // 若在 detail/list/topic，先回首頁再套用篩選
+ if(store.screen.name!=="home") store.screen={name:"home"};
+ syncFilterBar();
+ syncPrimeNav();
+ render();
+ toast("已切換："+ (b.dataset.kind==="movie"?"電影":"影集"));
+}));
+
+// trailer dialog
+(function(){
+ const d=$("#trailerDialog");
+ if(!d)return;
+ const close=()=>{if(typeof d.close==="function")d.close();};
+ d.querySelector("[data-trailer-close]").addEventListener("click",close);
+ d.addEventListener("click",e=>{if(e.target===d)close();});
+})();
+// overview dialog — Apple TV MORE
+(function(){
+ const d=$("#overviewDialog");
+ if(!d)return;
+ const close=()=>{if(typeof d.close==="function")d.close();};
+ d.querySelector("[data-overview-close]").addEventListener("click",close);
+ d.addEventListener("click",e=>{if(e.target===d)close();});
+})();
+
+// init
+render();
+syncPrimeNav();
+onScroll();
+})();
+</script>
+</body>
+</html>

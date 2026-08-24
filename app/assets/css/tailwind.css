@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap');
 
 @import 'tailwindcss';
 @import "tw-animate-css";
@@ -15,7 +15,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @theme inline {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Outfit', 'Noto Sans TC', ui-sans-serif, system-ui, sans-serif;
     --font-heading: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -57,7 +57,7 @@ input[type='search']::-webkit-search-cancel-button {
 :root {
     --background: oklch(0.105 0.012 275);
     --foreground: oklch(0.96 0.008 280);
-    --card: oklch(0.17 0.018 278);
+    --card: oklch(0.155 0.018 278);
     --card-foreground: oklch(0.96 0.008 280);
     --popover: oklch(0.17 0.018 278);
     --popover-foreground: oklch(0.96 0.008 280);
@@ -79,7 +79,7 @@ input[type='search']::-webkit-search-cancel-button {
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
     --radius: 0.625rem;
-    --sidebar: oklch(0.17 0.018 278);
+    --sidebar: oklch(0.155 0.018 278);
     --sidebar-foreground: oklch(0.96 0.008 280);
     --sidebar-primary: oklch(0.922 0 0);
     --sidebar-primary-foreground: oklch(0.205 0 0);
@@ -92,7 +92,7 @@ input[type='search']::-webkit-search-cancel-button {
 .dark {
     --background: oklch(0.105 0.012 275);
     --foreground: oklch(0.96 0.008 280);
-    --card: oklch(0.17 0.018 278);
+    --card: oklch(0.155 0.018 278);
     --card-foreground: oklch(0.96 0.008 280);
     --popover: oklch(0.17 0.018 278);
     --popover-foreground: oklch(0.96 0.008 280);
@@ -113,7 +113,7 @@ input[type='search']::-webkit-search-cancel-button {
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.17 0.018 278);
+    --sidebar: oklch(0.155 0.018 278);
     --sidebar-foreground: oklch(0.96 0.008 280);
     --sidebar-primary: oklch(0.922 0 0);
     --sidebar-primary-foreground: oklch(0.205 0 0);

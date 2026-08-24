@@ -81,7 +81,7 @@ pnpm build
 | [`docs/adr/`](./docs/adr/) | Architecture decision records (data source, stack lock-in, storage strategy) |
 | [`docs/agents/code-standard.md`](./docs/agents/code-standard.md) | Implementation rules and conventions |
 | [`docs/agents/design-system.md`](./docs/agents/design-system.md) | Approved UI baseline — tokens, type scale, binding rules |
-| [`docs/design/spudtube-v1-prototype.html`](./docs/design/spudtube-v1-prototype.html) | Interactive v1 design prototype (open in a browser) |
+| [`docs/design/prototype.html`](./docs/design/prototype.html) | Interactive design prototype (open in a browser) |
 | [`.scratch/spudtube-v1/spec.md`](./.scratch/spudtube-v1/spec.md) | v1 specification |
 | [`.scratch/spudtube-v1/issues/`](./.scratch/spudtube-v1/issues/) | Implementation tickets with blocking edges |
 

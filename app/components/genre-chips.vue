@@ -21,10 +21,10 @@ function isSelected(genreId: number): boolean {
       v-for="genre in genres"
       :key="genre.id"
       type="button"
-      class="h-[30px] rounded-lg border px-3 text-sm transition-colors"
+      class="inline-flex min-h-10 h-[30px] items-center rounded-full border border-transparent px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       :class="isSelected(genre.id)
-        ? 'border-transparent bg-primary text-primary-foreground'
-        : 'border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"
+        ? 'bg-primary text-primary-foreground'
+        : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"
       :aria-pressed="isSelected(genre.id)"
       @click="emit('toggle', genre.id)"
     >

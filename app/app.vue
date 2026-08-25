@@ -46,9 +46,9 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col">
-    <header class="border-b">
-      <div class="mx-auto flex w-full max-w-6xl items-center gap-6 px-4 py-4">
+  <div class="flex min-h-dvh flex-col bg-background">
+    <header class="border-b border-border">
+      <div class="mx-auto flex w-full max-w-[1280px] items-center gap-6 px-6 py-4">
         <span class="text-lg font-semibold tracking-tight">SpudTube</span>
         <div class="flex min-w-0 flex-1 justify-center">
           <SearchField
@@ -63,7 +63,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
           <NuxtLink
             v-if="session?.user"
             to="/my-list"
-            class="inline-flex h-[38px] items-center rounded-[10px] px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            class="inline-flex h-10 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
           >
             {{ t('myList.heading') }}
           </NuxtLink>

@@ -88,7 +88,7 @@ function onOptionClick(option: RatingLabel): void {
           <TooltipTrigger as-child>
             <button
               type="button"
-              class="flex h-[38px] w-[38px] items-center justify-center rounded-full border border-input bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground"
+              class="flex size-10 items-center justify-center rounded-full border border-input bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
               :class="label && 'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'"
               :aria-label="triggerLabel"
               :disabled="pending"
@@ -112,7 +112,7 @@ function onOptionClick(option: RatingLabel): void {
           <div
             v-if="showFlyout"
             role="group"
-            class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 gap-1 rounded-[10px] border border-border bg-popover p-1.5 shadow-lg"
+            class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 gap-1 rounded-lg border border-border bg-popover p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-[12px]"
             :aria-label="t('rating.group')"
           >
             <Tooltip v-for="option in RATING_OPTIONS" :key="option.label">
@@ -120,7 +120,7 @@ function onOptionClick(option: RatingLabel): void {
                 <button
                   type="button"
                   data-option
-                  class="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground"
+                  class="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
                   :class="label === option.label && 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'"
                   :aria-label="optionLabel(option.label)"
                   :aria-pressed="label === option.label"

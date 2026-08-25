@@ -25,7 +25,7 @@ const runtimeLabel = computed(() => {
 
 <template>
   <section
-    class="rounded-lg border border-border bg-card/80 p-5 backdrop-blur-lg backdrop-saturate-150"
+    class="rounded-lg bg-card p-5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] backdrop-blur-[12px]"
     :aria-label="t('detail.facts.heading')"
   >
     <h2 class="mb-3 text-[16.5px] font-bold tracking-tight text-foreground">

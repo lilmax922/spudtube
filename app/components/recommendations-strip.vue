@@ -22,7 +22,7 @@ const { t } = useI18n()
         v-for="title in props.titles"
         :key="`${title.kind}-${title.tmdbId}`"
         :to="titleDetailPath(title.kind, title.tmdbId)"
-        class="group w-[168px] shrink-0"
+        class="group w-[168px] shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       >
         <div class="aspect-[2/3] w-full overflow-hidden rounded-md bg-muted">
           <img

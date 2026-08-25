@@ -52,7 +52,7 @@ function onRegionChange(event: Event): void {
 
 <template>
   <section
-    class="rounded-lg border border-border bg-card/80 p-5 backdrop-blur-lg backdrop-saturate-150"
+    class="rounded-lg bg-card p-5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] backdrop-blur-[12px]"
     :aria-label="t('availability.heading')"
   >
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -64,7 +64,7 @@ function onRegionChange(event: Event): void {
         <span class="sr-only">{{ t('region.label') }}</span>
         <select
           :value="region"
-          class="h-[38px] rounded-md border border-input bg-card px-2 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="h-10 rounded-md border border-input bg-card px-2 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:ring-offset-0"
           @change="onRegionChange"
         >
           <option v-for="code in curatedRegions" :key="code" :value="code">
@@ -93,7 +93,7 @@ function onRegionChange(event: Event): void {
           <span
             v-for="provider in group.providers"
             :key="provider.id"
-            class="flex h-[38px] items-center rounded-md border border-border bg-muted px-2"
+            class="flex h-10 items-center rounded-md bg-muted px-2"
             :title="provider.name"
           >
             <img

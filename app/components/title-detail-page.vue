@@ -76,13 +76,13 @@ const failed = computed(() => {
     <p v-if="detail.pending.value" class="px-4 text-muted-foreground">
       {{ t('detail.loading') }}
     </p>
-    <div v-else-if="failed" class="mx-auto max-w-6xl px-4 py-12 text-center">
+    <div v-else-if="failed" class="mx-auto max-w-[1280px] px-6 py-12 text-center">
       <p class="text-muted-foreground">
         {{ t('detail.error') }}
       </p>
       <NuxtLink
         to="/"
-        class="mt-4 inline-flex items-center gap-1.5 rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        class="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       >
         <ArrowLeft :size="16" :stroke-width="1.75" aria-hidden="true" />
         {{ t('detail.notFound.backHome') }}
@@ -90,11 +90,11 @@ const failed = computed(() => {
     </div>
     <TitleNotFound v-else-if="notFound" />
     <template v-else-if="detail.data.value">
-      <div class="mx-auto w-full max-w-6xl px-4">
+      <div class="mx-auto w-full max-w-[1280px] px-6">
         <div class="pb-2.5">
           <NuxtLink
             to="/"
-            class="inline-flex items-center gap-1 rounded px-2 py-1 text-[13px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
+            class="inline-flex min-h-10 items-center gap-1 rounded-full px-3 py-1 text-[13px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
           >
             <ArrowLeft :size="14" :stroke-width="1.75" aria-hidden="true" />
             {{ t('detail.back') }}
@@ -128,7 +128,7 @@ const failed = computed(() => {
         </div>
       </div>
 
-      <div class="mx-auto w-full max-w-6xl px-4">
+      <div class="mx-auto w-full max-w-[1280px] px-6">
         <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
       </div>
     </template>

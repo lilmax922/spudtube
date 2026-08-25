@@ -5,7 +5,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-6xl flex-col items-center gap-4 px-4 py-20 text-center">
+  <div class="mx-auto flex w-full max-w-[1280px] flex-col items-center gap-4 px-6 py-20 text-center">
     <h1 class="text-2xl font-bold tracking-tight">
       {{ t('detail.notFound.title') }}
     </h1>
@@ -14,7 +14,7 @@ const { t } = useI18n()
     </p>
     <NuxtLink
       to="/"
-      class="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+      class="inline-flex h-10 items-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
     >
       {{ t('detail.notFound.backHome') }}
     </NuxtLink>

@@ -81,7 +81,7 @@ void refresh()
       <button
         v-if="selectedGenreIds.length > 0"
         type="button"
-        class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        class="inline-flex min-h-10 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         @click="clearGenres"
       >
         {{ t('browse.clearAll') }}
@@ -90,7 +90,7 @@ void refresh()
 
     <p
       v-if="gridError && gridItems.length === 0"
-      class="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground"
+      class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
     >
       {{ mode === 'search' ? t('search.error') : t('browse.error') }}
     </p>
@@ -109,7 +109,7 @@ void refresh()
 
     <p
       v-else-if="gridItems.length === 0"
-      class="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground"
+      class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
     >
       {{ emptyMessage }}
     </p>

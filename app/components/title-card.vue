@@ -24,9 +24,9 @@ const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
 <template>
   <NuxtLink
     :to="titleDetailPath(title.kind, title.tmdbId)"
-    class="group flex flex-col rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+    class="group flex flex-col rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/20"
   >
-    <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted">
+    <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
       <span
         v-if="showKind"
         data-testid="kind-badge"

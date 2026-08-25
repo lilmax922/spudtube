@@ -53,14 +53,14 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
   <div class="mx-auto w-full max-w-[1280px] px-6 pb-10 pt-6">
     <div
       v-if="displayQuery"
-      class="mb-6 flex items-center justify-between gap-4 border-b border-border pb-5"
+      class="mb-6 flex items-baseline gap-3 border-b border-border pb-5"
       data-testid="search-header"
     >
       <h1 class="flex items-center gap-2 text-[18px] font-bold tracking-tight text-foreground">
         <Search :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
         <span>{{ t('search.related', { query: displayQuery }) }}</span>
       </h1>
-      <span class="shrink-0 text-xs font-medium text-muted-foreground">
+      <span class="text-xs font-medium text-muted-foreground">
         <template v-if="loading && items.length === 0">
           {{ t('search.loading') }}
         </template>

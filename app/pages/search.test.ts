@@ -211,13 +211,15 @@ describe('search page', () => {
     expect(header.text()).not.toContain('TMDB')
     // related without TMDB wording
     expect(header.text()).toContain('results for')
-    // count moved to the right side of related (sibling span)
+    // count placed to the right of related, not at far edge (gap-3, sibling span)
     const title = header.find('h1')
     const count = header.find('h1 + span')
     expect(title.exists()).toBe(true)
     expect(count.exists()).toBe(true)
     expect(count.text()).toContain('2')
-    expect(header.classes().join(' ')).toContain('justify-between')
+    expect(header.classes().join(' ')).toContain('gap-3')
+    expect(header.classes().join(' ')).not.toContain('justify-between')
+    expect(header.classes().join(' ')).toContain('items-baseline')
   })
 
   it('shows header from route query even before searchedQuery is populated', async () => {

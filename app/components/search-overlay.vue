@@ -72,7 +72,7 @@ function addRecent(q: string): void {
   const trimmed = q.trim()
   if (!trimmed)
     return
-  const next = [trimmed, ...recents.value.filter(x => x !== trimmed)].slice(0, 8)
+  const next = [trimmed, ...recents.value.filter(x => x !== trimmed)].slice(0, 5)
   saveRecents(next)
 }
 
@@ -122,11 +122,11 @@ const filteredItems = computed(() => {
   return list
 })
 
-const tabs: Array<{ id: 'all' | 'movie' | 'tv', label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'movie', label: 'Movies' },
-  { id: 'tv', label: 'TV Shows' },
-]
+const tabs = computed<Array<{ id: 'all' | 'movie' | 'tv', label: string }>>(() => [
+  { id: 'all', label: t('search.tabs.all') },
+  { id: 'movie', label: t('search.tabs.movies') },
+  { id: 'tv', label: t('search.tabs.tvShows') },
+])
 
 let observer: IntersectionObserver | null = null
 
@@ -267,14 +267,14 @@ watch(activeTab, () => {
           <div class="searchSection p-[18px_16px]">
             <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
               <Clock :size="14" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
-              Recent Searches
+              {{ t('search.recentSearches') }}
               <button
                 v-if="recents.length > 0"
                 type="button"
                 class="clearAll ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
                 @click="clearRecents"
               >
-                Clear all
+                {{ t('search.clearAll') }}
               </button>
             </h4>
             <div class="mt-3 flex flex-col">
@@ -295,14 +295,14 @@ watch(activeTab, () => {
                 v-else
                 class="text-sm text-muted-foreground"
               >
-                尚無搜尋紀錄
+                {{ t('search.noRecent') }}
               </p>
             </div>
           </div>
           <div class="searchSection border-t border-border p-[18px_16px]">
             <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
               <TrendingUp :size="14" :stroke-width="1.75" class="text-primary" aria-hidden="true" />
-              Trending Searches
+              {{ t('search.trendingSearches') }}
             </h4>
             <div class="trendingChips mt-3 flex flex-wrap gap-2">
               <button
@@ -350,8 +350,8 @@ watch(activeTab, () => {
             v-else-if="filteredItems.length === 0"
             class="py-8 text-center"
           >
-            <b class="block text-foreground">No results</b>
-            <span class="text-sm text-muted-foreground">Try different keywords</span>
+            <b class="block text-foreground">{{ t('search.noResultsTitle') }}</b>
+            <span class="text-sm text-muted-foreground">{{ t('search.tryDifferent') }}</span>
           </div>
           <div
             v-else

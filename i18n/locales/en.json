@@ -21,7 +21,18 @@
     "loading": "Searching…",
     "error": "Something went wrong while searching",
     "related": "results for \"{query}\"",
-    "count": "{count} results"
+    "count": "{count} results",
+    "recentSearches": "Recent Searches",
+    "trendingSearches": "Trending Searches",
+    "clearAll": "Clear all",
+    "noRecent": "No recent searches",
+    "noResultsTitle": "No results",
+    "tryDifferent": "Try different keywords",
+    "tabs": {
+      "all": "All",
+      "movies": "Movies",
+      "tvShows": "TV Shows"
+    }
   },
   "language": {
     "label": "Language"

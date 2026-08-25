@@ -1,14 +1,14 @@
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { describe, expect, it, vi } from 'vitest'
-import PrimeCarousel from './prime-carousel.vue'
+import BrowseCarousel from './browse-carousel.vue'
 
 function createItems(count: number): string[] {
   return Array.from({ length: count }, (_, i) => `Item ${i + 1}`)
 }
 
-describe('prime-carousel', () => {
+describe('browse-carousel', () => {
   it('renders slotted items', async () => {
-    const wrapper = await mountSuspended(PrimeCarousel, {
+    const wrapper = await mountSuspended(BrowseCarousel, {
       slots: {
         default: () => createItems(6).map(text => `<div class="w-[240px] shrink-0 snap-start">${text}</div>`).join(''),
       },
@@ -20,7 +20,7 @@ describe('prime-carousel', () => {
   })
 
   it('exposes atStart state when scroll is at left edge', async () => {
-    const wrapper = await mountSuspended(PrimeCarousel, {
+    const wrapper = await mountSuspended(BrowseCarousel, {
       props: { ariaLabel: 'recommendations' },
       slots: {
         default: () => `<div class="w-[240px] shrink-0">x</div>`.repeat(10),
@@ -36,7 +36,7 @@ describe('prime-carousel', () => {
   })
 
   it('hides arrows when content fits (single)', async () => {
-    const wrapper = await mountSuspended(PrimeCarousel, {
+    const wrapper = await mountSuspended(BrowseCarousel, {
       slots: {
         default: () => `<div>only one</div>`,
       },
@@ -47,7 +47,7 @@ describe('prime-carousel', () => {
   })
 
   it('shows peek width data attribute', async () => {
-    const wrapper = await mountSuspended(PrimeCarousel, {
+    const wrapper = await mountSuspended(BrowseCarousel, {
       props: { itemWidth: 240, peekRatio: 0.25 },
       slots: {
         default: () => `<div>a</div>`,
@@ -59,13 +59,13 @@ describe('prime-carousel', () => {
   })
 
   it('scrolls by page on next click', async () => {
-    const wrapper = await mountSuspended(PrimeCarousel, {
+    const wrapper = await mountSuspended(BrowseCarousel, {
       slots: {
         default: () => `<div class="w-[240px] shrink-0 snap-start">x</div>`.repeat(10),
       },
     })
 
-    const viewport = wrapper.find('.prime-carousel-viewport').element as HTMLElement
+    const viewport = wrapper.find('.browse-carousel-viewport').element as HTMLElement
     // Mock dimensions to make it scrollable and atStart
     Object.defineProperty(viewport, 'clientWidth', { value: 800, configurable: true })
     Object.defineProperty(viewport, 'scrollWidth', { value: 2600, configurable: true })
@@ -94,7 +94,7 @@ describe('prime-carousel', () => {
 
   it('applies correct state classes for atStart / atMid / atEnd via getCarouselState', async () => {
     // This is covered via composable unit test, but we verify component exposes state attribute
-    const wrapper = await mountSuspended(PrimeCarousel, {
+    const wrapper = await mountSuspended(BrowseCarousel, {
       slots: {
         default: () => `<div>a</div>`,
       },

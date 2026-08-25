@@ -14,6 +14,7 @@ export const rawMovieSummarySchema = z.object({
   backdrop_path: z.string().nullable(),
   release_date: z.string(),
   vote_average: z.number().nullable(),
+  genre_ids: z.array(z.number()).optional(),
 })
 
 export const rawTvSummarySchema = z.object({
@@ -23,6 +24,7 @@ export const rawTvSummarySchema = z.object({
   backdrop_path: z.string().nullable(),
   first_air_date: z.string(),
   vote_average: z.number().nullable(),
+  genre_ids: z.array(z.number()).optional(),
 })
 
 export const rawGenreSchema = z.object({

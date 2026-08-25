@@ -3,14 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 export type CarouselState = 'atStart' | 'atMid' | 'atEnd' | 'single'
 
-export interface PrimeCarouselOptions {
+export interface CarouselOptions {
   itemWidth?: number
   gap?: number
   peekRatio?: number
   threshold?: number
 }
 
-export const PRIME_CAROUSEL_DEFAULTS: Required<PrimeCarouselOptions> = {
+export const CAROUSEL_DEFAULTS: Required<CarouselOptions> = {
   itemWidth: 240,
   gap: 16,
   peekRatio: 0.25,
@@ -25,7 +25,7 @@ export function getCarouselState(
   scrollLeft: number,
   clientWidth: number,
   scrollWidth: number,
-  threshold: number = PRIME_CAROUSEL_DEFAULTS.threshold,
+  threshold: number = CAROUSEL_DEFAULTS.threshold,
 ): CarouselState {
   if (scrollWidth <= clientWidth + threshold)
     return 'single'
@@ -47,7 +47,6 @@ export function getVisibleCount(
     return 0
   const peekCount = state === 'atMid' ? 2 : state === 'single' ? 0 : 1
   const available = clientWidth - peekCount * peekWidth - (peekCount > 0 ? gap * peekCount : 0)
-  // For single (no scroll) we don't subtract peek
   const adjustedAvailable = state === 'single' ? clientWidth : available
   const count = Math.floor((adjustedAvailable + gap) / (itemWidth + gap))
   return Math.max(1, count)
@@ -64,7 +63,7 @@ export function getScrollAmount(
   return visible * (itemWidth + gap)
 }
 
-export interface UsePrimeCarouselReturn {
+export interface UseCarouselReturn {
   viewportRef: Ref<HTMLElement | null>
   state: Ref<CarouselState>
   peekWidth: Ref<number>
@@ -75,12 +74,12 @@ export interface UsePrimeCarouselReturn {
   refresh: () => void
 }
 
-export function usePrimeCarousel(options: PrimeCarouselOptions = {}): UsePrimeCarouselReturn {
+export function useCarousel(options: CarouselOptions = {}): UseCarouselReturn {
   const {
-    itemWidth = PRIME_CAROUSEL_DEFAULTS.itemWidth,
-    gap = PRIME_CAROUSEL_DEFAULTS.gap,
-    peekRatio = PRIME_CAROUSEL_DEFAULTS.peekRatio,
-    threshold = PRIME_CAROUSEL_DEFAULTS.threshold,
+    itemWidth = CAROUSEL_DEFAULTS.itemWidth,
+    gap = CAROUSEL_DEFAULTS.gap,
+    peekRatio = CAROUSEL_DEFAULTS.peekRatio,
+    threshold = CAROUSEL_DEFAULTS.threshold,
   } = options
 
   const viewportRef = ref<HTMLElement | null>(null)

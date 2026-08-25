@@ -4,7 +4,7 @@ import {
   getCarouselState,
   getScrollAmount,
   getVisibleCount,
-} from './use-prime-carousel'
+} from './use-carousel'
 
 describe('calculatePeekWidth', () => {
   it('returns 1/4 of item width by default', () => {

@@ -102,6 +102,7 @@ const titles: TitleSummary[] = [
     backdropPath: null,
     releaseDate: '2021-10-22',
     voteAverage: 7.8,
+    genreIds: [28],
   },
   {
     kind: 'MOVIE',
@@ -111,6 +112,7 @@ const titles: TitleSummary[] = [
     backdropPath: null,
     releaseDate: '2024-02-27',
     voteAverage: 8.1,
+    genreIds: [878],
   },
 ]
 
@@ -123,6 +125,7 @@ const searchTitles: TitleSummary[] = [
     backdropPath: null,
     releaseDate: '2021-10-22',
     voteAverage: 7.8,
+    genreIds: [28],
   },
   {
     kind: 'TV_SHOW',
@@ -132,6 +135,7 @@ const searchTitles: TitleSummary[] = [
     backdropPath: null,
     releaseDate: '2024-11-17',
     voteAverage: 7.2,
+    genreIds: [878],
   },
 ]
 
@@ -181,9 +185,11 @@ describe('browse-grid', () => {
 
     expect(wrapper.text()).toContain('沙丘')
     expect(wrapper.text()).toContain('沙丘：第二部')
+    // In browse mode without filters the grid becomes rows — each row duplicates for peek
+    expect(wrapper.text()).toContain('本週熱門')
     const links = wrapper.findAll('a').filter(link => link.attributes('href')?.startsWith('/movie/'))
-    expect(links).toHaveLength(2)
-    expect(links.map(link => link.attributes('href'))).toEqual(['/movie/419430', '/movie/693134'])
+    expect(links.length).toBeGreaterThanOrEqual(2)
+    expect(links.map(link => link.attributes('href'))).toEqual(expect.arrayContaining(['/movie/419430', '/movie/693134']))
   })
 
   it('switches kind and refetches the grid for the other catalog', async () => {
@@ -221,6 +227,9 @@ describe('browse-grid', () => {
 
   it('loads the next page when the sentinel becomes visible', async () => {
     vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver)
+    // Rows mode disables infinite scroll — force grid mode via active filter
+    const state = browseState as unknown as MockState
+    state.selectedGenreIds.value = [28]
 
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)

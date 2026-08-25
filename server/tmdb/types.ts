@@ -17,6 +17,7 @@ export interface TitleSummary {
   backdropPath: string | null
   releaseDate: string | null
   voteAverage: number | null
+  genreIds?: number[]
 }
 
 export interface Genre {

@@ -78,6 +78,7 @@ describe('tmdb client — searchMulti', () => {
           backdropPath: '/jYEW5xZkZk2WTrdbMGAPFuBqbDc.jpg',
           releaseDate: '2021-10-22',
           voteAverage: 7.805,
+          genreIds: [],
         },
         {
           kind: 'TV_SHOW',
@@ -87,6 +88,7 @@ describe('tmdb client — searchMulti', () => {
           backdropPath: null,
           releaseDate: '2024-11-17',
           voteAverage: 0.714,
+          genreIds: [],
         },
       ],
     })
@@ -164,6 +166,7 @@ describe('tmdb client — discover', () => {
         backdropPath: '/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg',
         releaseDate: '2024-02-27',
         voteAverage: 8.12,
+        genreIds: [],
       },
     ])
   })

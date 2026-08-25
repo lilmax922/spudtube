@@ -442,6 +442,119 @@ describe('tmdb client — genres', () => {
   })
 })
 
+describe('tmdb client — language support', () => {
+  it('sends the requested language for search and isolates cache per language', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/search/multi': SEARCH_MULTI_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    await client.searchMulti('dune', 1, 'en')
+    expect(requests[0]?.params.language).toBe('en')
+
+    await client.searchMulti('dune', 1, 'en')
+    expect(requests).toHaveLength(1)
+
+    await client.searchMulti('dune', 1, 'zh-TW')
+    expect(requests).toHaveLength(2)
+    expect(requests[1]?.params.language).toBe('zh-TW')
+  })
+
+  it('sends language for discover, recommendations and genres', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/discover/movie': DISCOVER_MOVIE_PAGE,
+      '/3/tv/94605/recommendations': TV_RECOMMENDATIONS_PAGE,
+      '/3/genre/movie/list': MOVIE_GENRES,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    await client.discover('MOVIE', { genreIds: [878], page: 1, language: 'en' })
+    expect(requests[0]?.params.language).toBe('en')
+
+    await client.recommendations('TV_SHOW', 94605, 1, 'en')
+    expect(requests[1]?.params.language).toBe('en')
+
+    await client.genres('MOVIE', 'en')
+    expect(requests[2]?.params.language).toBe('en')
+  })
+
+  it('sends language for title detail and picks trailer per language', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/movie/419430': MOVIE_DETAIL,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const zh = await client.title('MOVIE', 419430, 'zh-TW')
+    expect(requests[0]?.params.language).toBe('zh-TW')
+    expect(zh?.trailerKey).toBe('zhTrailerKey')
+
+    const en = await client.title('MOVIE', 419430, 'en')
+    expect(requests[1]?.params.language).toBe('en')
+    expect(en?.trailerKey).toBe('enTrailerKey')
+  })
+
+  it('falls back to opposite locale for overview when base is empty', async () => {
+    const MOVIE_BOTH_TRANSLATED = {
+      id: 999002,
+      title: 'Bilingual Film',
+      overview: '',
+      tagline: '',
+      poster_path: null,
+      backdrop_path: null,
+      release_date: '',
+      vote_average: 5.5,
+      runtime: 100,
+      genres: [],
+      translations: {
+        translations: [
+          { iso_639_1: 'zh', iso_3166_1: 'TW', data: { overview: '中文簡介', tagline: '' } },
+          { iso_639_1: 'en', iso_3166_1: 'US', data: { overview: 'English overview', tagline: '' } },
+        ],
+      },
+    }
+    const { fetchJson } = createFakeTransport({
+      '/3/movie/999002': MOVIE_BOTH_TRANSLATED,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const zh = await client.title('MOVIE', 999002, 'zh-TW')
+    expect(zh?.overview).toBe('中文簡介')
+
+    const { fetchJson: fetchJson2 } = createFakeTransport({
+      '/3/movie/999002': MOVIE_BOTH_TRANSLATED,
+    })
+    const client2 = createTmdbClient({ token: 'test-token', fetchJson: fetchJson2 })
+    const en = await client2.title('MOVIE', 999002, 'en')
+    expect(en?.overview).toBe('English overview')
+  })
+
+  it('isolates provider and detail cache per language', async () => {
+    let nowMs = 1_000_000
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/movie/419430': MOVIE_DETAIL,
+      '/3/movie/419430/watch/providers': MOVIE_PROVIDERS,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson, now: () => nowMs })
+
+    await client.title('MOVIE', 419430, 'zh-TW')
+    await client.title('MOVIE', 419430, 'zh-TW')
+    expect(requests.filter(r => r.url.includes('/movie/419430') && !r.url.includes('providers'))).toHaveLength(1)
+
+    await client.title('MOVIE', 419430, 'en')
+    expect(requests.filter(r => r.url.includes('/movie/419430') && !r.url.includes('providers'))).toHaveLength(2)
+
+    await client.watchProviders('MOVIE', 419430, 'zh-TW')
+    await client.watchProviders('MOVIE', 419430, 'zh-TW')
+    expect(requests.filter(r => r.url.includes('providers'))).toHaveLength(1)
+
+    await client.watchProviders('MOVIE', 419430, 'en')
+    expect(requests.filter(r => r.url.includes('providers'))).toHaveLength(2)
+
+    nowMs += SEARCH_TTL_MS + 1
+    void nowMs
+  })
+})
+
 describe('tmdb client — token safety', () => {
   it('never exposes the access token in any operation output', async () => {
     const token = 'secret-access-token-xyz'

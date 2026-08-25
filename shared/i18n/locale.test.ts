@@ -26,16 +26,19 @@ describe('readDetectedCountry', () => {
 })
 
 describe('countryToLocale', () => {
-  it('maps Taiwan to zh-TW', () => {
+  it('maps Taiwan and China to zh-TW', () => {
     expect(countryToLocale('TW')).toBe('zh-TW')
+    expect(countryToLocale('CN')).toBe('zh-TW')
   })
 
   it('normalizes case and whitespace before mapping', () => {
     expect(countryToLocale(' tw ')).toBe('zh-TW')
     expect(countryToLocale('tw')).toBe('zh-TW')
+    expect(countryToLocale('cn')).toBe('zh-TW')
+    expect(countryToLocale(' CN ')).toBe('zh-TW')
   })
 
-  it('maps every non-Taiwan country to en', () => {
+  it('maps every other country to en', () => {
     for (const country of ['US', 'HK', 'JP', 'KR', 'SG', 'GB', 'DE']) {
       expect(countryToLocale(country)).toBe('en')
     }
@@ -66,6 +69,7 @@ describe('resolveDisplayLocale', () => {
 
   it('falls back to the geo default when nothing was persisted', () => {
     expect(resolveDisplayLocale(undefined, 'TW')).toBe('zh-TW')
+    expect(resolveDisplayLocale(undefined, 'CN')).toBe('zh-TW')
     expect(resolveDisplayLocale(null, 'US')).toBe('en')
   })
 

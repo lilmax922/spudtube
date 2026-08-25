@@ -22,15 +22,38 @@ describe('gET /api/catalog/:kind/:id', () => {
     fakeClient.title.mockReset()
   })
 
-  it('returns the mapped title detail', async () => {
+  it('returns the mapped title detail, resolving TW geo to zh-TW', async () => {
     fakeClient.title.mockResolvedValue({ kind: 'MOVIE', tmdbId: 419430, name: '沙丘' })
 
-    const response = await call(new Request('http://localhost/api/catalog/movie/419430'))
+    const response = await call(new Request('http://localhost/api/catalog/movie/419430', {
+      headers: { 'cf-ipcountry': 'TW' },
+    }))
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 419430)
+    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 419430, 'zh-TW')
     expect(body).toEqual({ kind: 'MOVIE', tmdbId: 419430, name: '沙丘' })
+  })
+
+  it('forwards language for title detail', async () => {
+    fakeClient.title.mockResolvedValue(null)
+
+    await call(new Request('http://localhost/api/catalog/tv/94605?language=en'))
+
+    expect(fakeClient.title).toHaveBeenCalledWith('TV_SHOW', 94605, 'en')
+  })
+
+  it('auto-detects en without geo and respects cookie override', async () => {
+    fakeClient.title.mockResolvedValue(null)
+
+    await call(new Request('http://localhost/api/catalog/movie/419430'))
+    expect(fakeClient.title).toHaveBeenLastCalledWith('MOVIE', 419430, 'en')
+
+    fakeClient.title.mockClear()
+    await call(new Request('http://localhost/api/catalog/movie/419430', {
+      headers: { 'cf-ipcountry': 'TW', 'cookie': 'spudtube-locale=en' },
+    }))
+    expect(fakeClient.title).toHaveBeenLastCalledWith('MOVIE', 419430, 'en')
   })
 
   it('rejects a non-numeric id', async () => {

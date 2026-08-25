@@ -22,7 +22,7 @@ describe('gET /api/catalog/:kind/:id/providers', () => {
     fakeClient.watchProviders.mockReset()
   })
 
-  it('returns the provider catalog for all regions', async () => {
+  it('returns the provider catalog for all regions, resolving TW geo to zh-TW', async () => {
     const catalog = {
       TW: {
         link: 'https://www.themoviedb.org/movie/419430/watch?locale=TW',
@@ -31,11 +31,29 @@ describe('gET /api/catalog/:kind/:id/providers', () => {
     }
     fakeClient.watchProviders.mockResolvedValue(catalog)
 
-    const response = await call(new Request('http://localhost/api/catalog/movie/419430/providers'))
+    const response = await call(new Request('http://localhost/api/catalog/movie/419430/providers', {
+      headers: { 'cf-ipcountry': 'TW' },
+    }))
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.watchProviders).toHaveBeenCalledWith('MOVIE', 419430)
+    expect(fakeClient.watchProviders).toHaveBeenCalledWith('MOVIE', 419430, 'zh-TW')
     expect(body).toEqual(catalog)
+  })
+
+  it('forwards language for providers', async () => {
+    fakeClient.watchProviders.mockResolvedValue({})
+
+    await call(new Request('http://localhost/api/catalog/movie/419430/providers?language=en'))
+
+    expect(fakeClient.watchProviders).toHaveBeenCalledWith('MOVIE', 419430, 'en')
+  })
+
+  it('auto-detects en without geo', async () => {
+    fakeClient.watchProviders.mockResolvedValue({})
+
+    await call(new Request('http://localhost/api/catalog/movie/419430/providers'))
+
+    expect(fakeClient.watchProviders).toHaveBeenLastCalledWith('MOVIE', 419430, 'en')
   })
 })

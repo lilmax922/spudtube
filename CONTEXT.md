@@ -56,3 +56,17 @@ _Avoid_: bookmark, favorite, saved
 
 **Watchlist**:
 The set of Titles a User has marked `WATCHLISTED`.
+
+### Browse & Discovery
+
+**ContentRow**:
+A single horizontal section on the browse surface — title, an optional "See more" action, and one BrowseCarousel of TitleCards. Rows are derived as slices of the same Title collection (e.g., by popularity, rating, recency, or Genre).
+_Avoid_: rails, shelf, lane
+
+**BrowseCarousel**:
+The horizontally scrollable viewport inside a ContentRow that presents TitleCards. It owns peek, gap, row padding, breakout/full-bleed behavior, and page-by-page scrolling. Exactly one per ContentRow.
+_Avoid_: slider, scroller, vega carousel
+
+**TitleCard**:
+The card representing a single Title inside a BrowseCarousel (or grid). It shows the Title's artwork, year, and rating, and reveals additional detail on hover/focus. It does not encode Availability; that belongs to the Title detail surface.
+_Avoid_: tile, poster, video, thumbnail

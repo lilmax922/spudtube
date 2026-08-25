@@ -1,6 +1,7 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
 import { getTmdbClient } from '../../tmdb/client'
+import { getRequestLocale } from '../../utils/locale'
 import { languageParam } from '../../utils/params'
 import { parseOrThrow } from '../../utils/validation'
 
@@ -12,5 +13,6 @@ const searchQuerySchema = z.object({
 
 export default defineEventHandler((event) => {
   const { query, page, language } = parseOrThrow(searchQuerySchema, getQuery(event))
-  return getTmdbClient().searchMulti(query, page, language)
+  const locale = language ?? getRequestLocale(event)
+  return getTmdbClient().searchMulti(query, page, locale)
 })

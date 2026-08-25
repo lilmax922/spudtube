@@ -28,6 +28,7 @@ export function readDetectedCountry(
 
 const COUNTRY_TO_LOCALE: Record<string, AppLocale> = {
   TW: 'zh-TW',
+  CN: 'zh-TW',
 }
 
 export function isAppLocale(value: unknown): value is AppLocale {

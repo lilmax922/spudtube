@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const mediaSegmentParam = z.enum(['movie', 'tv'])
 
-export const languageParam = z.enum(['zh-TW', 'en']).default('zh-TW')
+export const languageParam = z.enum(['zh-TW', 'en']).optional()
 
 export const idParam = z.coerce.number().int().positive()
 

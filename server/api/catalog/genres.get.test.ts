@@ -22,10 +22,12 @@ describe('gET /api/catalog/genres', () => {
     fakeClient.genres.mockReset()
   })
 
-  it('lists genres for the requested kind', async () => {
+  it('lists genres for the requested kind, resolving TW geo to zh-TW', async () => {
     fakeClient.genres.mockResolvedValue([{ id: 878, name: '科幻' }])
 
-    const response = await call(new Request('http://localhost/api/catalog/genres?kind=movie'))
+    const response = await call(new Request('http://localhost/api/catalog/genres?kind=movie', {
+      headers: { 'cf-ipcountry': 'TW' },
+    }))
     const body = await response.json()
 
     expect(response.status).toBe(200)
@@ -39,6 +41,14 @@ describe('gET /api/catalog/genres', () => {
     await call(new Request('http://localhost/api/catalog/genres?kind=tv&language=en'))
 
     expect(fakeClient.genres).toHaveBeenCalledWith('TV_SHOW', 'en')
+  })
+
+  it('auto-detects en without geo', async () => {
+    fakeClient.genres.mockResolvedValue([])
+
+    await call(new Request('http://localhost/api/catalog/genres?kind=movie'))
+
+    expect(fakeClient.genres).toHaveBeenLastCalledWith('MOVIE', 'en')
   })
 
   it('rejects a missing kind', async () => {

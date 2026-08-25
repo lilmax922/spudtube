@@ -11,6 +11,9 @@
   "placement": {
     "mode": "smart"
   },
+  "observability": {
+    "enabled": true
+  },
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",

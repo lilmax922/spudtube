@@ -4,6 +4,7 @@
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 import { randomBytes } from 'node:crypto'
+import { writeFile } from 'node:fs/promises'
 
 const rl = createInterface({ input, output })
 
@@ -140,6 +141,12 @@ async function main() {
   heading('6 — Hyperdrive binding (Supabase pooler via Cloudflare)')
   info('Create a Hyperdrive config that wraps the pooler URL. This is the ONLY way')
   info('Workers/Pages can reach Postgres at the edge (ADR 0002).')
+  info('wrangler.jsonc already contains smart placement & observability per workers-best-practices:')
+  info('  "placement": {"mode":"smart"}   // multi-query routes execute near DB')
+  info('  "observability": {"enabled":true} // logs/traces in Dashboard')
+  info('  "hyperdrive": [{"binding":"HYPERDRIVE", "id":"…", "localConnectionString":"…"}]')
+  info('The localConnectionString keeps `wrangler pages dev` on Docker Postgres; production')
+  info('uses HYPERDRIVE.connectionString via getDb(event) (server/db/index.ts).')
   info('Run:')
   println()
   println(`  npx wrangler hyperdrive create spudtube-db --connection-string="${poolerUrl}"`)
@@ -151,6 +158,9 @@ async function main() {
   println(`    "id": "PASTE_THE_ID_HERE",`)
   println('    "localConnectionString": "postgresql://spudtube:spudtube@localhost:5432/spudtube"')
   println('  }]')
+  println()
+  info('Then regenerate types and commit:')
+  println('  npx wrangler types   # updates worker-configuration.d.ts (Env.HYPERDRIVE)')
   println()
   info('For Pages dashboard deployments, also attach the Hyperdrive to the Pages')
   info('project: Cloudflare Dashboard → Pages → spudtube → Settings → Functions →')
@@ -166,6 +176,7 @@ async function main() {
   info('     added in the next step. Pages will build `main` on every push automatically')
   info('     once connected — this is the “push to main builds and deploys” check.')
   info('If the project already exists, verify Build → Branch is `main` and Auto-deploy is on.')
+  info('Build is gated by CI (.github/workflows/ci.yml): pnpm typecheck, lint, test, build.')
 
   heading('8 — Secrets — Cloudflare Pages dashboard ONLY')
   warn('Never put these in wrangler.toml, .env, or git. Set them in:')
@@ -181,24 +192,57 @@ async function main() {
   info('  # supplies the connection. For `wrangler pages dev` locally, put the pooler')
   info('  # URL into .dev.vars (git-ignored) if you need to test the pooler locally.')
   println()
-  info('For `wrangler pages dev` local preview, create .dev.vars (git-ignored):')
+  info('For `wrangler pages dev` local preview, create .dev.vars (git-ignored, see .dev.vars.example):')
   println()
   println('  TMDB_TOKEN=…')
   println('  BETTER_AUTH_SECRET=…')
   println(`  BETTER_AUTH_URL=http://localhost:3000`)
   println(`  GOOGLE_CLIENT_ID=${googleClientId}`)
   println('  GOOGLE_CLIENT_SECRET=…')
+  println('  # optional: DATABASE_URL=postgresql://…:6543/…?pgbouncer=true&sslmode=require')
   println()
 
+  const devVarsContent = [
+    `TMDB_TOKEN=${tmdbToken}`,
+    `BETTER_AUTH_SECRET=${betterAuthSecret}`,
+    `BETTER_AUTH_URL=http://localhost:3000`,
+    `GOOGLE_CLIENT_ID=${googleClientId}`,
+    `GOOGLE_CLIENT_SECRET=${googleClientSecret}`,
+    `# Uncomment to test the pooler locally (wrangler pages dev reads .dev.vars):`,
+    `# DATABASE_URL=${poolerUrl}`,
+  ].join('\n') + '\n'
+
+  const writeDevVars = await ask('Write .dev.vars for local Pages preview now? (y/N)', { defaultValue: 'N' })
+  if (/^y(es)?$/i.test(writeDevVars)) {
+    await writeFile('.dev.vars', devVarsContent, 'utf8')
+    ok('Wrote .dev.vars (git-ignored). Keep it private — it contains real secrets.')
+    info('Preview with: npx wrangler pages dev ./dist  (after pnpm build)')
+  }
+  else {
+    info('Skipped writing .dev.vars. Copy .dev.vars.example → .dev.vars manually if needed.')
+    info('Content that would have been written:')
+    println(devVarsContent)
+  }
+
   heading('9 — Apply migrations to production')
-  info('Run once against the pooler URL (Hyperdrive itself is a cache, not the store):')
+  info('Run once against the pooler URL (Hyperdrive itself is a cache, not the store).')
+  info('Only DATABASE_URL is needed for the migration; BETTER_AUTH_URL is a runtime')
+  info('secret (already set on Pages in step 8) and not used by drizzle-kit.')
   println()
   println(`  DATABASE_URL="${poolerUrl}" pnpm db:migrate`)
+  println()
+  info('If you use the pooler locally via .dev.vars, you can also run:')
+  println('  # with DATABASE_URL in .dev.vars, or temporarily:')
+  println(`  DATABASE_URL="${poolerUrl}" BETTER_AUTH_URL=http://localhost:3000 pnpm db:migrate`)
   println()
   info('Verify in Supabase → Table Editor that tables user, session, account,')
   info('verification, rating, title_status exist.')
 
-  heading('10 — Deploy & verify')
+  heading('10 — Quality gate & Deploy & verify')
+  info('Local gates must be green before pushing (Definition of Done):')
+  println('  pnpm typecheck && pnpm lint --fix && pnpm build && pnpm test')
+  println()
+  info('Then:')
   info('  git push origin main   # Pages builds and deploys automatically')
   info(`  open https://${prodDomain}   # should render the poster grid with live TMDB data`)
   info(`  open https://${prodDomain}/movie/550  # detail, trailer,`)
@@ -207,11 +251,23 @@ async function main() {
   info('     # check Pages → Functions → Logs or Hyperdrive → Metrics for cache hits.')
   info('  Sign in with Google → the round-trip must land back on the prod domain')
   info('     # (not localhost). If it loops to localhost, BETTER_AUTH_URL is wrong.')
+  info('  Inspect /api/auth/get-session and Supabase tables user/session/account: they')
+  info('     # must show the signed-in user; reload must keep session; sign-out must clear.')
   info('  Rate a title, toggle Watchlist/Watched, check /my-list — data must persist')
   info('     # across reloads (stored in Supabase via Hyperdrive).')
+  info('  Live TMDB checks (server/tmdb/client.ts is the only fetcher):')
+  info('    - search ? search/multi')
+  info('    - discover ? discover/movie|tv')
+  info('    - detail ? /movie|tv/:id')
+  info('    - providers ? /movie|tv/:id/watch/providers (grouped + TMDB CDN logos)')
+  info('    - recommendations ? /movie|tv/:id/recommendations')
+  info('    - genres ? /genre/movie|tv/list')
+  info('  Availability via Hyperdrive:')
+  info('    GET /api/catalog/:kind/:id/providers → server reads HYPERDRIVE when present')
   info('  Inspect the page footer and any Availability panel — both must show:')
   info('    “Provider data licensed from JustWatch · This product uses the TMDB API')
-  info('     but is not endorsed or certified by TMDB.”')
+  info('     but is not endorsed or certified by TMDB.” (i18n key availability.attribution)')
+  info('  Logo check: provider logos are served from https://image.tmdb.org/t/p/w92')
   info('  Check that no secret appears in the deployed bundle:')
   println()
   println('  curl -s https://${prodDomain}/_nuxt/*.js | grep -i "eyJ" && echo "LEAKED" || echo "ok"')
@@ -219,10 +275,14 @@ async function main() {
 
   heading('Summary — what you just configured')
   println(`  Prod domain:        https://${prodDomain}`)
-  println(`  Hyperdrive ID:      ${hyperdriveId || '(fill in wrangler.jsonc after creation)'}`)
+  println(`  Hyperdrive ID:      ${hyperdriveId || '(fill in wrangler.jsonc after creation, then run npx wrangler types)'}`)
   println(`  Pooler URL host:    ${(() => { try { return new URL(poolerUrl).host } catch { return '(unparsable)' } })()}`)
   println(`  BetterAuth URL:     ${betterAuthUrl}`)
   println('  Pages auto-deploy:  on (push to main)')
+  println('  Nitro preset:       cloudflare_pages (nuxt.config.ts)')
+  println('  Placement:          smart (wrangler.jsonc)')
+  println('  Observability:      enabled (wrangler.jsonc → Dashboard Logs/Traces)')
+  println('  DB path:            local DATABASE_URL ↔ prod Hyperdrive(pooler:6543) via getDb(event)')
   println('  Attribution:        footer + availability panel (checked in verification)')
 
   println()

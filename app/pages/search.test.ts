@@ -197,7 +197,7 @@ describe('search page', () => {
     expect(grid.classes().join(' ')).toContain('minmax(240px')
   })
 
-  it('shows TMDB related header with query at top', async () => {
+  it('shows related header with query at top and count on the right', async () => {
     const state = searchState as unknown as SearchMockState
     state.searchedQuery.value = 'dune'
     state.items.value = searchTitles
@@ -208,9 +208,16 @@ describe('search page', () => {
     const header = wrapper.find('[data-testid="search-header"]')
     expect(header.exists()).toBe(true)
     expect(header.text()).toContain('dune')
-    expect(header.text()).toContain('TMDB')
-    // count
-    expect(header.text()).toContain('2')
+    expect(header.text()).not.toContain('TMDB')
+    // related without TMDB wording
+    expect(header.text()).toContain('results for')
+    // count moved to the right side of related (sibling span)
+    const title = header.find('h1')
+    const count = header.find('h1 + span')
+    expect(title.exists()).toBe(true)
+    expect(count.exists()).toBe(true)
+    expect(count.text()).toContain('2')
+    expect(header.classes().join(' ')).toContain('justify-between')
   })
 
   it('shows header from route query even before searchedQuery is populated', async () => {

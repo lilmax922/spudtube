@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Clock, Search as SearchIcon, Star, TrendingUp, X } from '@lucide/vue'
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn, useStorage } from '@vueuse/core'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from '#imports'
@@ -29,7 +29,8 @@ const { t } = useI18n()
 const panelRef = shallowRef<HTMLElement | null>(null)
 const searchSentinel = shallowRef<HTMLElement | null>(null)
 const activeTab = shallowRef<'all' | 'movie' | 'tv'>('all')
-const recents = shallowRef<string[]>([])
+const STORAGE_KEY = 'spudtube:recent'
+const recents = useStorage<string[]>(STORAGE_KEY, [])
 
 const TRENDING = [
   'Toy Story 5',
@@ -48,39 +49,15 @@ const debouncedOverlaySearch = useDebounceFn((q: string) => {
   void overlaySearch.search(q)
 }, 350)
 
-const STORAGE_KEY = 'spudtube:recent'
-
-function loadRecents(): void {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    recents.value = raw ? (JSON.parse(raw) as string[]) : []
-  }
-  catch {
-    recents.value = []
-  }
-}
-
-function saveRecents(list: string[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
-  }
-  catch {}
-  recents.value = list
-}
-
 function addRecent(q: string): void {
   const trimmed = q.trim()
   if (!trimmed)
     return
-  const next = [trimmed, ...recents.value.filter(x => x !== trimmed)].slice(0, 5)
-  saveRecents(next)
+  const next = [trimmed, ...recents.value.filter(x => x !== trimmed)].slice(0, 3)
+  recents.value = next
 }
 
 function clearRecents(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  }
-  catch {}
   recents.value = []
 }
 
@@ -163,7 +140,6 @@ watch(() => overlaySearch.items.value.length, () => {
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     document.body.style.overflow = 'hidden'
-    loadRecents()
     setupObserver()
   }
   else {
@@ -205,8 +181,6 @@ function onBarButton(): void {
 
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
-  if (props.open)
-    loadRecents()
   if (props.query.trim() !== '')
     void overlaySearch.search(props.query)
 })

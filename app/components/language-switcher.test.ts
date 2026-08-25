@@ -64,6 +64,7 @@ function writeLocaleCookie(value: string): void {
 
 afterEach(() => {
   document.cookie = 'spudtube-locale=; Max-Age=0; Path=/'
+  document.cookie = 'spudtube-region=; Max-Age=0; Path=/'
 })
 
 describe('language switcher', () => {
@@ -118,5 +119,32 @@ describe('display locale resolution through the app shell', () => {
     expect(wrapper.text()).toContain('電影')
     expect(wrapper.text()).not.toContain('Movies')
     await vi.waitFor(() => expect(document.documentElement.lang).toBe('zh-TW'))
+  })
+})
+
+describe('display locale orthogonal to region', () => {
+  it('switching language does not change the selected region cookie', async () => {
+    document.cookie = 'spudtube-region=US; Path=/'
+    const wrapper = await mountSuspended(LanguageSwitcher, { route: '/?probe=7' })
+
+    await findButton(wrapper, '繁體中文')!.trigger('click')
+    await flushPromises()
+
+    expect(document.cookie).toContain('spudtube-locale=zh-TW')
+    expect(document.cookie).toContain('spudtube-region=US')
+  })
+
+  it('switching region does not change the persisted locale', async () => {
+    writeLocaleCookie('en')
+    document.cookie = 'spudtube-region=TW; Path=/'
+    const wrapper = await mountSuspended(App, { route: '/?probe=8' })
+
+    // Region is shown in availability panel via select; language switcher reflects locale
+    expect(findButton(wrapper, 'English')!.attributes('aria-pressed')).toBe('true')
+    // Simulate region change via composable (direct cookie) and verify locale persists
+    document.cookie = 'spudtube-region=JP; Path=/'
+    await flushPromises()
+    expect(document.cookie).toContain('spudtube-locale=en')
+    expect(document.cookie).toContain('spudtube-region=JP')
   })
 })

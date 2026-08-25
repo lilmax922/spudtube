@@ -1,17 +1,24 @@
 import type { ComputedRef, Ref } from 'vue'
-import type { Page, TitleSummary } from '#server/tmdb/types'
-import { computed, ref } from 'vue'
+import type { Page, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
 import { usePagedResults } from './use-paged-results'
 
 export interface SearchFetcher {
-  fetchSearch: (query: string, page: number) => Promise<Page<TitleSummary>>
+  fetchSearch: (query: string, page: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
 }
 
 export function createApiSearchFetcher(): SearchFetcher {
   return {
-    fetchSearch(query, page) {
-      return $fetch<Page<TitleSummary>>('/api/catalog/search', { query: { query, page } })
+    fetchSearch(query, page, language) {
+      return $fetch<Page<TitleSummary>>('/api/catalog/search', {
+        query: {
+          query,
+          page,
+          ...(language ? { language } : {}),
+        },
+      })
     },
   }
 }
@@ -36,9 +43,25 @@ export function useKeywordSearch(fetcher: SearchFetcher = createApiSearchFetcher
   const query = ref('')
   const searchedQuery = ref('')
   const mode = computed(() => (searchedQuery.value === '' ? 'browse' : 'search'))
-  const { loadFirstPage, loadNextPage, reset, ...paged } = usePagedResults<TitleSummary>(page =>
-    fetcher.fetchSearch(searchedQuery.value, page),
+  let localeRef: Ref<string>
+  try {
+    localeRef = (useI18n().locale as unknown) as Ref<string>
+  }
+  catch {
+    localeRef = ref('en') as Ref<string>
+  }
+  const tmdbLanguage = computed<TmdbLanguage>(() =>
+    localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
   )
+  const { loadFirstPage, loadNextPage, reset, ...paged } = usePagedResults<TitleSummary>(page =>
+    fetcher.fetchSearch(searchedQuery.value, page, tmdbLanguage.value),
+  )
+
+  watch(tmdbLanguage, () => {
+    if (searchedQuery.value !== '') {
+      void loadFirstPage()
+    }
+  })
 
   async function search(nextQuery: string): Promise<void> {
     const trimmed = nextQuery.trim()

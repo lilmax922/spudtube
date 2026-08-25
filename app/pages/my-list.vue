@@ -13,7 +13,7 @@ definePageMeta({ middleware: 'my-list' })
 
 type MyListTab = 'watchlist' | 'watched' | 'rated'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const { data: session } = await authClient.useSession(useFetch)
 const signedIn = computed(() => session.value?.user != null)
@@ -21,9 +21,10 @@ const signedIn = computed(() => session.value?.user != null)
 const activeTab = ref<MyListTab>('watchlist')
 
 const { data: list, pending, error } = useFetch<MyList>('/api/my-list', {
+  query: { language: locale },
   // Only fetch once signed in; the session flipping true re-triggers the fetch.
   immediate: signedIn.value,
-  watch: [signedIn],
+  watch: [signedIn, locale],
 })
 
 const TABS: Array<{ key: MyListTab, label: string }> = [

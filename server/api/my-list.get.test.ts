@@ -89,9 +89,9 @@ describe('gET /api/my-list (seam S2)', () => {
     const ratedKeys = body.rated.map((entry: { kind: string, tmdbId: number }) => `${entry.kind}:${entry.tmdbId}`)
     expect(ratedKeys.sort()).toEqual(['MOVIE:424', 'MOVIE:500'])
     expect(fakeClient.title).toHaveBeenCalledTimes(3)
-    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 424)
-    expect(fakeClient.title).toHaveBeenCalledWith('TV_SHOW', 1399)
-    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 500)
+    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 424, 'en')
+    expect(fakeClient.title).toHaveBeenCalledWith('TV_SHOW', 1399, 'en')
+    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 500, 'en')
   })
 
   it('renders a removed reference as a degraded null title without breaking the rest', async () => {

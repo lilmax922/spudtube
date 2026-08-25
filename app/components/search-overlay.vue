@@ -7,6 +7,7 @@ import { navigateTo } from '#imports'
 import { useKeywordSearch } from '../composables/use-keyword-search'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
 import { posterUrl } from '../lib/tmdb-image'
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from './ui/command'
 
 interface Props {
   query: string
@@ -213,172 +214,191 @@ watch(activeTab, () => {
       class="searchSheet w-[min(720px,100%)] overflow-hidden rounded-[16px] border border-border bg-popover shadow-[0_24px_64px_rgba(0,0,0,0.6)]"
       @click.stop
     >
-      <form
-        role="search"
-        class="searchBarRow m-3 flex items-center gap-3 rounded-md rounded-[12px] border border-input border-border bg-card px-3 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.15)] focus-within:border-ring focus-within:shadow-[0_0_0_2px_color-mix(in_oklab,var(--ring)_20%,transparent)]"
-        @submit.prevent="onInnerSearch"
+      <Command
+        :should-filter="false"
+        class="bg-transparent p-0 flex flex-col overflow-hidden gap-0 rounded-none"
       >
-        <SearchIcon :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
-        <input
-          :value="query"
-          type="search"
-          :aria-label="t('search.label')"
-          :placeholder="t('search.placeholder')"
-          class="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+        <form
+          role="search"
+          class="searchBarRow m-3 flex items-center gap-3 rounded-md rounded-[12px] border border-input border-border bg-card px-3 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.15)] focus-within:border-ring focus-within:shadow-[0_0_0_2px_color-mix(in_oklab,var(--ring)_20%,transparent)]"
+          @submit.prevent="onInnerSearch"
         >
-        <button
-          type="button"
-          :aria-label="(query !== '' || clearable) ? t('search.clear') : t('search.close')"
-          class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          @click="onBarButton"
+          <SearchIcon :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+          <input
+            :value="query"
+            type="search"
+            role="combobox"
+            :aria-expanded="open"
+            aria-controls="search-command-list"
+            aria-autocomplete="list"
+            :aria-label="t('search.label')"
+            :placeholder="t('search.placeholder')"
+            class="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+          >
+          <button
+            type="button"
+            :aria-label="(query !== '' || clearable) ? t('search.clear') : t('search.close')"
+            class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+            @click="onBarButton"
+          >
+            <X :size="16" :stroke-width="1.75" aria-hidden="true" />
+          </button>
+        </form>
+        <CommandList
+          id="search-command-list"
+          class="searchPanel max-h-[62vh] overflow-auto bg-transparent p-0"
         >
-          <X :size="16" :stroke-width="1.75" aria-hidden="true" />
-        </button>
-      </form>
-      <div class="searchPanel max-h-[62vh] overflow-auto">
-        <template v-if="query.trim() === ''">
-          <div class="searchSection p-[18px_16px]">
-            <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
-              <Clock :size="14" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
-              {{ t('search.recentSearches') }}
-              <button
-                v-if="recents.length > 0"
-                type="button"
-                class="clearAll ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
-                @click="clearRecents"
-              >
-                {{ t('search.clearAll') }}
-              </button>
-            </h4>
-            <div class="mt-3 flex flex-col">
-              <template v-if="recents.length > 0">
+          <template v-if="query.trim() === ''">
+            <div class="searchSection p-[18px_16px]">
+              <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
+                <Clock :size="14" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
+                {{ t('search.recentSearches') }}
                 <button
+                  v-if="recents.length > 0"
+                  type="button"
+                  class="clearAll ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
+                  @click="clearRecents"
+                >
+                  {{ t('search.clearAll') }}
+                </button>
+              </h4>
+              <CommandGroup
+                v-if="recents.length > 0"
+                class="mt-3 flex flex-col p-0 bg-transparent gap-0"
+              >
+                <CommandItem
                   v-for="item in recents"
                   :key="item"
-                  type="button"
-                  class="recentItem flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-left text-sm text-foreground hover:bg-muted"
+                  :value="item"
+                  class="recentItem flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-left text-sm text-foreground hover:bg-muted data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
                   :data-q="item"
-                  @click="onPickRecent(item)"
+                  @select="onPickRecent(item)"
                 >
                   <Clock :size="16" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
                   {{ item }}
-                </button>
-              </template>
+                </CommandItem>
+              </CommandGroup>
               <p
                 v-else
-                class="text-sm text-muted-foreground"
+                class="mt-3 text-sm text-muted-foreground"
               >
                 {{ t('search.noRecent') }}
               </p>
             </div>
-          </div>
-          <div class="searchSection border-t border-border p-[18px_16px]">
-            <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
-              <TrendingUp :size="14" :stroke-width="1.75" class="text-primary" aria-hidden="true" />
-              {{ t('search.trendingSearches') }}
-            </h4>
-            <div class="trendingChips mt-3 flex flex-wrap gap-2">
+            <div class="searchSection border-t border-border p-[18px_16px]">
+              <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
+                <TrendingUp :size="14" :stroke-width="1.75" class="text-primary" aria-hidden="true" />
+                {{ t('search.trendingSearches') }}
+              </h4>
+              <CommandGroup class="trendingChips mt-3 flex flex-wrap gap-2 p-0 bg-transparent">
+                <CommandItem
+                  v-for="trend in TRENDING"
+                  :key="trend"
+                  :value="trend"
+                  :data-q="trend"
+                  class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 text-[13px] font-medium text-muted-foreground transition-colors hover:border-ring hover:text-foreground data-[highlighted]:border-ring data-[highlighted]:text-foreground data-[highlighted]:bg-muted"
+                  @select="onPickTrending(trend)"
+                >
+                  <SearchIcon :size="12" :stroke-width="1.75" aria-hidden="true" />
+                  {{ trend }}
+                </CommandItem>
+              </CommandGroup>
+            </div>
+          </template>
+          <template v-else>
+            <div class="searchTabs flex gap-2 border-b border-border p-3">
               <button
-                v-for="trend in TRENDING"
-                :key="trend"
+                v-for="tab in tabs"
+                :key="tab.id"
                 type="button"
-                :data-q="trend"
-                class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 text-[13px] font-medium text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
-                @click="onPickTrending(trend)"
+                :data-tab="tab.id"
+                class="inline-flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                :class="activeTab === tab.id ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground hover:text-foreground'"
+                @click="activeTab = tab.id"
               >
-                <SearchIcon :size="12" :stroke-width="1.75" aria-hidden="true" />
-                {{ trend }}
+                {{ tab.label }}
               </button>
             </div>
-          </div>
-        </template>
-        <template v-else>
-          <div class="searchTabs flex gap-2 border-b border-border p-3">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              type="button"
-              :data-tab="tab.id"
-              class="inline-flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-              :class="activeTab === tab.id ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground hover:text-foreground'"
-              @click="activeTab = tab.id"
-            >
-              {{ tab.label }}
-            </button>
-          </div>
-          <div
-            v-if="overlaySearch.loading.value && filteredItems.length === 0"
-            class="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"
-          >
-            <Star :size="14" class="animate-spin" aria-hidden="true" />
-            {{ t('search.loading') }}
-          </div>
-          <div
-            v-else-if="overlaySearch.error.value && filteredItems.length === 0"
-            class="py-8 text-center text-sm text-muted-foreground"
-          >
-            {{ t('search.error') }}
-          </div>
-          <div
-            v-else-if="filteredItems.length === 0"
-            class="py-8 text-center"
-          >
-            <b class="block text-foreground">{{ t('search.noResultsTitle') }}</b>
-            <span class="text-sm text-muted-foreground">{{ t('search.tryDifferent') }}</span>
-          </div>
-          <div
-            v-else
-            class="searchResultList flex flex-col"
-          >
-            <NuxtLink
-              v-for="title in filteredItems"
-              :key="`${title.kind}-${title.tmdbId}`"
-              :to="titleDetailPath(title.kind, title.tmdbId)"
-              class="searchResultItem flex items-center gap-4 border-b border-border p-4 last:border-b-0 hover:bg-muted"
-              @click="onResultClick(title)"
-            >
-              <div class="thumb flex h-36 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted">
-                <img
-                  v-if="posterSrc(title)"
-                  :src="posterSrc(title)!"
-                  :alt="title.name"
-                  loading="lazy"
-                  class="h-full w-full object-cover"
-                >
-                <span
-                  v-else
-                  class="text-[28px] font-extrabold text-white"
-                >{{ title.name.charAt(0) }}</span>
-              </div>
-              <div class="meta flex min-w-0 flex-1 flex-col gap-1.5">
-                <b class="line-clamp-1 flex items-center gap-2 text-[16px] font-bold text-foreground">
-                  {{ title.name }}
-                  <span class="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">{{ kindLabel(title.kind) }}</span>
-                </b>
-                <span class="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                  <span>{{ year(title) }}</span>
-                  <span class="size-1 rounded-full bg-border" aria-hidden="true" />
-                  <span class="inline-flex items-center gap-1 text-[#facc15]">★ {{ title.voteAverage?.toFixed(1) ?? '—' }}</span>
-                  <span class="size-1 rounded-full bg-border" aria-hidden="true" />
-                  <span>{{ kindLabel(title.kind) }}</span>
-                </span>
-              </div>
-            </NuxtLink>
             <div
-              ref="searchSentinel"
-              aria-hidden="true"
-              class="flex justify-center py-3"
+              v-if="overlaySearch.loading.value && filteredItems.length === 0"
+              class="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"
             >
-              <span
-                v-if="overlaySearch.loadingMore.value"
-                class="size-6 animate-spin rounded-full border-2 border-border border-t-ring"
-                aria-label="載入中"
-              />
+              <Star :size="14" class="animate-spin" aria-hidden="true" />
+              {{ t('search.loading') }}
             </div>
-          </div>
-        </template>
-      </div>
+            <div
+              v-else-if="overlaySearch.error.value && filteredItems.length === 0"
+              class="py-8 text-center text-sm text-muted-foreground"
+            >
+              {{ t('search.error') }}
+            </div>
+            <CommandEmpty
+              v-else-if="filteredItems.length === 0"
+              class="py-8 text-center"
+            >
+              <b class="block text-foreground">{{ t('search.noResultsTitle') }}</b>
+              <span class="text-sm text-muted-foreground">{{ t('search.tryDifferent') }}</span>
+            </CommandEmpty>
+            <CommandGroup
+              v-else
+              class="searchResultList flex flex-col p-0 bg-transparent gap-0"
+            >
+              <CommandItem
+                v-for="title in filteredItems"
+                :key="`${title.kind}-${title.tmdbId}`"
+                :value="title.name"
+                class="searchResultItem flex items-center gap-4 border-b border-border p-4 last:border-b-0 hover:bg-muted data-[highlighted]:bg-muted rounded-none px-4 py-4"
+                @select="() => { onResultClick(title); void navigateTo(titleDetailPath(title.kind, title.tmdbId)) }"
+              >
+                <NuxtLink
+                  :to="titleDetailPath(title.kind, title.tmdbId)"
+                  class="flex w-full items-center gap-4"
+                  tabindex="-1"
+                >
+                  <div class="thumb flex h-36 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted">
+                    <img
+                      v-if="posterSrc(title)"
+                      :src="posterSrc(title)!"
+                      :alt="title.name"
+                      loading="lazy"
+                      class="h-full w-full object-cover"
+                    >
+                    <span
+                      v-else
+                      class="text-[28px] font-extrabold text-white"
+                    >{{ title.name.charAt(0) }}</span>
+                  </div>
+                  <div class="meta flex min-w-0 flex-1 flex-col gap-1.5">
+                    <b class="line-clamp-1 flex items-center gap-2 text-[16px] font-bold text-foreground">
+                      {{ title.name }}
+                      <span class="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">{{ kindLabel(title.kind) }}</span>
+                    </b>
+                    <span class="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                      <span>{{ year(title) }}</span>
+                      <span class="size-1 rounded-full bg-border" aria-hidden="true" />
+                      <span class="inline-flex items-center gap-1 text-[#facc15]">★ {{ title.voteAverage?.toFixed(1) ?? '—' }}</span>
+                      <span class="size-1 rounded-full bg-border" aria-hidden="true" />
+                      <span>{{ kindLabel(title.kind) }}</span>
+                    </span>
+                  </div>
+                </NuxtLink>
+              </CommandItem>
+              <div
+                ref="searchSentinel"
+                aria-hidden="true"
+                class="flex justify-center py-3"
+              >
+                <span
+                  v-if="overlaySearch.loadingMore.value"
+                  class="size-6 animate-spin rounded-full border-2 border-border border-t-ring"
+                  aria-label="載入中"
+                />
+              </div>
+            </CommandGroup>
+          </template>
+        </CommandList>
+      </Command>
     </div>
   </div>
 </template>

@@ -154,6 +154,8 @@ watch(() => overlaySearch.items.value.length, () => {
 })
 
 watch(() => props.open, async (isOpen) => {
+  if (typeof document === 'undefined')
+    return
   if (isOpen) {
     document.body.style.overflow = 'hidden'
     setupObserver()

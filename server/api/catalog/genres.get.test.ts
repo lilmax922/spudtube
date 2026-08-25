@@ -29,8 +29,16 @@ describe('gET /api/catalog/genres', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.genres).toHaveBeenCalledWith('MOVIE')
+    expect(fakeClient.genres).toHaveBeenCalledWith('MOVIE', 'zh-TW')
     expect(body).toEqual([{ id: 878, name: '科幻' }])
+  })
+
+  it('forwards language for genre lists', async () => {
+    fakeClient.genres.mockResolvedValue([])
+
+    await call(new Request('http://localhost/api/catalog/genres?kind=tv&language=en'))
+
+    expect(fakeClient.genres).toHaveBeenCalledWith('TV_SHOW', 'en')
   })
 
   it('rejects a missing kind', async () => {

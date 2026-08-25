@@ -1,4 +1,4 @@
-import type { Genre, Kind, Page, ProviderCatalog, TitleDetail, TitleSummary } from './types'
+import type { Genre, Kind, Page, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
 import process from 'node:process'
 import { createTtlCache } from './cache'
 import {
@@ -53,15 +53,16 @@ export interface TmdbClientDeps {
 export interface DiscoverOptions {
   genreIds?: number[]
   page?: number
+  language?: TmdbLanguage
 }
 
 export interface TmdbClient {
-  searchMulti: (query: string, page?: number) => Promise<Page<TitleSummary>>
+  searchMulti: (query: string, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   discover: (kind: Kind, options?: DiscoverOptions) => Promise<Page<TitleSummary>>
-  title: (kind: Kind, tmdbId: number) => Promise<TitleDetail | null>
-  watchProviders: (kind: Kind, tmdbId: number) => Promise<ProviderCatalog>
-  recommendations: (kind: Kind, tmdbId: number, page?: number) => Promise<Page<TitleSummary>>
-  genres: (kind: Kind) => Promise<Genre[]>
+  title: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<TitleDetail | null>
+  watchProviders: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<ProviderCatalog>
+  recommendations: (kind: Kind, tmdbId: number, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  genres: (kind: Kind, language?: TmdbLanguage) => Promise<Genre[]>
 }
 
 const defaultFetchJson: FetchJson = async (url, init) => {
@@ -104,13 +105,13 @@ export function createTmdbClient({
   }
 
   return {
-    searchMulti(query: string, page = 1): Promise<Page<TitleSummary>> {
-      return cache.wrap(`search-multi:${query}:${page}`, SEARCH_TTL_MS, async () => {
+    searchMulti(query: string, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      return cache.wrap(`search-multi:${language}:${query}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(
           await request('/search/multi', {
             query,
             page: String(page),
-            language: DEFAULT_TMDB_LANGUAGE,
+            language,
             include_adult: 'false',
           }),
         )
@@ -119,16 +120,16 @@ export function createTmdbClient({
     },
 
     discover(kind: Kind, options: DiscoverOptions = {}): Promise<Page<TitleSummary>> {
-      const { genreIds, page = 1 } = options
+      const { genreIds, page = 1, language = DEFAULT_TMDB_LANGUAGE } = options
       const params: Record<string, string> = {
         sort_by: 'popularity.desc',
         page: String(page),
-        language: DEFAULT_TMDB_LANGUAGE,
+        language,
       }
       if (genreIds && genreIds.length > 0)
         params.with_genres = genreIds.join('|')
       const segment = toMediaSegment(kind)
-      return cache.wrap(`discover:${segment}:${params.with_genres ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
+      return cache.wrap(`discover:${language}:${segment}:${params.with_genres ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(await request(`/discover/${segment}`, params))
         return mapPage(raw, raw.results.map(item =>
           kind === 'MOVIE'
@@ -138,14 +139,14 @@ export function createTmdbClient({
       })
     },
 
-    title(kind: Kind, tmdbId: number): Promise<TitleDetail | null> {
+    title(kind: Kind, tmdbId: number, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<TitleDetail | null> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`detail:${segment}:${tmdbId}`, value =>
+      return cache.wrap(`detail:${language}:${segment}:${tmdbId}`, value =>
         value ? DETAIL_TTL_MS : NOT_FOUND_TTL_MS, async () => {
         let raw: unknown
         try {
           raw = await request(`/${segment}/${tmdbId}`, {
-            language: DEFAULT_TMDB_LANGUAGE,
+            language,
             append_to_response: 'videos,translations',
           })
         }
@@ -155,14 +156,14 @@ export function createTmdbClient({
           throw error
         }
         return kind === 'MOVIE'
-          ? mapMovieDetail(rawMovieDetailSchema.parse(raw))
-          : mapTvDetail(rawTvDetailSchema.parse(raw))
+          ? mapMovieDetail(rawMovieDetailSchema.parse(raw), language)
+          : mapTvDetail(rawTvDetailSchema.parse(raw), language)
       })
     },
 
-    watchProviders(kind: Kind, tmdbId: number): Promise<ProviderCatalog> {
+    watchProviders(kind: Kind, tmdbId: number, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<ProviderCatalog> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`providers:${segment}:${tmdbId}`, DETAIL_TTL_MS, async () => {
+      return cache.wrap(`providers:${language}:${segment}:${tmdbId}`, DETAIL_TTL_MS, async () => {
         const raw = rawProviderCatalogSchema.parse(
           await request(`/${segment}/${tmdbId}/watch/providers`, {}),
         )
@@ -170,13 +171,13 @@ export function createTmdbClient({
       })
     },
 
-    recommendations(kind: Kind, tmdbId: number, page = 1): Promise<Page<TitleSummary>> {
+    recommendations(kind: Kind, tmdbId: number, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`recommendations:${segment}:${tmdbId}:${page}`, SEARCH_TTL_MS, async () => {
+      return cache.wrap(`recommendations:${language}:${segment}:${tmdbId}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(
           await request(`/${segment}/${tmdbId}/recommendations`, {
             page: String(page),
-            language: DEFAULT_TMDB_LANGUAGE,
+            language,
           }),
         )
         return mapPage(raw, raw.results.map(item =>
@@ -187,10 +188,10 @@ export function createTmdbClient({
       })
     },
 
-    genres(kind: Kind): Promise<Genre[]> {
+    genres(kind: Kind, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Genre[]> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`genres:${segment}`, DETAIL_TTL_MS, async () => {
-        const raw = rawGenreListSchema.parse(await request(`/genre/${segment}/list`, {}))
+      return cache.wrap(`genres:${language}:${segment}`, DETAIL_TTL_MS, async () => {
+        const raw = rawGenreListSchema.parse(await request(`/genre/${segment}/list`, { language }))
         return raw.genres.map(genre => ({ id: genre.id, name: genre.name }))
       })
     },

@@ -8,7 +8,7 @@ import type {
   rawTvDetailSchema,
   rawTvSummarySchema,
 } from './schemas'
-import type { Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary } from './types'
+import type { Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
 
 export function toKind(mediaType: string): Kind | null {
   if (mediaType === 'movie')
@@ -76,33 +76,40 @@ export function mapGenres(raw: z.infer<typeof rawGenreSchema>[]): Genre[] {
 
 export function pickTrailerKey(
   videos: z.infer<typeof rawMovieDetailSchema>['videos'],
+  preferred: TmdbLanguage = 'zh-TW',
 ): string | null {
   const results = videos?.results ?? []
   const trailers = results.filter(
     video => video.site === 'YouTube' && video.type === 'Trailer',
   )
-  const preferred
-    = trailers.find(video => video.iso_639_1 === 'zh' && video.official === true)
-      ?? trailers.find(video => video.iso_639_1 === 'en' && video.official === true)
+  const primary = preferred === 'zh-TW' ? 'zh' : 'en'
+  const fallback = preferred === 'zh-TW' ? 'en' : 'zh'
+  const preferredChoice
+    = trailers.find(video => video.iso_639_1 === primary && video.official === true)
+      ?? trailers.find(video => video.iso_639_1 === fallback && video.official === true)
       ?? trailers.find(video => video.official === true)
       ?? trailers[0]
-  return preferred?.key ?? null
+  return preferredChoice?.key ?? null
 }
 
 export function pickOverview(
   base: string,
   translations: z.infer<typeof rawMovieDetailSchema>['translations'],
+  preferred: TmdbLanguage = 'zh-TW',
 ): string {
   if (base !== '')
     return base
   const list = translations?.translations ?? []
   const zh = list.find(t => t.iso_639_1 === 'zh' && t.iso_3166_1 === 'TW')
   const en = list.find(t => t.iso_639_1 === 'en')
-  return zh?.data.overview || en?.data.overview || ''
+  if (preferred === 'zh-TW')
+    return zh?.data.overview || en?.data.overview || ''
+  return en?.data.overview || zh?.data.overview || ''
 }
 
 export function mapMovieDetail(
   raw: z.infer<typeof rawMovieDetailSchema>,
+  language: TmdbLanguage = 'zh-TW',
 ): TitleDetail {
   return {
     kind: 'MOVIE',
@@ -112,15 +119,18 @@ export function mapMovieDetail(
     backdropPath: raw.backdrop_path,
     releaseDate: orNull(raw.release_date),
     voteAverage: raw.vote_average,
-    overview: pickOverview(raw.overview, raw.translations),
+    overview: pickOverview(raw.overview, raw.translations, language),
     tagline: orNull(raw.tagline),
     genres: mapGenres(raw.genres),
     runtimeMinutes: raw.runtime,
-    trailerKey: pickTrailerKey(raw.videos),
+    trailerKey: pickTrailerKey(raw.videos, language),
   }
 }
 
-export function mapTvDetail(raw: z.infer<typeof rawTvDetailSchema>): TitleDetail {
+export function mapTvDetail(
+  raw: z.infer<typeof rawTvDetailSchema>,
+  language: TmdbLanguage = 'zh-TW',
+): TitleDetail {
   return {
     kind: 'TV_SHOW',
     tmdbId: raw.id,
@@ -129,11 +139,11 @@ export function mapTvDetail(raw: z.infer<typeof rawTvDetailSchema>): TitleDetail
     backdropPath: raw.backdrop_path,
     releaseDate: orNull(raw.first_air_date),
     voteAverage: raw.vote_average,
-    overview: pickOverview(raw.overview, raw.translations),
+    overview: pickOverview(raw.overview, raw.translations, language),
     tagline: orNull(raw.tagline),
     genres: mapGenres(raw.genres),
     runtimeMinutes: raw.episode_run_time[0] ?? null,
-    trailerKey: pickTrailerKey(raw.videos),
+    trailerKey: pickTrailerKey(raw.videos, language),
   }
 }
 

@@ -31,7 +31,15 @@ describe('gET /api/catalog/:kind/:id/recommendations', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.recommendations).toHaveBeenCalledWith('TV_SHOW', 94605, 2)
+    expect(fakeClient.recommendations).toHaveBeenCalledWith('TV_SHOW', 94605, 2, 'zh-TW')
     expect(body).toEqual({ page: 2, results: [], totalPages: 3, totalResults: 55 })
+  })
+
+  it('forwards language for recommendations', async () => {
+    fakeClient.recommendations.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    await call(new Request('http://localhost/api/catalog/movie/419430/recommendations?language=en'))
+
+    expect(fakeClient.recommendations).toHaveBeenCalledWith('MOVIE', 419430, 1, 'en')
   })
 })

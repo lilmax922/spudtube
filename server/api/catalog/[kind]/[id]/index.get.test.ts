@@ -29,8 +29,16 @@ describe('gET /api/catalog/:kind/:id', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 419430)
+    expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 419430, 'zh-TW')
     expect(body).toEqual({ kind: 'MOVIE', tmdbId: 419430, name: '沙丘' })
+  })
+
+  it('forwards language for title detail', async () => {
+    fakeClient.title.mockResolvedValue(null)
+
+    await call(new Request('http://localhost/api/catalog/tv/94605?language=en'))
+
+    expect(fakeClient.title).toHaveBeenCalledWith('TV_SHOW', 94605, 'en')
   })
 
   it('rejects a non-numeric id', async () => {

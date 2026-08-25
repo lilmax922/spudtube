@@ -1,3 +1,5 @@
+export type TmdbLanguage = 'zh-TW' | 'en'
+
 export type Kind = 'MOVIE' | 'TV_SHOW'
 
 export interface Page<T> {

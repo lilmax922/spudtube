@@ -29,8 +29,17 @@ describe('gET /api/catalog/search', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.searchMulti).toHaveBeenCalledWith('dune', 3)
+    expect(fakeClient.searchMulti).toHaveBeenCalledWith('dune', 3, 'zh-TW')
     expect(body).toEqual({ page: 3, results: [], totalPages: 9, totalResults: 87 })
+  })
+
+  it('forwards the requested language to the client', async () => {
+    fakeClient.searchMulti.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    const response = await call(new Request('http://localhost/api/catalog/search?query=dune&language=en'))
+    await response.json()
+
+    expect(fakeClient.searchMulti).toHaveBeenCalledWith('dune', 1, 'en')
   })
 
   it('rejects an empty query with 400 and flattened issues', async () => {

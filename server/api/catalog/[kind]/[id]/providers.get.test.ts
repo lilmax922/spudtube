@@ -35,7 +35,15 @@ describe('gET /api/catalog/:kind/:id/providers', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.watchProviders).toHaveBeenCalledWith('MOVIE', 419430)
+    expect(fakeClient.watchProviders).toHaveBeenCalledWith('MOVIE', 419430, 'zh-TW')
     expect(body).toEqual(catalog)
+  })
+
+  it('forwards language for providers', async () => {
+    fakeClient.watchProviders.mockResolvedValue({})
+
+    await call(new Request('http://localhost/api/catalog/movie/419430/providers?language=en'))
+
+    expect(fakeClient.watchProviders).toHaveBeenCalledWith('MOVIE', 419430, 'en')
   })
 })

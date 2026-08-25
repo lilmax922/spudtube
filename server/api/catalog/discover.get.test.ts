@@ -31,8 +31,16 @@ describe('gET /api/catalog/discover', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: [878, 35], page: 2 })
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: [878, 35], page: 2, language: 'zh-TW' })
     expect(body).toEqual({ page: 2, results: [], totalPages: 4, totalResults: 40 })
+  })
+
+  it('forwards language to the discover client', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&language=en'))
+
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: undefined, page: 1, language: 'en' })
   })
 
   it('rejects an unknown kind', async () => {

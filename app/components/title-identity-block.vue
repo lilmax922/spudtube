@@ -53,13 +53,13 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
     >
     <div
       v-if="backdrop"
-      class="absolute inset-0 bg-background/80"
+      class="absolute inset-0 bg-black/60"
       aria-hidden="true"
     />
 
-    <div class="relative flex flex-col gap-6 p-9 md:flex-row md:gap-7">
+    <div class="relative flex flex-col gap-6 p-6 md:flex-row md:gap-6 md:p-8">
       <div class="w-[160px] shrink-0 md:w-[200px]">
-        <div class="aspect-[2/3] overflow-hidden rounded-md bg-muted shadow-lg">
+        <div class="aspect-[2/3] overflow-hidden rounded-[var(--radius)] bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
           <img
             v-if="poster"
             :src="poster"
@@ -70,16 +70,16 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
       </div>
 
       <div class="flex min-w-0 flex-1 flex-col">
-        <h1 class="text-2xl font-bold tracking-tight text-foreground">
+        <h1 class="text-2xl font-extrabold tracking-[-0.02em] text-foreground">
           {{ detail.name }}
-          <span v-if="year" class="text-xl font-semibold text-muted-foreground">({{ year }})</span>
+          <span v-if="year" class="text-xl font-medium tabular-nums tracking-normal text-muted-foreground">({{ year }})</span>
         </h1>
 
         <div
           v-if="showMetarow"
-          class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-2 text-[13px] font-semibold text-foreground/85"
+          class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-2 text-[13px] font-medium text-foreground/85"
         >
-          <span v-if="hasRuntime">
+          <span v-if="hasRuntime" class="tabular-nums">
             {{ t('detail.runtimeMinutes', { minutes: detail.runtimeMinutes }) }}
           </span>
           <span
@@ -90,7 +90,7 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
           <span
             v-for="genre in detail.genres"
             :key="genre.id"
-            class="rounded-full bg-muted px-2 py-0.5 text-[11.5px] font-semibold text-muted-foreground"
+            class="rounded-full bg-muted px-2 py-0.5 text-[11.5px] font-medium text-muted-foreground"
           >
             {{ genre.name }}
           </span>
@@ -116,10 +116,10 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
           />
         </div>
 
-        <p v-if="detail.tagline" class="mt-4 text-sm italic text-foreground/85">
+        <p v-if="detail.tagline" class="mt-4 text-sm font-normal italic leading-[1.7] text-foreground/85">
           {{ detail.tagline }}
         </p>
-        <p class="mt-3 max-w-2xl text-sm leading-[1.7] text-foreground/90">
+        <p class="mt-3 max-w-2xl text-sm font-normal leading-[1.7] text-foreground/90">
           {{ detail.overview }}
         </p>
       </div>

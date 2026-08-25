@@ -125,4 +125,48 @@ describe('title identity block', () => {
 
     expect(wrapper.emitted('signInRequested')).toHaveLength(1)
   })
+
+  it('applies Contract shape and typography tokens', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=11')
+
+    const posterShell = wrapper.find('div.aspect-\\[2\\/3\\]')
+    expect(posterShell.exists()).toBe(true)
+    expect(posterShell.classes().join(' ')).toContain('rounded-[var(--radius)]')
+
+    const title = wrapper.find('h1')
+    expect(title.classes().join(' ')).toContain('font-extrabold')
+    expect(title.classes().join(' ')).toContain('tracking-')
+    expect(title.text()).toContain('沙丘')
+
+    const year = wrapper.find('h1 span')
+    expect(year.classes().join(' ')).toContain('tabular-nums')
+
+    const runtimes = wrapper.findAll('span.tabular-nums')
+    const runtime = runtimes.find(node => node.text().includes('分鐘'))
+    expect(runtime).toBeDefined()
+    expect(runtime!.text()).toContain('155')
+
+    const overview = wrapper.find('p.max-w-2xl')
+    expect(overview.classes().join(' ')).toContain('font-normal')
+    expect(overview.classes().join(' ')).toContain('leading-[1.7]')
+    expect(overview.classes().join(' ')).not.toContain('tabular-nums')
+  })
+
+  it('uses a functional black mask over the backdrop and hides it when absent', async () => {
+    const withBackdrop = await render(MOVIE_DETAIL, '/?probe=12')
+    const overlay = withBackdrop.find('div.bg-black\\/60')
+    expect(overlay.exists()).toBe(true)
+
+    const withoutBackdrop = await render(MOVIE_WITHOUT_ARTWORK, '/?probe=13')
+    expect(withoutBackdrop.find('div.bg-black\\/60').exists()).toBe(false)
+    expect(withoutBackdrop.findAll('img')).toHaveLength(0)
+  })
+
+  it('renders tagline when present and hides it otherwise', async () => {
+    const withTagline = await render(MOVIE_DETAIL, '/?probe=14')
+    expect(withTagline.text()).toContain('超越即將來臨。')
+
+    const withoutTagline = await render(MOVIE_WITHOUT_ARTWORK, '/?probe=15')
+    expect(withoutTagline.text()).not.toContain('超越即將來臨。')
+  })
 })

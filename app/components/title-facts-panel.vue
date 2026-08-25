@@ -42,14 +42,14 @@ const runtimeLabel = computed(() => {
       <dt class="text-muted-foreground">
         {{ t('detail.facts.released') }}
       </dt>
-      <dd class="text-right font-medium text-foreground">
+      <dd class="text-right font-medium tabular-nums text-foreground">
         {{ releaseLabel }}
       </dd>
 
       <dt class="text-muted-foreground">
         {{ t('detail.facts.runtime') }}
       </dt>
-      <dd class="text-right font-medium text-foreground">
+      <dd class="text-right font-medium tabular-nums text-foreground">
         {{ runtimeLabel }}
       </dd>
     </dl>

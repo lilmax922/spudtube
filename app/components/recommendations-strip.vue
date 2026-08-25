@@ -22,9 +22,9 @@ const { t } = useI18n()
         v-for="title in props.titles"
         :key="`${title.kind}-${title.tmdbId}`"
         :to="titleDetailPath(title.kind, title.tmdbId)"
-        class="group w-[168px] shrink-0 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        class="group w-[168px] shrink-0 rounded-[var(--radius)] outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       >
-        <div class="aspect-[2/3] w-full overflow-hidden rounded-md bg-muted">
+        <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius)] bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
           <img
             v-if="posterUrl(title.posterPath)"
             :src="posterUrl(title.posterPath)!"
@@ -32,7 +32,7 @@ const { t } = useI18n()
             class="h-full w-full object-cover"
           >
         </div>
-        <p class="mt-2 truncate text-sm text-muted-foreground group-hover:text-foreground">
+        <p class="mt-2 truncate text-sm font-normal leading-[1.7] text-muted-foreground group-hover:text-foreground">
           {{ title.name }}
         </p>
       </NuxtLink>

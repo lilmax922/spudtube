@@ -26,4 +26,22 @@ describe('title trailer', () => {
     expect(wrapper.find('iframe').exists()).toBe(false)
     expect(wrapper.text()).toBe('')
   })
+
+  it('uses card surface tokens with tight heading tracking and cleanly disappears', async () => {
+    const withTrailer = await mountSuspended(TitleTrailer, { route: '/?probe=3', props: { trailerKey: 'xyz' } })
+
+    const section = withTrailer.find('section')
+    expect(section.exists()).toBe(true)
+    expect(section.classes().join(' ')).toContain('bg-card')
+    expect(section.classes().join(' ')).toContain('rounded-lg')
+    expect(section.classes().join(' ')).toContain('shadow-')
+
+    const heading = withTrailer.find('h2')
+    expect(heading.classes().join(' ')).toContain('font-bold')
+    expect(heading.classes().join(' ')).toContain('tracking-tight')
+
+    const withoutTrailer = await mountSuspended(TitleTrailer, { route: '/?probe=4', props: { trailerKey: null } })
+    expect(withoutTrailer.find('section').exists()).toBe(false)
+    expect(withoutTrailer.find('iframe').exists()).toBe(false)
+  })
 })

@@ -41,4 +41,25 @@ describe('title facts panel', () => {
     expect(wrapper.text()).not.toContain('155 分鐘')
     expect(wrapper.text()).toContain('—')
   })
+
+  it('uses tabular-nums only for numeric fields', async () => {
+    const wrapper = await mountSuspended(TitleFactsPanel, { route: '/?probe=4', props: { detail: MOVIE_DETAIL } })
+
+    const numericCells = wrapper.findAll('dd.tabular-nums')
+    expect(numericCells.length).toBeGreaterThanOrEqual(2)
+    const numericText = numericCells.map(cell => cell.text()).join(' ')
+    expect(numericText).toContain('2021')
+    expect(numericText).toContain('155')
+
+    const kindCell = wrapper.findAll('dd').find(cell => cell.text().includes('電影'))
+    expect(kindCell?.classes().join(' ')).not.toContain('tabular-nums')
+  })
+
+  it('keeps section heading at Outfit 700 with tight tracking', async () => {
+    const wrapper = await mountSuspended(TitleFactsPanel, { route: '/?probe=5', props: { detail: MOVIE_DETAIL } })
+
+    const heading = wrapper.find('h2')
+    expect(heading.classes().join(' ')).toContain('font-bold')
+    expect(heading.classes().join(' ')).toContain('tracking-tight')
+  })
 })

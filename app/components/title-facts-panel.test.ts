@@ -55,11 +55,14 @@ describe('title facts panel', () => {
     expect(kindCell?.classes().join(' ')).not.toContain('tabular-nums')
   })
 
-  it('keeps section heading at Outfit 700 with tight tracking', async () => {
+  it('keeps section heading at Outfit 700 with prototype detailSection tracking', async () => {
     const wrapper = await mountSuspended(TitleFactsPanel, { route: '/?probe=5', props: { detail: MOVIE_DETAIL } })
 
     const heading = wrapper.find('h2')
     expect(heading.classes().join(' ')).toContain('font-bold')
-    expect(heading.classes().join(' ')).toContain('tracking-tight')
+    // prototype detailSection uses uppercase .06em, not tight; verify uppercase + muted
+    expect(heading.classes().join(' ')).toContain('uppercase')
+    expect(heading.classes().join(' ')).toContain('tracking-[')
+    expect(heading.classes().join(' ')).toContain('text-muted-foreground')
   })
 })

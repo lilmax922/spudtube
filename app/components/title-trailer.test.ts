@@ -27,18 +27,23 @@ describe('title trailer', () => {
     expect(wrapper.text()).toBe('')
   })
 
-  it('uses card surface tokens with tight heading tracking and cleanly disappears', async () => {
+  it('uses detailSection divider and prototype heading and cleanly disappears', async () => {
     const withTrailer = await mountSuspended(TitleTrailer, { route: '/?probe=3', props: { trailerKey: 'xyz' } })
 
     const section = withTrailer.find('section')
     expect(section.exists()).toBe(true)
-    expect(section.classes().join(' ')).toContain('bg-card')
-    expect(section.classes().join(' ')).toContain('rounded-lg')
-    expect(section.classes().join(' ')).toContain('shadow-')
+    // prototype detailSection uses border-t divider, not bg-card surface
+    expect(section.classes().join(' ')).toContain('border-t')
+    expect(section.classes().join(' ')).toContain('border-border')
+    // iframe container retains shadow for depth, but outer section is flat
+    const iframeWrap = withTrailer.find('div.aspect-video')
+    expect(iframeWrap.classes().join(' ')).toContain('rounded-lg')
+    expect(iframeWrap.classes().join(' ')).toContain('bg-black')
 
     const heading = withTrailer.find('h2')
     expect(heading.classes().join(' ')).toContain('font-bold')
-    expect(heading.classes().join(' ')).toContain('tracking-tight')
+    expect(heading.classes().join(' ')).toContain('uppercase')
+    expect(heading.classes().join(' ')).toContain('text-muted-foreground')
 
     const withoutTrailer = await mountSuspended(TitleTrailer, { route: '/?probe=4', props: { trailerKey: null } })
     expect(withoutTrailer.find('section').exists()).toBe(false)

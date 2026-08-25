@@ -52,19 +52,19 @@ function onRegionChange(event: Event): void {
 
 <template>
   <section
-    class="rounded-lg bg-card p-5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] backdrop-blur-[12px]"
+    class="border-t border-border py-6 first:border-t-0"
     :aria-label="t('availability.heading')"
   >
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <h2 class="flex items-center gap-1 text-[16.5px] font-bold tracking-tight text-foreground">
-        <Globe :size="16" :stroke-width="1.75" aria-hidden="true" />
+    <div class="mb-3.5 flex flex-wrap items-center justify-between gap-3">
+      <h2 class="flex items-center gap-1.5 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
+        <Globe :size="14" :stroke-width="1.75" aria-hidden="true" class="text-muted-foreground" />
         {{ t('availability.heading') }}
       </h2>
       <label class="flex items-center gap-2">
         <span class="sr-only">{{ t('region.label') }}</span>
         <select
           :value="region"
-          class="h-10 rounded-md border border-input bg-card px-2 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:ring-offset-0"
+          class="h-7 rounded-full border border-border bg-muted px-3 text-xs font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
           @change="onRegionChange"
         >
           <option v-for="code in curatedRegions" :key="code" :value="code">

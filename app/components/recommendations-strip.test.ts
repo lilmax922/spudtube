@@ -48,7 +48,7 @@ describe('recommendations strip', () => {
     expect(hrefs).toContain('/tv/135431')
   })
 
-  it('keeps section heading at Outfit 700 with tight tracking and body at 14/400/1.7', async () => {
+  it('keeps section heading at Outfit 700 with prototype uppercase tracking and body at 14/400/1.7', async () => {
     const wrapper = await mountSuspended(RecommendationsStrip, {
       props: { titles: RECOMMENDATIONS_PAGE.results },
       route: '/?probe=4',
@@ -56,7 +56,9 @@ describe('recommendations strip', () => {
 
     const heading = wrapper.find('h2')
     expect(heading.classes().join(' ')).toContain('font-bold')
-    expect(heading.classes().join(' ')).toContain('tracking-tight')
+    expect(heading.classes().join(' ')).toContain('uppercase')
+    expect(heading.classes().join(' ')).toContain('tracking-[')
+    expect(heading.classes().join(' ')).toContain('text-muted-foreground')
     const body = wrapper.find('p.truncate')
     expect(body.classes().join(' ')).toContain('font-normal')
     expect(body.classes().join(' ')).toContain('leading-[1.7]')

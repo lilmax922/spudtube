@@ -21,7 +21,7 @@ describe('title identity block', () => {
     const wrapper = await render()
 
     expect(wrapper.text()).toContain('沙丘')
-    expect(wrapper.text()).toContain('(2021)')
+    expect(wrapper.text()).toContain('2021')
     expect(wrapper.text()).toContain('天賦異稟的保羅·亞崔迪…')
     expect(wrapper.text()).toContain('科幻')
     expect(wrapper.text()).toContain('冒險')
@@ -48,9 +48,13 @@ describe('title identity block', () => {
     const noMeta = { ...MOVIE_WITHOUT_ARTWORK, releaseDate: null, runtimeMinutes: null, genres: [] }
     const wrapper = await render(noMeta, '/?probe=4')
 
-    expect(wrapper.text()).not.toContain('(2021)')
+    expect(wrapper.text()).not.toContain('2021')
     expect(wrapper.text()).not.toContain('155 分鐘')
-    expect(wrapper.findAll('span.rounded-full')).toHaveLength(0)
+    expect(wrapper.text()).not.toContain('科幻')
+    expect(wrapper.text()).not.toContain('冒險')
+    // kind pill (電影/影集) remains as identity, but genre pills should be absent
+    const genrePills = wrapper.findAll('span.rounded-full').filter(node => ['科幻', '冒險'].includes(node.text()))
+    expect(genrePills).toHaveLength(0)
   })
 
   it('forwards rating actions from the trio to the page', async () => {
@@ -154,11 +158,14 @@ describe('title identity block', () => {
 
   it('uses a functional black mask over the backdrop and hides it when absent', async () => {
     const withBackdrop = await render(MOVIE_DETAIL, '/?probe=12')
-    const overlay = withBackdrop.find('div.bg-black\\/60')
+    const overlay = withBackdrop.find('div.bg-black\\/35')
     expect(overlay.exists()).toBe(true)
+    // dual cinemap gradient mask should also be present
+    const gradientMask = withBackdrop.find('div[style*="linear-gradient"]')
+    expect(gradientMask.exists()).toBe(true)
 
     const withoutBackdrop = await render(MOVIE_WITHOUT_ARTWORK, '/?probe=13')
-    expect(withoutBackdrop.find('div.bg-black\\/60').exists()).toBe(false)
+    expect(withoutBackdrop.find('div.bg-black\\/35').exists()).toBe(false)
     expect(withoutBackdrop.findAll('img')).toHaveLength(0)
   })
 

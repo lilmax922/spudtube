@@ -25,31 +25,31 @@ const runtimeLabel = computed(() => {
 
 <template>
   <section
-    class="rounded-lg bg-card p-5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] backdrop-blur-[12px]"
+    class="border-t border-border py-6 first:border-t-0"
     :aria-label="t('detail.facts.heading')"
   >
-    <h2 class="mb-3 text-[16.5px] font-bold tracking-tight text-foreground">
+    <h2 class="mb-3.5 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
       {{ t('detail.facts.heading') }}
     </h2>
-    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[13px]">
-      <dt class="text-muted-foreground">
+    <dl class="grid grid-cols-[110px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
+      <dt class="font-medium text-muted-foreground">
         {{ t('detail.facts.kind') }}
       </dt>
-      <dd class="text-right font-medium text-foreground">
+      <dd class="font-semibold text-foreground">
         {{ kindLabel }}
       </dd>
 
-      <dt class="text-muted-foreground">
+      <dt class="font-medium text-muted-foreground">
         {{ t('detail.facts.released') }}
       </dt>
-      <dd class="text-right font-medium tabular-nums text-foreground">
+      <dd class="font-semibold tabular-nums text-foreground">
         {{ releaseLabel }}
       </dd>
 
-      <dt class="text-muted-foreground">
+      <dt class="font-medium text-muted-foreground">
         {{ t('detail.facts.runtime') }}
       </dt>
-      <dd class="text-right font-medium tabular-nums text-foreground">
+      <dd class="font-semibold tabular-nums text-foreground">
         {{ runtimeLabel }}
       </dd>
     </dl>

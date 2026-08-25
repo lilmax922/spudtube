@@ -72,8 +72,8 @@ const failed = computed(() => {
 </script>
 
 <template>
-  <div class="py-8">
-    <p v-if="detail.pending.value" class="px-4 text-muted-foreground">
+  <div>
+    <p v-if="detail.pending.value" class="mx-auto max-w-[1280px] px-6 py-8 text-muted-foreground">
       {{ t('detail.loading') }}
     </p>
     <div v-else-if="failed" class="mx-auto max-w-[1280px] px-6 py-12 text-center">
@@ -90,8 +90,22 @@ const failed = computed(() => {
     </div>
     <TitleNotFound v-else-if="notFound" />
     <template v-else-if="detail.data.value">
+      <TitleIdentityBlock
+        :detail="detail.data.value"
+        :rating="rating"
+        :status="status"
+        :signed-in="signedIn"
+        :rating-pending="ratingPending"
+        :status-pending="statusPending"
+        @select-rating="onSelectRating"
+        @clear-rating="onClearRating"
+        @set-status="onSetStatus"
+        @clear-status="onClearStatus"
+        @sign-in-requested="onSignInRequested"
+      />
+
       <div class="mx-auto w-full max-w-[1280px] px-6">
-        <div class="pb-2.5">
+        <div class="flex items-center gap-2 py-3">
           <NuxtLink
             to="/"
             class="inline-flex min-h-10 items-center gap-1 rounded-full px-3 py-1 text-[13px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
@@ -101,35 +115,21 @@ const failed = computed(() => {
           </NuxtLink>
         </div>
 
-        <div class="mb-8">
-          <TitleIdentityBlock
-            :detail="detail.data.value"
-            :rating="rating"
-            :status="status"
-            :signed-in="signedIn"
-            :rating-pending="ratingPending"
-            :status-pending="statusPending"
-            @select-rating="onSelectRating"
-            @clear-rating="onClearRating"
-            @set-status="onSetStatus"
-            @clear-status="onClearStatus"
-            @sign-in-requested="onSignInRequested"
-          />
-        </div>
-
-        <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr] md:gap-8">
-          <aside class="flex flex-col gap-4">
-            <TitleFactsPanel :detail="detail.data.value" />
-          </aside>
-          <main class="flex min-w-0 flex-col gap-4">
+        <div class="grid grid-cols-1 gap-8 py-8 lg:grid-cols-[1fr_320px]">
+          <div class="order-1 flex min-w-0 flex-col">
             <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
             <TitleTrailer :trailer-key="detail.data.value.trailerKey" />
-          </main>
+          </div>
+          <aside class="order-2 flex flex-col lg:sticky lg:top-6 lg:self-start">
+            <TitleFactsPanel :detail="detail.data.value" />
+          </aside>
         </div>
       </div>
 
       <div class="mx-auto w-full max-w-[1280px] px-6">
-        <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
+        <div class="mt-8 border-t border-border pt-8">
+          <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
+        </div>
       </div>
     </template>
   </div>

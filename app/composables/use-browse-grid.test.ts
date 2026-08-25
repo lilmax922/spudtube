@@ -48,8 +48,8 @@ describe('use-browse-grid', () => {
     await grid.refresh()
 
     expect(grid.kind.value).toBe('MOVIE')
-    expect(fetchGenres).toHaveBeenCalledWith('MOVIE')
-    expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [], 1)
+    expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
+    expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [], 1, 'en')
     expect(grid.genres.value).toEqual(genres)
     expect(grid.items.value).toEqual([dune])
     expect(grid.hasMore.value).toBe(true)
@@ -68,9 +68,9 @@ describe('use-browse-grid', () => {
     expect(grid.selectedGenreIds.value).toEqual([28])
     grid.setKind('TV_SHOW')
 
-    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('TV_SHOW', [], 1))
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('TV_SHOW', [], 1, 'en'))
     expect(grid.selectedGenreIds.value).toEqual([])
-    expect(fetchGenres).toHaveBeenCalledWith('TV_SHOW')
+    expect(fetchGenres).toHaveBeenCalledWith('TV_SHOW', 'en')
   })
 
   it('unions multiple selected genres by passing them all to discover', async () => {
@@ -83,13 +83,13 @@ describe('use-browse-grid', () => {
     grid.toggleGenre(878)
 
     await vi.waitFor(() =>
-      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [28, 878], 1),
+      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [28, 878], 1, 'en'),
     )
     expect(grid.selectedGenreIds.value).toEqual([28, 878])
 
     grid.toggleGenre(28)
     await vi.waitFor(() =>
-      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [878], 1),
+      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [878], 1, 'en'),
     )
   })
 
@@ -102,7 +102,7 @@ describe('use-browse-grid', () => {
     grid.toggleGenre(28)
     grid.clearGenres()
 
-    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [], 1))
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [], 1, 'en'))
     expect(grid.selectedGenreIds.value).toEqual([])
   })
 
@@ -115,7 +115,7 @@ describe('use-browse-grid', () => {
     await grid.refresh()
     await grid.loadMore()
 
-    expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', [], 2)
+    expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', [], 2, 'en')
     expect(grid.items.value).toEqual([dune, duneTwo])
     expect(grid.page.value).toBe(2)
     expect(grid.hasMore.value).toBe(false)

@@ -1,10 +1,14 @@
 import type { Kind, TitleDetail, TitleSummary } from '../tmdb/types'
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, getQuery } from 'h3'
+import { z } from 'zod'
 import { getDb } from '../db'
 import { findRatings } from '../db/queries/rating'
 import { findTitleStatuses } from '../db/queries/title-status'
 import { getTmdbClient } from '../tmdb/client'
 import { requireAuthSession } from '../utils/auth'
+import { getRequestLocale } from '../utils/locale'
+import { languageParam } from '../utils/params'
+import { parseOrThrow } from '../utils/validation'
 
 export interface MyListEntry {
   kind: Kind
@@ -31,8 +35,14 @@ function toTitleSummary(detail: TitleDetail): TitleSummary {
   }
 }
 
+const myListQuerySchema = z.object({
+  language: languageParam,
+})
+
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
+  const { language } = parseOrThrow(myListQuerySchema, getQuery(event))
+  const locale = language ?? getRequestLocale(event)
   const db = getDb(event)
 
   const [statuses, ratings] = await Promise.all([
@@ -54,7 +64,7 @@ export default defineEventHandler(async (event) => {
   const details = new Map<string, TitleSummary | null>()
   await Promise.all([...references.values()].map(async ({ kind, tmdbId }) => {
     try {
-      const detail = await getTmdbClient().title(kind, tmdbId)
+      const detail = await getTmdbClient().title(kind, tmdbId, locale)
       details.set(`${kind}:${tmdbId}`, detail ? toTitleSummary(detail) : null)
     }
     catch {

@@ -40,7 +40,7 @@ describe('use-keyword-search', () => {
     const search = useKeywordSearch(fetcher)
     await search.search('  dune  ')
 
-    expect(fetchSearch).toHaveBeenCalledWith('dune', 1)
+    expect(fetchSearch).toHaveBeenCalledWith('dune', 1, 'en')
     expect(search.query.value).toBe('dune')
     expect(search.searchedQuery.value).toBe('dune')
     expect(search.mode.value).toBe('search')
@@ -80,7 +80,7 @@ describe('use-keyword-search', () => {
     await search.search('dune')
     await search.loadMore()
 
-    expect(fetchSearch).toHaveBeenLastCalledWith('dune', 2)
+    expect(fetchSearch).toHaveBeenLastCalledWith('dune', 2, 'en')
     expect(search.items.value).toEqual([dune, duneTv])
     expect(search.page.value).toBe(2)
     expect(search.hasMore.value).toBe(false)
@@ -113,7 +113,7 @@ describe('use-keyword-search', () => {
 
     await search.loadMore()
 
-    expect(fetchSearch).toHaveBeenLastCalledWith('dune', 2)
+    expect(fetchSearch).toHaveBeenLastCalledWith('dune', 2, 'en')
     expect(search.items.value).toEqual([dune, duneTv])
   })
 
@@ -139,6 +139,6 @@ describe('use-keyword-search', () => {
 
     expect(search.page.value).toBe(1)
     expect(search.loadingMore.value).toBe(false)
-    expect(fetchSearch).toHaveBeenLastCalledWith('prophecy', 1)
+    expect(fetchSearch).toHaveBeenLastCalledWith('prophecy', 1, 'en')
   })
 })

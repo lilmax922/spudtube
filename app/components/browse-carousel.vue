@@ -11,6 +11,7 @@ interface Props {
   gap?: number
   peekRatio?: number
   breakout?: boolean
+  paddingLeft?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -19,6 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
   gap: 16,
   peekRatio: 0.25,
   breakout: true,
+  paddingLeft: 60,
 })
 
 const peekWidth = computed(() => calculatePeekWidth(props.itemWidth, props.peekRatio))
@@ -53,7 +55,6 @@ function onInitApi(api: CarouselApi | undefined): void {
     canScrollNext.value = (api as unknown as { canScrollNext: () => boolean }).canScrollNext?.() ?? false
   }
   update()
-  // embla events
   const anyApi = api as unknown as { on: (evt: string, cb: () => void) => void }
   anyApi.on('select', update)
   anyApi.on('reInit', update)
@@ -72,7 +73,6 @@ function scrollBy(direction: 'prev' | 'next'): void {
   if (!api)
     return
 
-  // Measure viewport width from embla root or fallback to container
   let viewportWidth = 0
   try {
     viewportWidth = api.rootNode()?.clientWidth ?? 0
@@ -80,18 +80,22 @@ function scrollBy(direction: 'prev' | 'next'): void {
   catch {
     viewportWidth = 0
   }
-  // Fallback: try to find carousel content element in DOM
   if (viewportWidth === 0 && typeof document !== 'undefined') {
     const el = document.querySelector('[data-slot="carousel-content"]') as HTMLElement | null
     viewportWidth = el?.clientWidth ?? 0
   }
 
-  // Determine current item width via first slide measurement for responsiveness
   let currentItemWidth = props.itemWidth
   try {
     const first = api.containerNode()?.firstElementChild as HTMLElement | null
-    if (first?.clientWidth && first.clientWidth > 0)
+    if (first?.clientWidth && first?.classList?.contains('carousel-phantom')) {
+      const second = first.nextElementSibling as HTMLElement | null
+      if (second?.clientWidth && second.clientWidth > 0)
+        currentItemWidth = second.clientWidth
+    }
+    else if (first?.clientWidth && first.clientWidth > 0) {
       currentItemWidth = first.clientWidth
+    }
   }
   catch {
     // ignore
@@ -112,16 +116,20 @@ function scrollBy(direction: 'prev' | 'next'): void {
 
 const carouselOpts = computed(() => ({
   align: 'start' as const,
-  containScroll: false as const,
+  containScroll: 'trimSnaps' as const,
   slidesToScroll: 1 as const,
   dragFree: false,
   skipSnaps: false,
 }))
 
-// Dynamic peek via CSS variable and scrollPadding-like alignment via container padding offset
-// We expose peekWidth for tests; visual peek is handled by embla's trimSnaps + fixed slide width.
-// For asymmetric peek we use data-state to drive CSS scroll-padding on the embla viewport
-// via scoped styles (see below). The JS updates state, CSS reacts.
+const phantomStyle = computed(() => ({
+  width: `${props.paddingLeft}px`,
+  marginRight: `-${props.gap}px`,
+}))
+
+const contentStyle = computed(() => ({
+  paddingRight: `${props.paddingLeft}px`,
+}))
 </script>
 
 <template>
@@ -130,6 +138,7 @@ const carouselOpts = computed(() => ({
     :class="breakout ? 'browse-carousel-outer--breakout' : ''"
     :data-carousel-state="state"
     :data-peek-width="peekWidth"
+    :data-carousel-padding="paddingLeft"
   >
     <Carousel
       :opts="carouselOpts"
@@ -139,11 +148,13 @@ const carouselOpts = computed(() => ({
     >
       <CarouselContent
         class="browse-carousel-viewport"
+        :style="contentStyle"
         :data-testid="`browse-carousel-viewport-${state}`"
         :aria-label="ariaLabel"
         role="region"
         tabindex="0"
       >
+        <div class="carousel-phantom shrink-0" :style="phantomStyle" aria-hidden="true" />
         <slot />
       </CarouselContent>
     </Carousel>
@@ -196,76 +207,6 @@ const carouselOpts = computed(() => ({
   -webkit-overflow-scrolling: touch;
 }
 
-.browse-carousel-viewport--breakout-fix {
-  padding-right: 60px;
-}
-
-/* State-driven peek alignment:
-   - atStart: left flush, right peek 1/4
-   - atEnd: right flush, left peek 1/4 (mirror)
-   - atMid: both sides peek 1/4
-   Embla with containScroll:false shows natural remainder as peek. To guarantee
-   exactly 1/4 we add a viewport gutter via padding and keep scroll-padding in
-   sync so snap positions remain flush to the gutter edge. The gutter itself
-   reveals the adjacent slide.
-*/
-.browse-carousel-outer[data-carousel-state="atStart"] :deep([data-slot="carousel-content"]) {
-  scroll-padding-left: 0;
-  scroll-padding-right: 60px;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.browse-carousel-outer[data-carousel-state="atEnd"] :deep([data-slot="carousel-content"]) {
-  scroll-padding-left: 60px;
-  scroll-padding-right: 0;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.browse-carousel-outer[data-carousel-state="atMid"] :deep([data-slot="carousel-content"]) {
-  scroll-padding-left: 60px;
-  scroll-padding-right: 60px;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.browse-carousel-outer[data-carousel-state="single"] :deep([data-slot="carousel-content"]) {
-  scroll-padding-left: 0;
-  scroll-padding-right: 0;
-}
-
-/* Visual peek gutter: add a pseudo-element or use container padding.
-   With containScroll:false the slides beyond viewport remain partially visible
-   as natural remainder. We keep padding 0 here; the remainder itself is the peek.
-   Responsive adjustments keep the snap gutter in sync with item width. */
-@media (max-width: 880px) {
-  .browse-carousel-outer[data-carousel-state="atStart"] :deep([data-slot="carousel-content"]) {
-    scroll-padding-right: 55px;
-  }
-  .browse-carousel-outer[data-carousel-state="atEnd"] :deep([data-slot="carousel-content"]) {
-    scroll-padding-left: 55px;
-  }
-  .browse-carousel-outer[data-carousel-state="atMid"] :deep([data-slot="carousel-content"]) {
-    scroll-padding-left: 55px;
-    scroll-padding-right: 55px;
-  }
-}
-
-@media (max-width: 560px) {
-  .browse-carousel-outer[data-carousel-state="atStart"] :deep([data-slot="carousel-content"]) {
-    scroll-padding-right: 42px;
-  }
-  .browse-carousel-outer[data-carousel-state="atEnd"] :deep([data-slot="carousel-content"]) {
-    scroll-padding-left: 42px;
-  }
-  .browse-carousel-outer[data-carousel-state="atMid"] :deep([data-slot="carousel-content"]) {
-    scroll-padding-left: 42px;
-    scroll-padding-right: 42px;
-  }
-}
-
-/* Hide scrollbar for embla viewport (already hidden) but ensure inner flex gap */
 :deep([data-slot="carousel-content"])::-webkit-scrollbar {
   display: none;
 }

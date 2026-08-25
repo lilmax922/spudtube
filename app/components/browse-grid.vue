@@ -5,23 +5,16 @@ import { useI18n } from 'vue-i18n'
 import { useBrowseGrid } from '../composables/use-browse-grid'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
 import { useSearchState } from '../composables/use-search-state'
-import GenreChips from './genre-chips.vue'
-import KindToggle from './kind-toggle.vue'
 import TitleCard from './title-card.vue'
 
 const { t } = useI18n()
 const {
-  kind,
-  selectedGenreIds,
-  genres,
   items,
   loading,
   loadingMore,
   error,
   refresh,
   loadMore,
-  setKind,
-  toggleGenre,
   clearGenres,
 } = useBrowseGrid()
 const {
@@ -68,26 +61,7 @@ void refresh()
 </script>
 
 <template>
-  <section class="flex flex-col gap-8" :aria-label="mode === 'search' ? t('search.sectionLabel') : t('browse.sectionLabel')">
-    <div v-if="mode === 'browse'" class="flex flex-wrap items-center gap-x-8 gap-y-4">
-      <KindToggle :model-value="kind" @update:model-value="setKind" />
-      <div v-if="genres.length > 0" class="flex flex-wrap items-center gap-2">
-        <GenreChips
-          :genres="genres"
-          :model-value="selectedGenreIds"
-          @toggle="toggleGenre"
-        />
-      </div>
-      <button
-        v-if="selectedGenreIds.length > 0"
-        type="button"
-        class="inline-flex min-h-10 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-        @click="clearGenres"
-      >
-        {{ t('browse.clearAll') }}
-      </button>
-    </div>
-
+  <section class="flex flex-col gap-6" :aria-label="mode === 'search' ? t('search.sectionLabel') : t('browse.sectionLabel')">
     <p
       v-if="gridError && gridItems.length === 0"
       class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"

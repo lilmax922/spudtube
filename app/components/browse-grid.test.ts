@@ -186,37 +186,34 @@ describe('browse-grid', () => {
     expect(links.map(link => link.attributes('href'))).toEqual(['/movie/419430', '/movie/693134'])
   })
 
-  it('switches kind and refetches the grid for the other catalog', async () => {
+  it('no longer renders kind toggle inside grid (moved to header primeNav)', async () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
 
-    await wrapper.findAll('button').find(button => button.text() === 'TV Shows')!.trigger('click')
-
-    expect(mock.browse.setKind).toHaveBeenCalledWith('TV_SHOW')
+    expect(wrapper.text()).not.toContain('TV Shows')
+    expect(wrapper.text()).not.toContain('Movies')
+    // kind switching is now via header primeNav, not BrowseGrid
+    expect(mock.browse.setKind).not.toHaveBeenCalled()
   })
 
-  it('toggles a genre chip and applies the selection', async () => {
+  it('no longer renders genre chips inside grid (moved to FilterBar)', async () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
 
-    await wrapper.findAll('button').find(button => button.text() === '科幻')!.trigger('click')
-
-    expect(mock.browse.toggleGenre).toHaveBeenCalledWith(878)
+    expect(wrapper.text()).not.toContain('科幻')
+    expect(wrapper.text()).not.toContain('動作')
+    expect(mock.browse.toggleGenre).not.toHaveBeenCalled()
   })
 
-  it('reveals and invokes clear-all once genres are selected', async () => {
+  it('does not render Clear all inside grid (moved to FilterBar)', async () => {
     const state = browseState as unknown as MockState
     state.selectedGenreIds.value = [28]
 
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
 
-    const clearAll = wrapper.findAll('button').find(button => button.text() === 'Clear all')!
-    expect(clearAll).toBeTruthy()
-
-    await clearAll.trigger('click')
-
-    expect(mock.browse.clearGenres).toHaveBeenCalled()
+    const clearAll = wrapper.findAll('button').find(button => button.text() === 'Clear all')
+    expect(clearAll).toBeUndefined()
   })
 
   it('loads the next page when the sentinel becomes visible', async () => {
@@ -286,7 +283,8 @@ describe('browse-grid', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('沙丘：第二部')
-    expect(wrapper.text()).toContain('TV Shows')
+    // kind toggle moved to header, grid no longer contains TV Shows text
+    expect(wrapper.text()).not.toContain('TV Shows')
   })
 
   it('clears genre filters when a search starts', async () => {

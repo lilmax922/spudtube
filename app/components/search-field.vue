@@ -23,7 +23,7 @@ const { t } = useI18n()
 <template>
   <form
     role="search"
-    class="flex h-10 w-full max-w-sm items-center gap-2 rounded-md border border-input bg-card px-3 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
+    class="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-card px-3 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
     @submit.prevent="emit('search')"
   >
     <Search :size="16" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />

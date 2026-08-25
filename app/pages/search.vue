@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LoaderCircle } from '@lucide/vue'
+import { LoaderCircle, Search } from '@lucide/vue'
 import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
@@ -45,10 +45,30 @@ const emptyMessage = computed(() =>
     ? t('search.noResults', { query: searchedQuery.value })
     : t('search.noResults', { query: queryParam.value }),
 )
+
+const displayQuery = computed(() => searchedQuery.value || queryParam.value)
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-[1280px] px-6 pb-10 pt-6">
+    <div
+      v-if="displayQuery"
+      class="mb-6 flex flex-col gap-1 border-b border-border pb-5"
+      data-testid="search-header"
+    >
+      <h1 class="flex items-center gap-2 text-[18px] font-bold tracking-tight text-foreground">
+        <Search :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span>{{ t('search.tmdbRelated', { query: displayQuery }) }}</span>
+      </h1>
+      <p class="text-xs font-medium text-muted-foreground">
+        <template v-if="loading && items.length === 0">
+          {{ t('search.loading') }}
+        </template>
+        <template v-else>
+          {{ t('search.count', { count: items.length }) }}
+        </template>
+      </p>
+    </div>
     <section class="flex flex-col gap-6" :aria-label="t('search.sectionLabel')">
       <p
         v-if="error && items.length === 0"

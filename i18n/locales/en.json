@@ -19,7 +19,9 @@
     "open": "Open search",
     "noResults": "No results for \"{query}\"",
     "loading": "Searching…",
-    "error": "Something went wrong while searching"
+    "error": "Something went wrong while searching",
+    "tmdbRelated": "TMDB results for \"{query}\"",
+    "count": "{count} results"
   },
   "language": {
     "label": "Language"

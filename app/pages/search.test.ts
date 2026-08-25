@@ -196,4 +196,33 @@ describe('search page', () => {
     expect(grid.exists()).toBe(true)
     expect(grid.classes().join(' ')).toContain('minmax(240px')
   })
+
+  it('shows TMDB related header with query at top', async () => {
+    const state = searchState as unknown as SearchMockState
+    state.searchedQuery.value = 'dune'
+    state.items.value = searchTitles
+
+    const wrapper = await mountSuspended(SearchPage, { route: '/search?q=dune' })
+    mountedWrappers.push(wrapper)
+
+    const header = wrapper.find('[data-testid="search-header"]')
+    expect(header.exists()).toBe(true)
+    expect(header.text()).toContain('dune')
+    expect(header.text()).toContain('TMDB')
+    // count
+    expect(header.text()).toContain('2')
+  })
+
+  it('shows header from route query even before searchedQuery is populated', async () => {
+    const state = searchState as unknown as SearchMockState
+    state.searchedQuery.value = ''
+    state.items.value = []
+
+    const wrapper = await mountSuspended(SearchPage, { route: '/search?q=matrix' })
+    mountedWrappers.push(wrapper)
+
+    const header = wrapper.find('[data-testid="search-header"]')
+    expect(header.exists()).toBe(true)
+    expect(header.text()).toContain('matrix')
+  })
 })

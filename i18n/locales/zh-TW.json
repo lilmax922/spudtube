@@ -19,7 +19,9 @@
     "open": "開啟搜尋",
     "noResults": "沒有與「{query}」相符的結果",
     "loading": "搜尋中…",
-    "error": "搜尋時發生錯誤"
+    "error": "搜尋時發生錯誤",
+    "tmdbRelated": "「{query}」的 TMDB 相關搜尋",
+    "count": "共 {count} 項結果"
   },
   "language": {
     "label": "語言"

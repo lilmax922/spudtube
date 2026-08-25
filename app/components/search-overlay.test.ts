@@ -1,6 +1,27 @@
-import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { describe, expect, it } from 'vitest'
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
+import { describe, expect, it, vi } from 'vitest'
+import { shallowRef } from 'vue'
 import SearchOverlay from './search-overlay.vue'
+
+const { navigateTo } = vi.hoisted(() => ({ navigateTo: vi.fn() }))
+mockNuxtImport('navigateTo', () => navigateTo)
+
+vi.mock('../composables/use-keyword-search', () => ({
+  useKeywordSearch: () => ({
+    query: shallowRef(''),
+    searchedQuery: shallowRef(''),
+    items: shallowRef([]),
+    page: shallowRef(0),
+    totalPages: shallowRef(0),
+    loading: shallowRef(false),
+    loadingMore: shallowRef(false),
+    error: shallowRef(false),
+    hasMore: shallowRef(false),
+    search: vi.fn(),
+    loadMore: vi.fn(),
+    clear: vi.fn(),
+  }),
+}))
 
 describe('search-overlay', () => {
   it('hides the dialog when closed and shows it when open', async () => {
@@ -19,10 +40,13 @@ describe('search-overlay', () => {
     expect(wrapper.emitted('update:query')).toEqual([['dune']])
   })
 
-  it('emits search when the inner form is submitted', async () => {
+  it('navigates to /search and closes on submit with a query (Enter)', async () => {
+    navigateTo.mockClear()
     const wrapper = await mountSuspended(SearchOverlay, { props: { query: 'dune', open: true } })
     await wrapper.find('form').trigger('submit')
-    expect(wrapper.emitted('search')).toHaveLength(1)
+    expect(navigateTo).toHaveBeenCalledWith({ path: '/search', query: { q: 'dune' } })
+    expect(wrapper.emitted('close')).toHaveLength(1)
+    expect(wrapper.emitted('search')).toBeUndefined()
   })
 
   it('emits clear when the inner clear button is pressed', async () => {

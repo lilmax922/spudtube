@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Search } from '@lucide/vue'
-import { useDebounceFn } from '@vueuse/core'
 import { onBeforeUnmount, onMounted, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo, useFetch, useHead } from '#imports'
@@ -9,21 +8,16 @@ import AttributionFooter from './components/attribution-footer.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import SearchOverlay from './components/search-overlay.vue'
 import { useBrowseGrid } from './composables/use-browse-grid'
-import { useSearchState } from './composables/use-search-state'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
 const { locale, t } = useI18n()
-const { query, mode, search, clear } = useSearchState()
 const { kind: browseKind, setKind } = useBrowseGrid()
 
 const { data: session } = await authClient.useSession(useFetch)
 
 const isSearchOpen = shallowRef(false)
 const isScrolled = shallowRef(false)
-
-const debouncedSearch = useDebounceFn((nextQuery: string) => {
-  void search(nextQuery)
-}, 350)
+const overlayQuery = shallowRef('')
 
 function openSearch(): void {
   isSearchOpen.value = true
@@ -34,18 +28,11 @@ function closeSearch(): void {
 }
 
 function onSearchInput(value: string): void {
-  query.value = value
-  debouncedSearch(value)
-}
-
-function onSubmitSearch(): void {
-  debouncedSearch.cancel()
-  void search(query.value)
+  overlayQuery.value = value
 }
 
 function onClearSearch(): void {
-  debouncedSearch.cancel()
-  clear()
+  overlayQuery.value = ''
 }
 
 function handlePrimeNav(kind: 'MOVIE' | 'TV_SHOW'): void {
@@ -153,11 +140,10 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
       </div>
     </header>
     <SearchOverlay
-      :query="query"
+      :query="overlayQuery"
       :open="isSearchOpen"
-      :clearable="mode === 'search'"
+      :clearable="false"
       @update:query="onSearchInput"
-      @search="onSubmitSearch"
       @clear="onClearSearch"
       @close="closeSearch"
     />

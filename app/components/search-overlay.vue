@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Clock, Search as SearchIcon, Star, TrendingUp, X } from '@lucide/vue'
+import { useDebounceFn } from '@vueuse/core'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSearchState } from '../composables/use-search-state'
+import { navigateTo } from '#imports'
+import { useKeywordSearch } from '../composables/use-keyword-search'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
 import { posterUrl } from '../lib/tmdb-image'
 
@@ -40,7 +42,11 @@ const TRENDING = [
   'The End of Oak Street',
 ]
 
-const searchState = useSearchState()
+const overlaySearch = useKeywordSearch()
+
+const debouncedOverlaySearch = useDebounceFn((q: string) => {
+  void overlaySearch.search(q)
+}, 350)
 
 const STORAGE_KEY = 'spudtube:recent'
 
@@ -81,14 +87,12 @@ function clearRecents(): void {
 function onPickRecent(value: string): void {
   emit('update:query', value)
   activeTab.value = 'all'
-  requestAnimationFrame(() => emit('search'))
   addRecent(value)
 }
 
 function onPickTrending(value: string): void {
   emit('update:query', value)
   activeTab.value = 'all'
-  requestAnimationFrame(() => emit('search'))
   addRecent(value)
 }
 
@@ -110,7 +114,7 @@ function kindLabel(kind: 'MOVIE' | 'TV_SHOW'): string {
 }
 
 const filteredItems = computed(() => {
-  const list = searchState.items.value
+  const list = overlaySearch.items.value
   if (activeTab.value === 'movie')
     return list.filter(i => i.kind === 'MOVIE')
   if (activeTab.value === 'tv')
@@ -135,17 +139,24 @@ function setupObserver(): void {
     return
   observer = new IntersectionObserver((entries) => {
     if (entries.some(e => e.isIntersecting)) {
-      void searchState.loadMore()
+      void overlaySearch.loadMore()
     }
   }, { root: panelRef.value, rootMargin: '160px' })
   observer.observe(searchSentinel.value)
 }
 
-watch(() => props.query, () => {
+watch(() => props.query, (q) => {
+  if (q.trim() === '') {
+    debouncedOverlaySearch.cancel()
+    overlaySearch.clear()
+  }
+  else {
+    debouncedOverlaySearch(q)
+  }
   setupObserver()
 })
 
-watch(() => searchState.items.value.length, () => {
+watch(() => overlaySearch.items.value.length, () => {
   setupObserver()
 })
 
@@ -176,8 +187,12 @@ function onBackdropClick(event: MouseEvent): void {
 
 function onInnerSearch(): void {
   const q = props.query.trim()
-  if (q)
+  if (q) {
     addRecent(q)
+    void navigateTo({ path: '/search', query: { q } })
+    emit('close')
+    return
+  }
   emit('search')
 }
 
@@ -192,6 +207,8 @@ onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   if (props.open)
     loadRecents()
+  if (props.query.trim() !== '')
+    void overlaySearch.search(props.query)
 })
 
 onBeforeUnmount(() => {
@@ -199,6 +216,7 @@ onBeforeUnmount(() => {
   document.body.style.overflow = ''
   if (observer)
     observer.disconnect()
+  debouncedOverlaySearch.cancel()
 })
 
 watch(activeTab, () => {
@@ -316,14 +334,14 @@ watch(activeTab, () => {
             </button>
           </div>
           <div
-            v-if="searchState.loading.value && filteredItems.length === 0"
+            v-if="overlaySearch.loading.value && filteredItems.length === 0"
             class="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"
           >
             <Star :size="14" class="animate-spin" aria-hidden="true" />
             {{ t('search.loading') }}
           </div>
           <div
-            v-else-if="searchState.error.value && filteredItems.length === 0"
+            v-else-if="overlaySearch.error.value && filteredItems.length === 0"
             class="py-8 text-center text-sm text-muted-foreground"
           >
             {{ t('search.error') }}
@@ -379,7 +397,7 @@ watch(activeTab, () => {
               class="flex justify-center py-3"
             >
               <span
-                v-if="searchState.loadingMore.value"
+                v-if="overlaySearch.loadingMore.value"
                 class="size-6 animate-spin rounded-full border-2 border-border border-t-ring"
                 aria-label="載入中"
               />

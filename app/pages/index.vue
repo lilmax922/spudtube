@@ -3,16 +3,14 @@ import BrowseGrid from '../components/browse-grid.vue'
 import FilterBar from '../components/filter-bar.vue'
 import HeroCarousel from '../components/hero-carousel.vue'
 import { useBrowseGrid } from '../composables/use-browse-grid'
-import { useSearchState } from '../composables/use-search-state'
 
 const { items } = useBrowseGrid()
-const { mode } = useSearchState()
 </script>
 
 <template>
   <div class="flex w-full flex-col">
     <HeroCarousel
-      v-if="mode === 'browse' && items.length > 0"
+      v-if="items.length > 0"
       :titles="items"
     />
     <FilterBar />

@@ -2,13 +2,10 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBrowseGrid } from '../composables/use-browse-grid'
-import { useSearchState } from '../composables/use-search-state'
 
 const { t } = useI18n()
 const { genres, selectedGenreIds, toggleGenre, clearGenres, items } = useBrowseGrid()
-const { mode } = useSearchState()
 
-const show = computed(() => mode.value === 'browse')
 const hasSelection = computed(() => selectedGenreIds.value.length > 0)
 const countText = computed(() => {
   const n = items.value.length
@@ -18,7 +15,6 @@ const countText = computed(() => {
 
 <template>
   <div
-    v-if="show"
     id="filterBar"
   >
     <div class="filter-inner">

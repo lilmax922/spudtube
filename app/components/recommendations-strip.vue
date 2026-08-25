@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
 import { useI18n } from 'vue-i18n'
+import { CarouselItem } from '@/components/ui/carousel'
 import BrowseCarousel from './browse-carousel.vue'
 import TitleCard from './title-card.vue'
 
@@ -18,12 +19,13 @@ const { t } = useI18n()
       {{ t('detail.recommendations') }}
     </h2>
     <BrowseCarousel class="mt-4" :aria-label="t('detail.recommendations')" :breakout="false">
-      <TitleCard
+      <CarouselItem
         v-for="title in props.titles"
         :key="`${title.kind}-${title.tmdbId}`"
-        :title="title"
-        class="w-[240px] shrink-0 snap-start max-[880px]:w-[220px] max-[560px]:w-[168px]"
-      />
+        class="pl-0 basis-auto w-[240px] shrink-0 snap-start max-[880px]:w-[220px] max-[560px]:w-[168px]"
+      >
+        <TitleCard :title="title" />
+      </CarouselItem>
     </BrowseCarousel>
   </section>
 </template>

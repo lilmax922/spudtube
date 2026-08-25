@@ -2,6 +2,7 @@
 import type { TitleSummary } from '#server/tmdb/types'
 import { ChevronRight } from '@lucide/vue'
 import { computed } from 'vue'
+import { CarouselItem } from '@/components/ui/carousel'
 import BrowseCarousel from './browse-carousel.vue'
 import TitleCard from './title-card.vue'
 
@@ -49,12 +50,13 @@ const displayItems = computed(() => {
     </div>
 
     <BrowseCarousel :aria-label="ariaLabel ?? title" :breakout="true">
-      <TitleCard
-        v-for="item in displayItems"
-        :key="`${item.kind}-${item.tmdbId}`"
-        :title="item"
-        class="w-[240px] shrink-0 snap-start max-[880px]:w-[220px] max-[560px]:w-[168px]"
-      />
+      <CarouselItem
+        v-for="(item, idx) in displayItems"
+        :key="`${item.kind}-${item.tmdbId}-${idx}`"
+        class="pl-0 basis-auto w-[240px] shrink-0 snap-start max-[880px]:w-[220px] max-[560px]:w-[168px]"
+      >
+        <TitleCard :title="item" />
+      </CarouselItem>
     </BrowseCarousel>
   </section>
 </template>
@@ -67,19 +69,19 @@ const displayItems = computed(() => {
   z-index: 5;
 }
 
-.content-row :deep(.browse-carousel-viewport > *:first-child .hover-card) {
+.content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:first-child .hover-card) {
   left: 0;
   right: -48px;
 }
 
-.content-row :deep(.browse-carousel-viewport > *:last-child .hover-card) {
+.content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:last-child .hover-card) {
   left: -48px;
   right: 0;
 }
 
 @media (max-width: 560px) {
-  .content-row :deep(.browse-carousel-viewport > *:first-child .hover-card),
-  .content-row :deep(.browse-carousel-viewport > *:last-child .hover-card) {
+  .content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:first-child .hover-card),
+  .content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:last-child .hover-card) {
     display: none;
   }
 }

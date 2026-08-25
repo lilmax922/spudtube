@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Clock, Search as SearchIcon, Star, TrendingUp, X } from '@lucide/vue'
 import { useDebounceFn, useStorage } from '@vueuse/core'
+import { ListboxFilter } from 'reka-ui'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from '#imports'
@@ -29,6 +30,8 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const panelRef = shallowRef<HTMLElement | null>(null)
 const searchSentinel = shallowRef<HTMLElement | null>(null)
+// ListboxFilter exposes its root input via querySelector; keep generic ref
+const inputRef = shallowRef<any>(null)
 const activeTab = shallowRef<'all' | 'movie' | 'tv'>('all')
 const STORAGE_KEY = 'spudtube:recent'
 const recents = useStorage<string[]>(STORAGE_KEY, [])
@@ -72,6 +75,18 @@ function onPickTrending(value: string): void {
   emit('update:query', value)
   activeTab.value = 'all'
   addRecent(value)
+}
+
+function onSelectRecent(value: string): void {
+  onPickRecent(value)
+  void navigateTo({ path: '/search', query: { q: value } })
+  emit('close')
+}
+
+function onSelectTrending(value: string): void {
+  onPickTrending(value)
+  void navigateTo({ path: '/search', query: { q: value } })
+  emit('close')
 }
 
 function onResultClick(title: { kind: 'MOVIE' | 'TV_SHOW', name: string }): void {
@@ -138,10 +153,17 @@ watch(() => overlaySearch.items.value.length, () => {
   setupObserver()
 })
 
-watch(() => props.open, (isOpen) => {
+watch(() => props.open, async (isOpen) => {
   if (isOpen) {
     document.body.style.overflow = 'hidden'
     setupObserver()
+    // ListboxFilter has auto-focus, this is a fallback for happy-dom / test env
+    await new Promise<void>(resolve => setTimeout(resolve, 15))
+    const el = (inputRef.value?.$el as HTMLElement | undefined) ?? inputRef.value as unknown as HTMLElement | null
+    if (el && typeof (el as HTMLInputElement).focus === 'function')
+      (el as HTMLInputElement).focus()
+    else
+      panelRef.value?.querySelector<HTMLInputElement>('input')?.focus()
   }
   else {
     document.body.style.overflow = ''
@@ -150,7 +172,7 @@ watch(() => props.open, (isOpen) => {
       observer = null
     }
   }
-})
+}, { immediate: true })
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && props.open)
@@ -184,6 +206,12 @@ onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   if (props.query.trim() !== '')
     void overlaySearch.search(props.query)
+  if (props.open) {
+    // initial open true → focus input after mount
+    setTimeout(() => {
+      panelRef.value?.querySelector<HTMLInputElement>('input')?.focus()
+    }, 15)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -224,18 +252,24 @@ watch(activeTab, () => {
           @submit.prevent="onInnerSearch"
         >
           <SearchIcon :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
-          <input
-            :value="query"
-            type="search"
-            role="combobox"
-            :aria-expanded="open"
-            aria-controls="search-command-list"
-            aria-autocomplete="list"
-            :aria-label="t('search.label')"
-            :placeholder="t('search.placeholder')"
-            class="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-            @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+          <ListboxFilter
+            :model-value="query"
+            auto-focus
+            as-child
+            @update:model-value="(value: string) => emit('update:query', value)"
           >
+            <input
+              ref="inputRef"
+              type="search"
+              role="combobox"
+              :aria-expanded="open"
+              aria-controls="search-command-list"
+              aria-autocomplete="list"
+              :aria-label="t('search.label')"
+              :placeholder="t('search.placeholder')"
+              class="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            >
+          </ListboxFilter>
           <button
             type="button"
             :aria-label="(query !== '' || clearable) ? t('search.clear') : t('search.close')"
@@ -273,7 +307,7 @@ watch(activeTab, () => {
                   :value="item"
                   class="recentItem flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-left text-sm text-foreground hover:bg-muted data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
                   :data-q="item"
-                  @select="onPickRecent(item)"
+                  @select="onSelectRecent(item)"
                 >
                   <Clock :size="16" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
                   {{ item }}
@@ -298,7 +332,7 @@ watch(activeTab, () => {
                   :value="trend"
                   :data-q="trend"
                   class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 text-[13px] font-medium text-muted-foreground transition-colors hover:border-ring hover:text-foreground data-[highlighted]:border-ring data-[highlighted]:text-foreground data-[highlighted]:bg-muted"
-                  @select="onPickTrending(trend)"
+                  @select="onSelectTrending(trend)"
                 >
                   <SearchIcon :size="12" :stroke-width="1.75" aria-hidden="true" />
                   {{ trend }}

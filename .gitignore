@@ -19,10 +19,10 @@ logs
 .dev.vars.*
 !.dev.vars.example
 tsconfig.tsbuildinfo
+.wrangler
 
 # Agents (local skill cache; skills-lock.json is source of truth)
 .agents/
-worker-configuration.d.ts
 
 # Misc
 .DS_Store

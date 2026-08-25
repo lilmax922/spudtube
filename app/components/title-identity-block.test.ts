@@ -1,6 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MOVIE_DETAIL, MOVIE_WITHOUT_ARTWORK } from '../lib/title-detail-fixtures'
 import TitleIdentityBlock from './title-identity-block.vue'
 
@@ -175,5 +175,77 @@ describe('title identity block', () => {
 
     const withoutTagline = await render(MOVIE_WITHOUT_ARTWORK, '/?probe=15')
     expect(withoutTagline.text()).not.toContain('超越即將來臨。')
+  })
+
+  it('renders provider dots and the singular watch copy when one provider is available', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=16',
+      props: { detail: MOVIE_DETAIL, providers: [{ id: 1, name: 'Netflix', logoPath: null }] },
+    })
+
+    expect(wrapper.text()).toContain('Netflix')
+    expect(wrapper.text()).toContain('可在 Netflix 觀看')
+    const dots = wrapper.findAll('span.flex.size-7')
+    expect(dots.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders a +N indicator and the multi-provider copy when more than four providers stream the title', async () => {
+    const providers = Array.from({ length: 6 }, (_, i) => ({
+      id: i + 1,
+      name: `Provider ${i + 1}`,
+      logoPath: null,
+    }))
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=17',
+      props: { detail: MOVIE_DETAIL, providers },
+    })
+
+    expect(wrapper.text()).toContain('可在 6 個平台觀看')
+    expect(wrapper.text()).toContain('+2')
+  })
+
+  it('renders a play-trailer button that scrolls to the trailer section when trailer exists', async () => {
+    const scrollSpy = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=18')
+
+    const target = document.createElement('section')
+    target.id = 'trailer-section'
+    document.body.appendChild(target)
+    try {
+      await wrapper.findAll('button').find(button => button.attributes('aria-label') === '播放預告')!.trigger('click')
+      expect(scrollSpy).toHaveBeenCalled()
+    }
+    finally {
+      target.remove()
+      scrollSpy.mockRestore()
+    }
+  })
+
+  it('omits the play-trailer button when there is no trailer', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=19',
+      props: { detail: { ...MOVIE_DETAIL, trailerKey: null } },
+    })
+
+    expect(wrapper.findAll('button').find(button => button.attributes('aria-label') === '播放預告')).toBeUndefined()
+  })
+
+  it('renders the director and writer crewline when the crew lists them', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=20')
+
+    expect(wrapper.text()).toContain('導演')
+    expect(wrapper.text()).toContain('Denis Villeneuve')
+    expect(wrapper.text()).toContain('編劇')
+    expect(wrapper.text()).toContain('Jon Spaihts')
+  })
+
+  it('hides the provider row entirely when no providers stream the title', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=21',
+      props: { detail: MOVIE_DETAIL, providers: [] },
+    })
+
+    expect(wrapper.text()).not.toContain('可在')
+    expect(wrapper.text()).not.toContain('尚未提供串流')
   })
 })

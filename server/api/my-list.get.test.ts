@@ -55,9 +55,19 @@ describe('gET /api/my-list (seam S2)', () => {
       voteAverage: 7.8,
       overview: `Overview of ${name}`,
       tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
       genres: [],
       runtimeMinutes: 120,
       trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      keywords: [],
+      backdrops: [],
     }
   }
 

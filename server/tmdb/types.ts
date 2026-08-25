@@ -24,12 +24,36 @@ export interface Genre {
   name: string
 }
 
+export interface CastMember {
+  id: number
+  name: string
+  character: string | null
+  profilePath: string | null
+}
+
+export interface CrewMember {
+  id: number
+  name: string
+  job: string
+  department: string | null
+}
+
 export interface TitleDetail extends TitleSummary {
   overview: string
   tagline: string | null
+  originalName: string | null
+  originalLanguage: string | null
+  status: string | null
   genres: Genre[]
   runtimeMinutes: number | null
   trailerKey: string | null
+  budget: number | null
+  revenue: number | null
+  contentRating: string | null
+  cast: CastMember[]
+  crew: CrewMember[]
+  keywords: string[]
+  backdrops: string[]
 }
 
 export interface Provider {

@@ -128,4 +128,50 @@ describe('movie detail route', () => {
       expect(wrapper.text()).toContain('找不到這部作品')
     })
   })
+
+  it('renders the cast, media, keywords, extended facts and provider dots', async () => {
+    registerEndpoints(419430)
+
+    const wrapper = await renderPage('/movie/419430')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Timothée Chalamet')
+    })
+
+    // cast list
+    expect(wrapper.text()).toContain('主要演員')
+    expect(wrapper.text()).toContain('Timothée Chalamet')
+    expect(wrapper.text()).toContain('Paul Atreides')
+    expect(wrapper.text()).toContain('完整演員與工作人員')
+
+    // media backdrops
+    expect(wrapper.text()).toContain('劇照')
+    const backdropImages = wrapper.findAll('img')
+      .map(img => img.attributes('src'))
+      .filter((src): src is string => src != null && src.includes('w1280'))
+    expect(backdropImages.length).toBeGreaterThanOrEqual(2)
+
+    // keywords
+    expect(wrapper.text()).toContain('關鍵字')
+    expect(wrapper.text()).toContain('based on novel')
+    expect(wrapper.text()).toContain('desert')
+
+    // facts panel extended fields
+    expect(wrapper.text()).toContain('原名')
+    expect(wrapper.text()).toContain('Dune')
+    expect(wrapper.text()).toContain('狀態')
+    expect(wrapper.text()).toContain('Released')
+    expect(wrapper.text()).toContain('分級')
+    expect(wrapper.text()).toContain('PG-13')
+
+    // provider avatars surface in hero — wait for the provider fetch to land
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('可在')
+    })
+    expect(wrapper.text()).toContain('2 個平台觀看')
+    // the dot avatars render the first letter of each provider's name
+    const dotLetters = wrapper.findAll('span.flex.size-7')
+      .map(node => node.text())
+      .filter(text => text.length === 1)
+    expect(dotLetters.length).toBeGreaterThanOrEqual(2)
+  })
 })

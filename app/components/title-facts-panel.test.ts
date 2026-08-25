@@ -65,4 +65,44 @@ describe('title facts panel', () => {
     expect(heading.classes().join(' ')).toContain('tracking-[')
     expect(heading.classes().join(' ')).toContain('text-muted-foreground')
   })
+
+  it('renders the extended facts when the movie carries original name, status, language, budget, revenue and rating', async () => {
+    const wrapper = await mountSuspended(TitleFactsPanel, { route: '/?probe=6', props: { detail: MOVIE_DETAIL } })
+
+    expect(wrapper.text()).toContain('原名')
+    expect(wrapper.text()).toContain('Dune')
+    expect(wrapper.text()).toContain('狀態')
+    expect(wrapper.text()).toContain('Released')
+    expect(wrapper.text()).toContain('原語言')
+    expect(wrapper.text()).toContain('EN')
+    expect(wrapper.text()).toContain('預算')
+    expect(wrapper.text()).toContain('$165,000,000')
+    expect(wrapper.text()).toContain('票房')
+    expect(wrapper.text()).toContain('$402,000,000')
+    expect(wrapper.text()).toContain('分級')
+    expect(wrapper.text()).toContain('PG-13')
+  })
+
+  it('omits extended facts when the values are null', async () => {
+    const detail = { ...MOVIE_DETAIL, originalName: null, status: null, originalLanguage: null, budget: null, revenue: null, contentRating: null }
+    const wrapper = await mountSuspended(TitleFactsPanel, { route: '/?probe=7', props: { detail } })
+
+    expect(wrapper.text()).not.toContain('原名')
+    expect(wrapper.text()).not.toContain('狀態')
+    expect(wrapper.text()).not.toContain('原語言')
+    expect(wrapper.text()).not.toContain('分級')
+    expect(wrapper.text()).toContain('預算')
+    expect(wrapper.text()).toContain('票房')
+    expect(wrapper.text()).not.toContain('$165,000,000')
+    expect(wrapper.text()).not.toContain('$402,000,000')
+  })
+
+  it('skips movie-only budget and revenue rows for a tv show', async () => {
+    const wrapper = await mountSuspended(TitleFactsPanel, { route: '/?probe=8', props: { detail: TV_DETAIL } })
+
+    expect(wrapper.text()).not.toContain('預算')
+    expect(wrapper.text()).not.toContain('票房')
+    expect(wrapper.text()).toContain('分級')
+    expect(wrapper.text()).toContain('TV-MA')
+  })
 })

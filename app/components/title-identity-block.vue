@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
-import type { TitleDetail } from '#server/tmdb/types'
+import type { CrewMember, Provider, TitleDetail } from '#server/tmdb/types'
+import { Play } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropUrl, posterUrl } from '../lib/images'
@@ -11,6 +12,7 @@ import TitleStatusToggle from './title-status-toggle.vue'
 
 interface Props {
   detail: TitleDetail
+  providers?: Provider[]
   rating?: RatingLabel | null
   status?: WatchStatus | null
   signedIn?: boolean
@@ -18,6 +20,7 @@ interface Props {
   statusPending?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
+  providers: () => [],
   rating: null,
   status: null,
   signedIn: false,
@@ -41,6 +44,34 @@ const year = computed(() => props.detail.releaseDate?.slice(0, 4) ?? null)
 const hasRuntime = computed(() => props.detail.runtimeMinutes != null)
 const hasGenres = computed(() => props.detail.genres.length > 0)
 const kindLabel = computed(() => t(kindLabelKey(props.detail.kind)))
+
+const providerCount = computed(() => props.providers.length)
+const watchLabel = computed(() => {
+  if (providerCount.value === 0)
+    return t('detail.noStream')
+  if (providerCount.value === 1)
+    return t('detail.watchSingle', { provider: props.providers[0]?.name ?? '' })
+  return t('detail.watchMultiple', { count: providerCount.value })
+})
+
+const hasTrailer = computed(() => props.detail.trailerKey != null && props.detail.trailerKey !== '')
+
+const director = computed<CrewMember | null>(() => props.detail.crew.find(member => member.job === 'Director') ?? null)
+const writer = computed<CrewMember | null>(() => {
+  const wantedJobs = ['Writer', 'Screenplay', 'Novel', 'Original Story']
+  return props.detail.crew.find(member => wantedJobs.includes(member.job)) ?? null
+})
+
+function playTrailer(): void {
+  if (!hasTrailer.value)
+    return
+  const target = document.getElementById('trailer-section')
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+const providerDotColors = ['#0ea5e9', '#22c55e', '#eab308', '#a855f7', '#f43f5e']
 </script>
 
 <template>
@@ -116,6 +147,36 @@ const kindLabel = computed(() => t(kindLabelKey(props.detail.kind)))
           </span>
         </div>
 
+        <div
+          v-if="providers.length > 0"
+          class="mt-3 flex items-center gap-3"
+        >
+          <div class="flex items-center" aria-hidden="true">
+            <span
+              v-for="(provider, index) in providers.slice(0, 4)"
+              :key="provider.id"
+              class="flex size-7 items-center justify-center rounded-full border-2 border-background text-[10px] font-extrabold text-white"
+              :style="{
+                backgroundColor: providerDotColors[index % providerDotColors.length],
+                marginLeft: index === 0 ? '0' : '-8px',
+                zIndex: providers.length - index,
+              }"
+              :title="provider.name"
+            >
+              {{ provider.name.slice(0, 1) }}
+            </span>
+            <span
+              v-if="providers.length > 4"
+              class="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-bold text-muted-foreground"
+              :style="{ marginLeft: '-8px' }"
+              aria-hidden="true"
+            >
+              +{{ providers.length - 4 }}
+            </span>
+          </div>
+          <span class="text-[12.5px] font-medium text-white/82">{{ watchLabel }}</span>
+        </div>
+
         <div class="mt-4 flex flex-wrap items-center gap-3">
           <RatingTrio
             :label="rating"
@@ -134,6 +195,16 @@ const kindLabel = computed(() => t(kindLabelKey(props.detail.kind)))
             @clear-status="emit('clearStatus')"
             @sign-in-requested="emit('signInRequested')"
           />
+          <button
+            v-if="hasTrailer"
+            type="button"
+            class="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+            :aria-label="t('detail.playTrailer')"
+            @click="playTrailer"
+          >
+            <Play :size="16" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
+            {{ t('detail.playTrailer') }}
+          </button>
         </div>
 
         <p v-if="detail.tagline" class="mt-4 text-sm font-normal italic leading-[1.7] text-white/85">
@@ -142,9 +213,20 @@ const kindLabel = computed(() => t(kindLabelKey(props.detail.kind)))
         <p v-if="detail.overview" class="mt-3 max-w-2xl text-sm font-normal leading-[1.7] text-white/88">
           {{ detail.overview }}
         </p>
-        <p v-else class="mt-3 text-sm text-white/55">
-          暫無簡介
-        </p>
+
+        <div
+          v-if="director || writer"
+          class="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px] text-white/70"
+        >
+          <span v-if="director">
+            <b class="font-semibold text-white/92">{{ t('detail.crew.director') }}</b>
+            {{ director.name }}
+          </span>
+          <span v-if="writer && writer.id !== director?.id">
+            <b class="font-semibold text-white/92">{{ t('detail.crew.writer') }}</b>
+            {{ writer.name }}
+          </span>
+        </div>
       </div>
     </div>
   </section>

@@ -83,6 +83,14 @@
     "trailer": "Trailer",
     "recommendations": "You might also like",
     "runtimeMinutes": "{minutes} min",
+    "playTrailer": "Play trailer",
+    "more": "MORE",
+    "noStream": "Not streaming yet",
+    "watchSingle": "Available on {provider}",
+    "watchMultiple": "Available on {count} providers",
+    "averageRating": "Average",
+    "voteCount": "{count} ratings",
+    "signInHint": "Tap the logo to go home",
     "kind": {
       "movie": "Movie",
       "tv": "TV Show"
@@ -91,7 +99,33 @@
       "heading": "Facts",
       "kind": "Type",
       "released": "Released",
-      "runtime": "Runtime"
+      "runtime": "Runtime",
+      "originalName": "Original title",
+      "status": "Status",
+      "originalLanguage": "Original language",
+      "budget": "Budget",
+      "revenue": "Revenue",
+      "contentRating": "Rating"
+    },
+    "cast": {
+      "heading": "Top billed cast",
+      "hint": "Cast",
+      "fullCastLink": "Full cast & crew"
+    },
+    "media": {
+      "heading": "Media",
+      "hint": "Backdrops",
+      "empty": "No backdrops yet"
+    },
+    "keywords": {
+      "heading": "Keywords",
+      "hint": "Tags"
+    },
+    "crew": {
+      "director": "Director",
+      "writer": "Writer",
+      "screenplay": "Screenplay",
+      "original": "Original work"
     },
     "notFound": {
       "title": "Title not found",

@@ -21,6 +21,43 @@ const runtimeLabel = computed(() => {
     return '—'
   return t('detail.runtimeMinutes', { minutes: props.detail.runtimeMinutes })
 })
+
+const originalNameLabel = computed(() => {
+  const value = props.detail.originalName
+  if (value == null || value === '')
+    return '—'
+  return value
+})
+
+const statusLabel = computed(() => {
+  const value = props.detail.status
+  if (value == null || value === '')
+    return '—'
+  return value
+})
+
+const originalLanguageLabel = computed(() => {
+  const value = props.detail.originalLanguage
+  if (value == null || value === '')
+    return '—'
+  return value.toUpperCase()
+})
+
+const budgetLabel = computed(() => formatUsd(props.detail.budget))
+const revenueLabel = computed(() => formatUsd(props.detail.revenue))
+
+const contentRatingLabel = computed(() => {
+  const value = props.detail.contentRating
+  if (value == null || value === '')
+    return '—'
+  return value
+})
+
+function formatUsd(value: number | null): string {
+  if (value == null || value === 0)
+    return '—'
+  return `$${value.toLocaleString('en-US')}`
+}
 </script>
 
 <template>
@@ -52,6 +89,58 @@ const runtimeLabel = computed(() => {
       <dd class="font-semibold tabular-nums text-foreground">
         {{ runtimeLabel }}
       </dd>
+
+      <template v-if="detail.originalName">
+        <dt class="font-medium text-muted-foreground">
+          {{ t('detail.facts.originalName') }}
+        </dt>
+        <dd class="font-semibold text-foreground">
+          {{ originalNameLabel }}
+        </dd>
+      </template>
+
+      <template v-if="detail.status">
+        <dt class="font-medium text-muted-foreground">
+          {{ t('detail.facts.status') }}
+        </dt>
+        <dd class="font-semibold text-foreground">
+          {{ statusLabel }}
+        </dd>
+      </template>
+
+      <template v-if="detail.originalLanguage">
+        <dt class="font-medium text-muted-foreground">
+          {{ t('detail.facts.originalLanguage') }}
+        </dt>
+        <dd class="font-semibold tracking-wider text-foreground">
+          {{ originalLanguageLabel }}
+        </dd>
+      </template>
+
+      <template v-if="detail.kind === 'MOVIE'">
+        <dt class="font-medium text-muted-foreground">
+          {{ t('detail.facts.budget') }}
+        </dt>
+        <dd class="font-semibold tabular-nums text-foreground">
+          {{ budgetLabel }}
+        </dd>
+
+        <dt class="font-medium text-muted-foreground">
+          {{ t('detail.facts.revenue') }}
+        </dt>
+        <dd class="font-semibold tabular-nums text-foreground">
+          {{ revenueLabel }}
+        </dd>
+      </template>
+
+      <template v-if="detail.contentRating">
+        <dt class="font-medium text-muted-foreground">
+          {{ t('detail.facts.contentRating') }}
+        </dt>
+        <dd class="font-semibold text-foreground">
+          {{ contentRatingLabel }}
+        </dd>
+      </template>
     </dl>
   </section>
 </template>

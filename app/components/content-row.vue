@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
 import { ChevronRight } from '@lucide/vue'
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CarouselItem } from '@/components/ui/carousel'
 import BrowseCarousel from './browse-carousel.vue'
 import TitleCard from './title-card.vue'
@@ -18,22 +18,30 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{ seeMore: [] }>()
 
-const displayItems = computed(() => {
-  const base = props.items
-  if (base.length === 0)
-    return base
-  if (base.length >= 8)
-    return base
-  const expanded: TitleSummary[] = []
-  while (expanded.length < 9)
-    expanded.push(...base)
-  return expanded.slice(0, Math.min(10, Math.max(8, base.length * 2)))
+const displayItems = computed(() => props.items)
+
+const gutter = ref(24)
+
+function updateGutter(): void {
+  if (typeof window === 'undefined')
+    return
+  const vw = window.innerWidth
+  gutter.value = Math.max(24, (vw - 1280) / 2 + 24)
+}
+
+onMounted(() => {
+  updateGutter()
+  window.addEventListener('resize', updateGutter)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateGutter)
 })
 </script>
 
 <template>
   <section class="content-row relative z-[1] hover:z-[20]">
-    <div class="flex items-baseline gap-3.5 px-0.5 pb-3">
+    <div class="mx-auto flex w-full max-w-[1280px] items-baseline gap-3.5 px-6 pb-3">
       <h3 class="text-[16.5px] font-bold tracking-tight text-foreground">
         {{ title }}
       </h3>
@@ -49,7 +57,7 @@ const displayItems = computed(() => {
       </button>
     </div>
 
-    <BrowseCarousel :aria-label="ariaLabel ?? title" :breakout="true">
+    <BrowseCarousel :aria-label="ariaLabel ?? title" :breakout="true" :padding-left="gutter">
       <CarouselItem
         v-for="(item, idx) in displayItems"
         :key="`${item.kind}-${item.tmdbId}-${idx}`"

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BROWSE_CAROUSEL_BREAKPOINTS,
   calculatePeekWidth,
+  getBrowseVisibleCount,
   getCarouselState,
   getScrollAmount,
   getVisibleCount,
@@ -48,34 +50,83 @@ describe('getCarouselState', () => {
   })
 })
 
+describe('browse carousel breakpoints', () => {
+  it('has expected breakpoint table', () => {
+    expect(BROWSE_CAROUSEL_BREAKPOINTS).toEqual([
+      { maxWidth: 447, count: 1 },
+      { maxWidth: 679, count: 2 },
+      { maxWidth: 879, count: 3 },
+      { maxWidth: 1399, count: 4 },
+      { maxWidth: 1799, count: 5 },
+    ])
+  })
+})
+
+describe('getBrowseVisibleCount', () => {
+  it('returns 1 for <=447', () => {
+    expect(getBrowseVisibleCount(0)).toBe(1)
+    expect(getBrowseVisibleCount(320)).toBe(1)
+    expect(getBrowseVisibleCount(447)).toBe(1)
+  })
+
+  it('returns 2 for 448-679', () => {
+    expect(getBrowseVisibleCount(448)).toBe(2)
+    expect(getBrowseVisibleCount(500)).toBe(2)
+    expect(getBrowseVisibleCount(679)).toBe(2)
+  })
+
+  it('returns 3 for 680-879', () => {
+    expect(getBrowseVisibleCount(680)).toBe(3)
+    expect(getBrowseVisibleCount(700)).toBe(3)
+    expect(getBrowseVisibleCount(879)).toBe(3)
+  })
+
+  it('returns 4 for 880-1399', () => {
+    expect(getBrowseVisibleCount(880)).toBe(4)
+    expect(getBrowseVisibleCount(1280)).toBe(4)
+    expect(getBrowseVisibleCount(1399)).toBe(4)
+  })
+
+  it('returns 5 for 1400-1799', () => {
+    expect(getBrowseVisibleCount(1400)).toBe(5)
+    expect(getBrowseVisibleCount(1500)).toBe(5)
+    expect(getBrowseVisibleCount(1799)).toBe(5)
+  })
+
+  it('returns 6 for >1799', () => {
+    expect(getBrowseVisibleCount(1800)).toBe(6)
+    expect(getBrowseVisibleCount(1920)).toBe(6)
+    expect(getBrowseVisibleCount(2500)).toBe(6)
+  })
+
+  it('returns at least 1 for narrow or invalid width', () => {
+    expect(getBrowseVisibleCount(-10)).toBe(1)
+    expect(getBrowseVisibleCount(100)).toBe(1)
+  })
+})
+
 describe('getVisibleCount', () => {
   const itemWidth = 240
   const gap = 16
   const peek = 60
 
-  it('computes visible count for atStart (one peek)', () => {
-    // viewport 1280 -> available = 1280 -60 -16 =1204, (1204+16)/256=4.76 =>4
+  it('aliases getBrowseVisibleCount regardless of other params', () => {
     expect(getVisibleCount(1280, itemWidth, gap, peek, 'atStart')).toBe(4)
-    expect(getVisibleCount(1232, itemWidth, gap, peek, 'atStart')).toBe(4)
-  })
-
-  it('computes visible count for atMid (two peeks)', () => {
-    // atMid: available = CW -2*peek -2*gap
     expect(getVisibleCount(1280, itemWidth, gap, peek, 'atMid')).toBe(4)
-    // narrow viewport 700 -> atMid available 700-120-32=548 => 2
-    expect(getVisibleCount(700, itemWidth, gap, peek, 'atMid')).toBe(2)
-  })
-
-  it('computes visible count for atEnd (one peek)', () => {
     expect(getVisibleCount(1280, itemWidth, gap, peek, 'atEnd')).toBe(4)
+    expect(getVisibleCount(1280, itemWidth, gap, peek, 'single')).toBe(4)
   })
 
-  it('returns at least 1', () => {
+  it('maps viewport table for various widths', () => {
+    expect(getVisibleCount(400, itemWidth, gap, peek, 'atStart')).toBe(1)
+    expect(getVisibleCount(500, itemWidth, gap, peek, 'atMid')).toBe(2)
+    expect(getVisibleCount(700, itemWidth, gap, peek, 'atMid')).toBe(3)
+    expect(getVisibleCount(1500, itemWidth, gap, peek, 'atEnd')).toBe(5)
+    expect(getVisibleCount(1920, itemWidth, gap, peek, 'atStart')).toBe(6)
+  })
+
+  it('returns at least 1 for narrow viewport', () => {
     expect(getVisibleCount(100, itemWidth, gap, peek, 'atStart')).toBe(1)
-  })
-
-  it('handles single (no peek) correctly', () => {
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'single')).toBe(5)
   })
 })
 
@@ -84,9 +135,23 @@ describe('getScrollAmount', () => {
   const gap = 16
   const peek = 60
 
-  it('returns visibleCount * (itemWidth+gap)', () => {
-    // atStart 1280 => visible 4 => 4*256=1024
+  it('returns visibleCount * (itemWidth+gap) via table', () => {
+    // 1280 => 4 => 4*256=1024
     expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(1024)
-    expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(512)
+    // 700 => 3 => 3*256=768
+    expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(768)
+    // 500 => 2 => 512
+    expect(getScrollAmount(500, itemWidth, gap, peek, 'atEnd')).toBe(512)
+    // 1920 => 6 => 1536
+    expect(getScrollAmount(1920, itemWidth, gap, peek, 'single')).toBe(1536)
+  })
+
+  it('ignores peek and state, depends only on viewport width', () => {
+    expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(
+      getScrollAmount(1280, itemWidth, gap, peek, 'single'),
+    )
+    expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(
+      getScrollAmount(700, itemWidth, gap, 0, 'single'),
+    )
   })
 })

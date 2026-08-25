@@ -3,7 +3,7 @@ import type { CarouselApi } from '@/components/ui/carousel'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { Carousel, CarouselContent } from '@/components/ui/carousel'
-import { calculatePeekWidth, getVisibleCount } from '../composables/use-carousel'
+import { calculatePeekWidth, getBrowseVisibleCount } from '../composables/use-carousel'
 
 interface Props {
   ariaLabel?: string
@@ -85,24 +85,7 @@ function scrollBy(direction: 'prev' | 'next'): void {
     viewportWidth = el?.clientWidth ?? 0
   }
 
-  let currentItemWidth = props.itemWidth
-  try {
-    const first = api.containerNode()?.firstElementChild as HTMLElement | null
-    if (first?.clientWidth && first?.classList?.contains('carousel-phantom')) {
-      const second = first.nextElementSibling as HTMLElement | null
-      if (second?.clientWidth && second.clientWidth > 0)
-        currentItemWidth = second.clientWidth
-    }
-    else if (first?.clientWidth && first.clientWidth > 0) {
-      currentItemWidth = first.clientWidth
-    }
-  }
-  catch {
-    // ignore
-  }
-
-  const currentPeek = Math.round(currentItemWidth * props.peekRatio)
-  const visible = getVisibleCount(viewportWidth, currentItemWidth, props.gap, currentPeek, state.value)
+  const visible = getBrowseVisibleCount(viewportWidth)
   const step = Math.max(1, visible)
 
   const snaps = api.scrollSnapList()
@@ -162,23 +145,23 @@ const contentStyle = computed(() => ({
     <button
       v-if="!isAtStart"
       type="button"
-      class="absolute left-2 top-[68px] hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/70 text-white backdrop-blur-md transition-all hover:scale-[1.04] hover:bg-black/90 active:scale-[0.97] group-hover/carousel:flex md:flex shadow-[0_8px_24px_rgba(0,0,0,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 max-[560px]:!hidden"
+      class="absolute inset-y-0 left-0 z-[12] hidden w-12 items-center justify-center bg-gradient-to-r from-black/60 to-transparent text-white opacity-0 transition-opacity duration-200 group-hover/carousel:flex group-hover/carousel:opacity-100 focus-visible:flex focus-visible:opacity-100 focus-visible:outline-none max-[560px]:!hidden"
       :aria-label="ariaLabel ? `${ariaLabel} previous` : 'Previous'"
       data-testid="carousel-prev"
       @click="scrollBy('prev')"
     >
-      <ChevronLeft :size="20" :stroke-width="1.75" aria-hidden="true" />
+      <ChevronLeft :size="22" :stroke-width="2" aria-hidden="true" class="drop-shadow" />
     </button>
 
     <button
       v-if="!isAtEnd"
       type="button"
-      class="absolute right-2 top-[68px] hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/70 text-white backdrop-blur-md transition-all hover:scale-[1.04] hover:bg-black/90 active:scale-[0.97] group-hover/carousel:flex md:flex shadow-[0_8px_24px_rgba(0,0,0,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 max-[560px]:!hidden"
+      class="absolute inset-y-0 right-0 z-[12] hidden w-12 items-center justify-center bg-gradient-to-l from-black/60 to-transparent text-white opacity-0 transition-opacity duration-200 group-hover/carousel:flex group-hover/carousel:opacity-100 focus-visible:flex focus-visible:opacity-100 focus-visible:outline-none max-[560px]:!hidden"
       :aria-label="ariaLabel ? `${ariaLabel} next` : 'Next'"
       data-testid="carousel-next"
       @click="scrollBy('next')"
     >
-      <ChevronRight :size="20" :stroke-width="1.75" aria-hidden="true" />
+      <ChevronRight :size="22" :stroke-width="2" aria-hidden="true" class="drop-shadow" />
     </button>
   </div>
 </template>
@@ -190,9 +173,8 @@ const contentStyle = computed(() => ({
 }
 
 .browse-carousel-outer--breakout {
-  /* breakout to viewport right edge, keep left aligned to container */
-  width: calc(100% + (100vw - 100%) / 2);
-  margin-right: calc(-1 * (100vw - 100%) / 2);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
 }
 
 .browse-carousel-root {

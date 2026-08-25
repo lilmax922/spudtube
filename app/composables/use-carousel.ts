@@ -36,6 +36,24 @@ export function getCarouselState(
   return 'atMid'
 }
 
+export const BROWSE_CAROUSEL_BREAKPOINTS: Array<{ maxWidth: number, count: number }> = [
+  { maxWidth: 447, count: 1 },
+  { maxWidth: 679, count: 2 },
+  { maxWidth: 879, count: 3 },
+  { maxWidth: 1399, count: 4 },
+  { maxWidth: 1799, count: 5 },
+]
+
+export function getBrowseVisibleCount(viewportWidth: number): number {
+  if (viewportWidth <= 0)
+    return 1
+  for (const bp of BROWSE_CAROUSEL_BREAKPOINTS) {
+    if (viewportWidth <= bp.maxWidth)
+      return bp.count
+  }
+  return 6
+}
+
 export function getVisibleCount(
   clientWidth: number,
   itemWidth: number,
@@ -43,13 +61,11 @@ export function getVisibleCount(
   peekWidth: number,
   state: CarouselState,
 ): number {
-  if (clientWidth <= 0 || itemWidth <= 0)
-    return 0
-  const peekCount = state === 'atMid' ? 2 : state === 'single' ? 0 : 1
-  const available = clientWidth - peekCount * peekWidth - (peekCount > 0 ? gap * peekCount : 0)
-  const adjustedAvailable = state === 'single' ? clientWidth : available
-  const count = Math.floor((adjustedAvailable + gap) / (itemWidth + gap))
-  return Math.max(1, count)
+  void itemWidth
+  void gap
+  void peekWidth
+  void state
+  return getBrowseVisibleCount(clientWidth)
 }
 
 export function getScrollAmount(
@@ -59,7 +75,10 @@ export function getScrollAmount(
   peekWidth: number,
   state: CarouselState,
 ): number {
-  const visible = getVisibleCount(clientWidth, itemWidth, gap, peekWidth, state)
+  void gap
+  void peekWidth
+  void state
+  const visible = getBrowseVisibleCount(clientWidth)
   return visible * (itemWidth + gap)
 }
 

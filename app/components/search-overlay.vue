@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { useSearchState } from '../composables/use-search-state'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
 import { posterUrl } from '../lib/tmdb-image'
-import SearchField from './search-field.vue'
 
 interface Props {
   query: string
@@ -81,10 +80,7 @@ function clearRecents(): void {
 
 function onPickRecent(value: string): void {
   emit('update:query', value)
-  // ensure active tab reset
   activeTab.value = 'all'
-  // use next tick to allow query prop update then search
-  // emit search after update
   requestAnimationFrame(() => emit('search'))
   addRecent(value)
 }
@@ -146,8 +142,6 @@ function setupObserver(): void {
 }
 
 watch(() => props.query, () => {
-  // reset tab when query changes dramatically? keep as is
-  // ensure observer updates
   setupObserver()
 })
 
@@ -187,6 +181,13 @@ function onInnerSearch(): void {
   emit('search')
 }
 
+function onBarButton(): void {
+  if (props.query !== '' || props.clearable)
+    emit('clear')
+  else
+    emit('close')
+}
+
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   if (props.open)
@@ -201,7 +202,6 @@ onBeforeUnmount(() => {
 })
 
 watch(activeTab, () => {
-  // when tab changes, ensure observer still valid
   setupObserver()
 })
 </script>
@@ -221,26 +221,29 @@ watch(activeTab, () => {
       class="searchSheet w-[min(720px,100%)] overflow-hidden rounded-[16px] border border-border bg-popover shadow-[0_24px_64px_rgba(0,0,0,0.6)]"
       @click.stop
     >
-      <div class="searchBarRow m-3 flex items-center gap-3 rounded-[12px] border border-border bg-card p-3 shadow-[0_4px_12px_rgba(0,0,0,0.15)] focus-within:border-ring focus-within:shadow-[0_0_0_2px_color-mix(in_oklab,var(--ring)_20%,transparent)]">
+      <form
+        role="search"
+        class="searchBarRow m-3 flex items-center gap-3 rounded-md rounded-[12px] border border-input border-border bg-card px-3 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.15)] focus-within:border-ring focus-within:shadow-[0_0_0_2px_color-mix(in_oklab,var(--ring)_20%,transparent)]"
+        @submit.prevent="onInnerSearch"
+      >
         <SearchIcon :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
-        <div class="min-w-0 flex-1">
-          <SearchField
-            :query="query"
-            :clearable="clearable"
-            @update:query="emit('update:query', $event)"
-            @search="onInnerSearch"
-            @clear="emit('clear')"
-          />
-        </div>
+        <input
+          :value="query"
+          type="search"
+          :aria-label="t('search.label')"
+          :placeholder="t('search.placeholder')"
+          class="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+        >
         <button
           type="button"
-          :aria-label="t('search.close')"
+          :aria-label="(query !== '' || clearable) ? t('search.clear') : t('search.close')"
           class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          @click="emit('close')"
+          @click="onBarButton"
         >
           <X :size="16" :stroke-width="1.75" aria-hidden="true" />
         </button>
-      </div>
+      </form>
       <div class="searchPanel max-h-[62vh] overflow-auto">
         <template v-if="query.trim() === ''">
           <div class="searchSection p-[18px_16px]">

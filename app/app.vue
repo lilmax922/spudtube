@@ -1,22 +1,34 @@
 <script setup lang="ts">
+import { Search } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
+import { shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo, useFetch, useHead } from '#imports'
 import AccountMenu from './components/account-menu.vue'
 import AttributionFooter from './components/attribution-footer.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
-import SearchField from './components/search-field.vue'
+import SearchOverlay from './components/search-overlay.vue'
 import { useSearchState } from './composables/use-search-state'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
 const { locale, t } = useI18n()
-const { query, search, clear } = useSearchState()
+const { query, mode, search, clear } = useSearchState()
 
 const { data: session } = await authClient.useSession(useFetch)
+
+const isSearchOpen = shallowRef(false)
 
 const debouncedSearch = useDebounceFn((nextQuery: string) => {
   void search(nextQuery)
 }, 350)
+
+function openSearch(): void {
+  isSearchOpen.value = true
+}
+
+function closeSearch(): void {
+  isSearchOpen.value = false
+}
 
 function onSearchInput(value: string): void {
   query.value = value
@@ -51,12 +63,14 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
       <div class="mx-auto flex w-full max-w-[1280px] items-center gap-6 px-6 py-4">
         <span class="text-lg font-semibold tracking-tight">SpudTube</span>
         <div class="flex min-w-0 flex-1 justify-center">
-          <SearchField
-            :query="query"
-            @update:query="onSearchInput"
-            @search="onSubmitSearch"
-            @clear="onClearSearch"
-          />
+          <button
+            type="button"
+            :aria-label="t('search.open')"
+            class="inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+            @click="openSearch"
+          >
+            <Search :size="18" :stroke-width="1.75" aria-hidden="true" />
+          </button>
         </div>
         <div class="flex items-center gap-3">
           <LanguageSwitcher />
@@ -75,6 +89,15 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
         </div>
       </div>
     </header>
+    <SearchOverlay
+      :query="query"
+      :open="isSearchOpen"
+      :clearable="mode === 'search'"
+      @update:query="onSearchInput"
+      @search="onSubmitSearch"
+      @clear="onClearSearch"
+      @close="closeSearch"
+    />
     <main class="flex-1">
       <NuxtPage />
     </main>

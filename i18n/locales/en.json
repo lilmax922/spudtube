@@ -15,6 +15,8 @@
     "label": "Search",
     "placeholder": "Search movies and TV shows",
     "clear": "Clear search",
+    "close": "Close search",
+    "open": "Open search",
     "noResults": "No results for \"{query}\"",
     "loading": "Searching…",
     "error": "Something went wrong while searching"

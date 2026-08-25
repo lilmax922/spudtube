@@ -4,9 +4,12 @@ import { useI18n } from 'vue-i18n'
 
 interface Props {
   query: string
+  clearable?: boolean
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props>(), {
+  clearable: false,
+})
 
 const emit = defineEmits<{
   'update:query': [value: string]
@@ -20,7 +23,7 @@ const { t } = useI18n()
 <template>
   <form
     role="search"
-    class="flex h-10 w-full max-w-sm items-center gap-2 rounded-md border border-input bg-card px-3 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
+    class="flex h-10 w-full max-w-sm items-center gap-2 rounded-md border border-input bg-card px-3 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
     @submit.prevent="emit('search')"
   >
     <Search :size="16" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -33,10 +36,10 @@ const { t } = useI18n()
       @input="emit('update:query', ($event.target as HTMLInputElement).value)"
     >
     <button
-      v-if="query !== ''"
+      v-if="query !== '' || clearable"
       type="button"
       :aria-label="t('search.clear')"
-      class="inline-flex size-10 shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       @click="emit('clear')"
     >
       <X :size="16" :stroke-width="1.75" aria-hidden="true" />

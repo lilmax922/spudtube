@@ -82,6 +82,9 @@ describe('app shell', () => {
     vi.useRealTimers()
     mock.search.search.mockReset()
     mock.search.clear.mockReset()
+    searchState.query.value = ''
+    searchState.mode.value = 'browse'
+    searchState.searchedQuery.value = ''
   })
 
   it('renders brand and lands directly on the browse grid', async () => {
@@ -95,17 +98,26 @@ describe('app shell', () => {
     expect(wrapper.text()).toContain('Movies')
   })
 
-  it('renders the search field in the header', async () => {
+  it('renders a search trigger in the header that opens the overlay', async () => {
     const wrapper = await mountSuspended(App, { route: '/' })
+
+    const trigger = wrapper.find('button[aria-label="Open search"]')
+    expect(trigger.exists()).toBe(true)
+    expect(wrapper.find('input[type="search"]').exists()).toBe(false)
+
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
 
     const input = wrapper.find('input[type="search"]')
     expect(input.exists()).toBe(true)
     expect(input.attributes('placeholder')).toBe('Search movies and TV shows')
   })
 
-  it('debounces typing before searching', async () => {
+  it('debounces typing before searching via the overlay', async () => {
     vi.useFakeTimers()
     const wrapper = await mountSuspended(App, { route: '/' })
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     await wrapper.find('input[type="search"]').setValue('dune')
     expect(mock.search.search).not.toHaveBeenCalled()
@@ -119,6 +131,8 @@ describe('app shell', () => {
 
   it('searches immediately on submit without waiting for the debounce', async () => {
     const wrapper = await mountSuspended(App, { route: '/' })
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     await wrapper.find('input[type="search"]').setValue('dune')
     await wrapper.find('form[role="search"]').trigger('submit')
@@ -129,6 +143,8 @@ describe('app shell', () => {
   it('clears the search state via the field clear button', async () => {
     const wrapper = await mountSuspended(App, { route: '/' })
     searchState.query.value = 'dune'
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     const clear = wrapper.find('button[aria-label="Clear search"]')
     expect(clear.exists()).toBe(true)
@@ -136,5 +152,46 @@ describe('app shell', () => {
     await clear.trigger('click')
 
     expect(mock.search.clear).toHaveBeenCalled()
+  })
+
+  it('closes the search overlay via close button, backdrop and Escape without trapping', async () => {
+    const wrapper = await mountSuspended(App, { route: '/' })
+    const trigger = wrapper.find('button[aria-label="Open search"]')
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    const close = wrapper.find('button[aria-label="Close search"]')
+    expect(close.exists()).toBe(true)
+    await close.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    // backdrop click (outer container)
+    await wrapper.find('[role="presentation"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+  })
+
+  it('keeps the clear button visible in search mode even with an empty query via clearable', async () => {
+    searchState.mode.value = 'search'
+    searchState.query.value = ''
+    const wrapper = await mountSuspended(App, { route: '/' })
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const clear = wrapper.find('button[aria-label="Clear search"]')
+    expect(clear.exists()).toBe(true)
+    searchState.mode.value = 'browse'
   })
 })

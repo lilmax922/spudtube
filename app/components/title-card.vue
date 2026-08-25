@@ -26,11 +26,11 @@ const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
     :to="titleDetailPath(title.kind, title.tmdbId)"
     class="group flex flex-col rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/20"
   >
-    <div class="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+    <div class="relative aspect-[16/9] overflow-hidden rounded-lg bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
       <span
         v-if="showKind"
         data-testid="kind-badge"
-        class="absolute left-2 top-2 rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-foreground backdrop-blur"
+        class="absolute left-2 top-2 rounded-full bg-background/70 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-foreground backdrop-blur-md"
       >
         {{ t(kindLabelKey(title.kind)) }}
       </span>
@@ -53,7 +53,7 @@ const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
     <h3 class="mt-2 line-clamp-2 text-sm font-medium text-foreground">
       {{ title.name }}
     </h3>
-    <p v-if="year" class="mt-0.5 text-xs text-muted-foreground">
+    <p v-if="year" class="mt-0.5 text-xs tabular-nums text-muted-foreground">
       {{ year }}
     </p>
   </NuxtLink>

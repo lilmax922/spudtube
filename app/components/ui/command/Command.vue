@@ -3,7 +3,7 @@ import type { ListboxRootEmits, ListboxRootProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
 import { reactiveOmit } from '@vueuse/core'
 import { ListboxRoot, useFilter, useForwardPropsEmits } from 'reka-ui'
-import { reactive, ref, watch } from 'vue'
+import { nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { cn } from '@/lib/utils'
 import { provideCommandContext } from '.'
 
@@ -18,6 +18,8 @@ const emits = defineEmits<ListboxRootEmits>()
 const delegatedProps = reactiveOmit(props, 'class')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
+
+const listboxRef = ref<any>(null)
 
 const allItems = ref<Map<string, string>>(new Map())
 const allGroups = ref<Map<string, Set<string>>>(new Map())
@@ -76,16 +78,23 @@ function filterItems() {
 
 watch(() => filterState.search, () => {
   filterItems()
+  if (!props.shouldFilter) {
+    nextTick(() => clearHighlight())
+  }
 })
 
 watch(() => allItems.value.size, () => {
-  if (!props.shouldFilter)
+  if (!props.shouldFilter) {
     filterItems()
+    nextTick(() => clearHighlight())
+  }
 })
 
 watch(() => allGroups.value.size, () => {
-  if (!props.shouldFilter)
+  if (!props.shouldFilter) {
     filterItems()
+    nextTick(() => clearHighlight())
+  }
 })
 
 provideCommandContext({
@@ -93,10 +102,36 @@ provideCommandContext({
   allGroups,
   filterState,
 })
+
+function clearHighlight(): void {
+  const inst = listboxRef.value as any
+  if (!inst)
+    return
+  // ListboxRoot exposes highlightedElement as a ref
+  const he = inst.highlightedElement
+  if (he && typeof he === 'object' && 'value' in he) {
+    he.value = null
+  }
+  else if ('highlightedElement' in inst) {
+    inst.highlightedElement = null
+  }
+  // also blur any data-highlighted element
+  if (typeof document !== 'undefined') {
+    const highlighted = document.querySelectorAll<HTMLElement>('[data-highlighted]')
+    highlighted.forEach(el => el.removeAttribute('data-highlighted'))
+  }
+}
+
+onMounted(() => {
+  if (!props.shouldFilter) {
+    nextTick(() => clearHighlight())
+  }
+})
 </script>
 
 <template>
   <ListboxRoot
+    ref="listboxRef"
     data-slot="command"
     v-bind="forwarded"
     :class="cn('bg-popover text-popover-foreground rounded-xl! p-1 flex size-full flex-col overflow-hidden', props.class)"

@@ -20,7 +20,7 @@ const { t } = useI18n()
 <template>
   <form
     role="search"
-    class="flex h-[38px] w-full max-w-sm items-center gap-2 rounded-lg border border-input bg-card px-3 transition-colors focus-within:border-ring"
+    class="flex h-10 w-full max-w-sm items-center gap-2 rounded-md border border-input bg-card px-3 transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20"
     @submit.prevent="emit('search')"
   >
     <Search :size="16" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -36,7 +36,7 @@ const { t } = useI18n()
       v-if="query !== ''"
       type="button"
       :aria-label="t('search.clear')"
-      class="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+      class="inline-flex size-10 shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       @click="emit('clear')"
     >
       <X :size="16" :stroke-width="1.75" aria-hidden="true" />

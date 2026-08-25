@@ -38,3 +38,5 @@ export const SelectTitleStatusSchema = createSelectSchema(titleStatus)
 
 export const UpdateTitleStatusSchema = createUpdateSchema(titleStatus)
   .omit({ createdAt: true, updatedAt: true, userId: true, kind: true, tmdbId: true })
+
+export const UpdateTitleStatusBodySchema = UpdateTitleStatusSchema.pick({ status: true }).required()

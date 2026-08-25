@@ -14,12 +14,12 @@ const options: { value: Kind, labelKey: 'browse.kindMovies' | 'browse.kindTvShow
 </script>
 
 <template>
-  <div class="inline-flex rounded-lg bg-secondary p-1" role="group" :aria-label="t('browse.kindLabel')">
+  <div class="inline-flex rounded-full bg-muted p-1" role="group" :aria-label="t('browse.kindLabel')">
     <button
       v-for="option in options"
       :key="option.value"
       type="button"
-      class="h-[30px] rounded-md px-4 text-sm font-medium transition-colors"
+      class="inline-flex h-[30px] min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       :class="option.value === modelValue
         ? 'bg-primary text-primary-foreground'
         : 'text-muted-foreground hover:text-foreground'"

@@ -37,3 +37,5 @@ export const SelectRatingSchema = createSelectSchema(rating)
 
 export const UpdateRatingSchema = createUpdateSchema(rating)
   .omit({ createdAt: true, updatedAt: true, userId: true, kind: true, tmdbId: true })
+
+export const UpdateRatingBodySchema = UpdateRatingSchema.pick({ label: true }).required()

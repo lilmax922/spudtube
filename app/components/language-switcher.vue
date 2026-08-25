@@ -23,7 +23,7 @@ async function choose(candidate: string): Promise<void> {
       v-for="item in locales"
       :key="item.code"
       type="button"
-      class="rounded px-2 py-1 text-sm transition-colors hover:bg-muted focus-visible:outline-2"
+      class="inline-flex min-h-10 items-center rounded-full px-3 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       :class="item.code === locale ? 'font-medium text-foreground' : 'text-muted-foreground'"
       :aria-pressed="item.code === locale"
       @click="choose(item.code)"

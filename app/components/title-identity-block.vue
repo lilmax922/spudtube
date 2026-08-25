@@ -43,7 +43,7 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
 </script>
 
 <template>
-  <section class="relative overflow-hidden rounded-xl border border-border">
+  <section class="relative overflow-hidden rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
     <img
       v-if="backdrop"
       :src="backdrop"
@@ -90,7 +90,7 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
           <span
             v-for="genre in detail.genres"
             :key="genre.id"
-            class="rounded-full border border-foreground/35 px-2 py-0.5 text-[11.5px] font-semibold text-foreground/90"
+            class="rounded-full bg-muted px-2 py-0.5 text-[11.5px] font-semibold text-muted-foreground"
           >
             {{ genre.name }}
           </span>

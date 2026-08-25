@@ -40,7 +40,7 @@ function entryPath(entry: MyListEntry): string {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-6xl px-4 py-8">
+  <div class="mx-auto w-full max-w-[1280px] px-6 py-8">
     <h1 class="text-2xl font-bold tracking-tight text-foreground">
       {{ t('myList.heading') }}
     </h1>
@@ -56,7 +56,7 @@ function entryPath(entry: MyListEntry): string {
         type="button"
         role="tab"
         :aria-selected="activeTab === tab.key"
-        class="-mb-px inline-flex h-[38px] items-center rounded-t-[10px] border-b-2 px-4 text-sm font-medium transition-colors focus-visible:outline-2"
+        class="-mb-px inline-flex h-10 items-center rounded-t-lg border-b-2 px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         :class="activeTab === tab.key
           ? 'border-primary text-foreground'
           : 'border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground'"
@@ -83,7 +83,7 @@ function entryPath(entry: MyListEntry): string {
         <NuxtLink
           v-if="entry.title"
           :to="entryPath(entry)"
-          class="group flex items-center gap-4 rounded-[10px] border border-border bg-card p-3 transition-colors hover:bg-secondary"
+          class="group flex items-center gap-4 rounded-lg bg-card p-3 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         >
           <div class="h-20 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
             <img
@@ -111,7 +111,7 @@ function entryPath(entry: MyListEntry): string {
         </NuxtLink>
         <div
           v-else
-          class="flex items-center gap-4 rounded-[10px] border border-dashed border-border p-3 opacity-70"
+          class="flex items-center gap-4 rounded-lg border border-dashed border-border bg-card p-3 opacity-70 shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
         >
           <div class="flex h-20 w-14 shrink-0 items-center justify-center rounded-md bg-muted">
             <Clapperboard :size="20" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />

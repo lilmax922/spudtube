@@ -97,13 +97,13 @@ void refresh()
 
     <div
       v-else-if="gridLoading && gridItems.length === 0"
-      class="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-4"
+      class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 max-[880px]:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]"
       aria-busy="true"
     >
       <div
         v-for="index in 12"
         :key="index"
-        class="aspect-[2/3] animate-pulse rounded-lg bg-muted"
+        class="aspect-[16/9] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
       />
     </div>
 
@@ -116,7 +116,7 @@ void refresh()
 
     <div
       v-if="gridItems.length > 0"
-      class="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-4"
+      class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 max-[880px]:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]"
       :aria-busy="gridLoading || gridLoadingMore"
     >
       <TitleCard

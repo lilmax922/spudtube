@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
       <CarouselItem
         v-for="(item, idx) in displayItems"
         :key="`${item.kind}-${item.tmdbId}-${idx}`"
-        class="pl-0 basis-auto w-[240px] shrink-0 snap-start max-[880px]:w-[220px] max-[560px]:w-[168px]"
+        class="pl-0 basis-auto w-[180px] shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
       >
         <TitleCard :title="item" />
       </CarouselItem>

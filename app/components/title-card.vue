@@ -84,7 +84,7 @@ const hoverProviders = computed(() => {
     @mouseenter="markInspected"
     @focusin="markInspected"
   >
-    <div class="title-card-art relative aspect-[16/9] overflow-hidden rounded-xl bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+    <div class="title-card-art relative aspect-[2/3] overflow-hidden rounded-xl bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
       <span
         v-if="showKind"
         data-testid="kind-badge"
@@ -135,7 +135,7 @@ const hoverProviders = computed(() => {
     </p>
 
     <div class="hover-card" aria-hidden="true">
-      <div class="hover-card-art relative aspect-[16/9] overflow-hidden rounded-t-xl bg-muted">
+      <div class="hover-card-art relative aspect-[2/3] overflow-hidden rounded-t-xl bg-muted">
         <NuxtImg
           v-if="posterSrc && !imageFailed"
           :src="posterSrc"

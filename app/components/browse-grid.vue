@@ -179,13 +179,13 @@ void refresh()
 
     <div
       v-else-if="gridLoading && gridItems.length === 0"
-      class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]"
+      class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
       aria-busy="true"
     >
       <div
         v-for="index in 12"
         :key="index"
-        class="aspect-[16/9] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+        class="aspect-[2/3] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
       />
     </div>
 
@@ -196,7 +196,7 @@ void refresh()
     </div>
 
     <template v-else>
-      <div v-if="mode === 'search'" class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]" :aria-busy="gridLoading || gridLoadingMore">
+      <div v-if="mode === 'search'" class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]" :aria-busy="gridLoading || gridLoadingMore">
         <TitleCard
           v-for="title in gridItems"
           :key="`${title.kind}-${title.tmdbId}`"
@@ -218,7 +218,7 @@ void refresh()
 
       <div
         v-else
-        class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]"
+        class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
         :aria-busy="gridLoading || gridLoadingMore"
       >
         <TitleCard

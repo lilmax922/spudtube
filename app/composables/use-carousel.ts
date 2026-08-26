@@ -11,7 +11,7 @@ export interface CarouselOptions {
 }
 
 export const CAROUSEL_DEFAULTS: Required<CarouselOptions> = {
-  itemWidth: 240,
+  itemWidth: 180,
   gap: 16,
   peekRatio: 0.25,
   threshold: 2,

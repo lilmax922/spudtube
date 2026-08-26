@@ -48,14 +48,14 @@ describe('browse-carousel', () => {
 
   it('shows peek width data attribute', async () => {
     const wrapper = await mountSuspended(BrowseCarousel, {
-      props: { itemWidth: 240, peekRatio: 0.25 },
+      props: { itemWidth: 180, peekRatio: 0.25 },
       slots: {
         default: () => `<div>a</div>`,
       },
     })
 
     const root = wrapper.find('[data-carousel-state]')
-    expect(root.attributes('data-peek-width')).toBe('60')
+    expect(root.attributes('data-peek-width')).toBe('45')
   })
 
   it('scrolls by page on next click', async () => {

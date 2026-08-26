@@ -11,7 +11,7 @@ import {
 
 describe('calculatePeekWidth', () => {
   it('returns 1/4 of item width by default', () => {
-    expect(calculatePeekWidth(240, 0.25)).toBe(60)
+    expect(calculatePeekWidth(180, 0.25)).toBe(45)
     expect(calculatePeekWidth(168, 0.25)).toBe(42)
     expect(calculatePeekWidth(220, 0.25)).toBe(55)
   })
@@ -135,28 +135,28 @@ describe('getMidSnapShift', () => {
   const gap = 16
 
   it('returns 0 for non-positive viewport width', () => {
-    expect(getMidSnapShift(0, 240, gap, 0.25)).toBe(0)
-    expect(getMidSnapShift(-100, 240, gap, 0.25)).toBe(0)
+    expect(getMidSnapShift(0, 180, gap, 0.25)).toBe(0)
+    expect(getMidSnapShift(-100, 180, gap, 0.25)).toBe(0)
   })
 
-  it('1920 / item 240 → shift 72 (symmetric 56px mid peeks)', () => {
-    expect(getMidSnapShift(1920, 240, gap, 0.25)).toBe(72)
+  it('1920 / item 180 → shift 86 (symmetric 70px mid peeks)', () => {
+    expect(getMidSnapShift(1920, 180, gap, 0.25)).toBe(86)
   })
 
-  it('1280 / item 240 → shift 136 (symmetric 120px mid peeks)', () => {
-    expect(getMidSnapShift(1280, 240, gap, 0.25)).toBe(136)
+  it('1280 / item 180 → shift 60 (symmetric 44px mid peeks)', () => {
+    expect(getMidSnapShift(1280, 180, gap, 0.25)).toBe(60)
   })
 
-  it('880 / item 220 → shift 94 (symmetric 78px mid peeks)', () => {
-    expect(getMidSnapShift(880, 220, gap, 0.25)).toBe(94)
+  it('880 / item 180 → shift 56 (symmetric 40px mid peeks)', () => {
+    expect(getMidSnapShift(880, 180, gap, 0.25)).toBe(56)
   })
 
-  it('560 / item 168 → shift 104 (symmetric 88px mid peeks)', () => {
-    expect(getMidSnapShift(560, 168, gap, 0.25)).toBe(104)
+  it('560 / item 180 → shift 92 (symmetric 76px mid peeks)', () => {
+    expect(getMidSnapShift(560, 180, gap, 0.25)).toBe(92)
   })
 
   it('keeps mid peeks symmetric across viewport widths', () => {
-    const w = 240
+    const w = 180
     const step = w + gap
     for (let width = 340; width <= 2560; width += 37) {
       const shift = getMidSnapShift(width, w, gap, 0.25)
@@ -170,28 +170,28 @@ describe('getMidSnapShift', () => {
   })
 
   it('mid peek stays within half an item of the peekRatio target where geometry allows', () => {
-    // 1920: achievable symmetric peek 56 vs target 60
-    const shift = getMidSnapShift(1920, 240, gap, 0.25)
-    const step = 256
+    // 1280: achievable symmetric peek 44 vs target 45
+    const shift = getMidSnapShift(1280, 180, gap, 0.25)
+    const step = 196
     const hidden = (((step - shift) % step) + step) % step
-    expect(240 - hidden).toBe(56)
+    expect(180 - hidden).toBe(44)
   })
 })
 
 describe('getScrollAmount', () => {
-  const itemWidth = 240
+  const itemWidth = 180
   const gap = 16
-  const peek = 60
+  const peek = 45
 
   it('returns visibleCount * (itemWidth+gap) via table', () => {
-    // 1280 => 4 => 4*256=1024
-    expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(1024)
-    // 700 => 3 => 3*256=768
-    expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(768)
-    // 500 => 2 => 512
-    expect(getScrollAmount(500, itemWidth, gap, peek, 'atEnd')).toBe(512)
-    // 1920 => 6 => 1536
-    expect(getScrollAmount(1920, itemWidth, gap, peek, 'single')).toBe(1536)
+    // 1280 => 4 => 4*196=784
+    expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(784)
+    // 700 => 3 => 3*196=588
+    expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(588)
+    // 500 => 2 => 392
+    expect(getScrollAmount(500, itemWidth, gap, peek, 'atEnd')).toBe(392)
+    // 1920 => 6 => 1176
+    expect(getScrollAmount(1920, itemWidth, gap, peek, 'single')).toBe(1176)
   })
 
   it('ignores peek and state, depends only on viewport width', () => {

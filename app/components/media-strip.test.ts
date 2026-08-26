@@ -32,10 +32,11 @@ describe('media strip', () => {
     expect(wrapper.findAll('img')).toHaveLength(6)
   })
 
-  it('renders the empty state when no backdrops are available', async () => {
+  it('hides the section entirely when no backdrops are available', async () => {
     const wrapper = await mountSuspended(MediaStrip, { route: '/?probe=3', props: { paths: [] } })
 
-    expect(wrapper.text()).toContain('尚未提供劇照')
+    expect(wrapper.find('section').exists()).toBe(false)
+    expect(wrapper.text()).toBe('')
     expect(wrapper.findAll('img')).toHaveLength(0)
   })
 })

@@ -3,7 +3,7 @@ import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind, Provider } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
 import { useAvailability } from '../composables/use-availability'
@@ -43,6 +43,12 @@ const { status, pending: statusPending, set, clear: clearStatus } = useTitleStat
 const tmdbId = computed(() => detail.data.value?.tmdbId ?? null)
 const { catalog } = useAvailability(props.kind, tmdbId)
 const { region } = useRegion()
+
+const trailerOpen = ref(false)
+
+function onPlayTrailer(): void {
+  trailerOpen.value = true
+}
 
 const heroProviders = computed<Provider[]>(() => {
   const data = catalog.data.value
@@ -121,28 +127,20 @@ const failed = computed(() => {
         @set-status="onSetStatus"
         @clear-status="onClearStatus"
         @sign-in-requested="onSignInRequested"
+        @play-trailer="onPlayTrailer"
+      />
+
+      <TitleTrailer
+        v-if="detail.data.value.trailerKey"
+        v-model:open="trailerOpen"
+        :trailer-key="detail.data.value.trailerKey"
       />
 
       <div class="mx-auto w-full max-w-[1280px] px-6">
-        <div class="flex items-center gap-2 py-3">
-          <NuxtLink
-            to="/"
-            class="inline-flex min-h-10 items-center gap-1 rounded-full px-3 py-1 text-[13px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          >
-            <ArrowLeft :size="14" :stroke-width="1.75" aria-hidden="true" />
-            {{ t('detail.back') }}
-          </NuxtLink>
-        </div>
-
         <div class="grid grid-cols-1 gap-8 py-8 lg:grid-cols-[1fr_320px]">
           <div class="order-1 flex min-w-0 flex-col">
             <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
-            <TitleTrailer
-              v-if="detail.data.value.trailerKey"
-              id="trailer-section"
-              :trailer-key="detail.data.value.trailerKey"
-            />
-            <CastList :cast="detail.data.value.cast" />
+            <CastList :cast="detail.data.value.cast" :crew="detail.data.value.crew" />
             <MediaStrip :paths="detail.data.value.backdrops" />
           </div>
           <aside class="order-2 flex flex-col lg:sticky lg:top-6 lg:self-start">

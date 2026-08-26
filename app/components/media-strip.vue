@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ImageOff } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropUrl } from '../lib/images'
@@ -20,6 +19,7 @@ function pathToUrl(path: string): string | null {
 
 <template>
   <section
+    v-if="visiblePaths.length > 0"
     class="border-t border-border py-6"
     :aria-label="t('detail.media.heading')"
   >
@@ -29,10 +29,7 @@ function pathToUrl(path: string): string | null {
         {{ t('detail.media.hint') }}
       </span>
     </h2>
-    <div
-      v-if="visiblePaths.length > 0"
-      class="grid grid-cols-2 gap-2 sm:grid-cols-3"
-    >
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
       <div
         v-for="path in visiblePaths"
         :key="path"
@@ -46,13 +43,6 @@ function pathToUrl(path: string): string | null {
           loading="lazy"
         >
       </div>
-    </div>
-    <div
-      v-else
-      class="flex items-center gap-2 text-sm text-muted-foreground"
-    >
-      <ImageOff :size="14" :stroke-width="1.75" aria-hidden="true" />
-      {{ t('detail.media.empty') }}
     </div>
   </section>
 </template>

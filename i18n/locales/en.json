@@ -79,11 +79,11 @@
   "detail": {
     "loading": "Loading…",
     "error": "Couldn't load this title right now. Please try again later.",
-    "back": "Back to home",
     "trailer": "Trailer",
     "recommendations": "You might also like",
     "runtimeMinutes": "{minutes} min",
     "playTrailer": "Play trailer",
+    "close": "Close",
     "more": "MORE",
     "noStream": "Not streaming yet",
     "watchSingle": "Available on {provider}",
@@ -112,10 +112,15 @@
       "hint": "Cast",
       "fullCastLink": "Full cast & crew"
     },
+    "fullCast": {
+      "heading": "Full cast & crew",
+      "castSection": "Cast",
+      "crewSection": "Crew",
+      "other": "Other"
+    },
     "media": {
       "heading": "Media",
-      "hint": "Backdrops",
-      "empty": "No backdrops yet"
+      "hint": "Backdrops"
     },
     "keywords": {
       "heading": "Keywords",

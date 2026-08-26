@@ -1,5 +1,5 @@
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TitleTrailer from './title-trailer.vue'
 
 beforeEach(() => {
@@ -10,43 +10,62 @@ afterEach(() => {
   document.cookie = 'spudtube-locale=; Max-Age=0; Path=/'
 })
 
-describe('title trailer', () => {
-  it('embeds the YouTube iframe when a trailer key exists', async () => {
-    const wrapper = await mountSuspended(TitleTrailer, { route: '/?probe=1', props: { trailerKey: 'abc123' } })
+describe('title trailer modal', () => {
+  it('renders an autoplaying YouTube iframe in a modal when open', async () => {
+    const wrapper = await mountSuspended(TitleTrailer, {
+      route: '/?probe=1',
+      props: { open: true, trailerKey: 'abc123' },
+    })
 
-    const iframe = wrapper.find('iframe')
-    expect(iframe.exists()).toBe(true)
-    expect(iframe.attributes('src')).toContain('abc123')
-    expect(wrapper.text()).toContain('預告片')
+    const iframe = document.querySelector('iframe')
+    expect(iframe).not.toBeNull()
+    expect(iframe!.getAttribute('src')).toContain('youtube-nocookie.com/embed/abc123')
+    expect(iframe!.getAttribute('src')).toContain('autoplay=1')
+    expect(document.querySelector('[data-slot="dialog-content"]')).not.toBeNull()
+    expect(document.body.textContent).toContain('預告片')
+
+    wrapper.unmount()
   })
 
-  it('renders nothing when there is no trailer', async () => {
-    const wrapper = await mountSuspended(TitleTrailer, { route: '/?probe=2', props: { trailerKey: null } })
+  it('renders nothing when closed', async () => {
+    const wrapper = await mountSuspended(TitleTrailer, {
+      route: '/?probe=2',
+      props: { open: false, trailerKey: 'abc123' },
+    })
 
-    expect(wrapper.find('iframe').exists()).toBe(false)
-    expect(wrapper.text()).toBe('')
+    expect(document.querySelector('iframe')).toBeNull()
+    expect(document.querySelector('[data-slot="dialog-content"]')).toBeNull()
+    expect(document.body.textContent).not.toContain('預告片')
+
+    wrapper.unmount()
   })
 
-  it('uses detailSection divider and prototype heading and cleanly disappears', async () => {
-    const withTrailer = await mountSuspended(TitleTrailer, { route: '/?probe=3', props: { trailerKey: 'xyz' } })
+  it('emits update:open false when the close button is clicked', async () => {
+    const wrapper = await mountSuspended(TitleTrailer, {
+      route: '/?probe=3',
+      props: { open: true, trailerKey: 'xyz' },
+    })
 
-    const section = withTrailer.find('section')
-    expect(section.exists()).toBe(true)
-    // prototype detailSection uses border-t divider, not bg-card surface
-    expect(section.classes().join(' ')).toContain('border-t')
-    expect(section.classes().join(' ')).toContain('border-border')
-    // iframe container retains shadow for depth, but outer section is flat
-    const iframeWrap = withTrailer.find('div.aspect-video')
-    expect(iframeWrap.classes().join(' ')).toContain('rounded-lg')
-    expect(iframeWrap.classes().join(' ')).toContain('bg-black')
+    const closeButton = document.querySelector<HTMLButtonElement>('[data-slot="dialog-close-button"]')
+    expect(closeButton).not.toBeNull()
+    expect(closeButton!.getAttribute('aria-label')).toBe('關閉')
+    closeButton!.click()
 
-    const heading = withTrailer.find('h2')
-    expect(heading.classes().join(' ')).toContain('font-bold')
-    expect(heading.classes().join(' ')).toContain('uppercase')
-    expect(heading.classes().join(' ')).toContain('text-muted-foreground')
+    await vi.waitFor(() => {
+      expect(wrapper.emitted('update:open')).toEqual([[false]])
+    })
 
-    const withoutTrailer = await mountSuspended(TitleTrailer, { route: '/?probe=4', props: { trailerKey: null } })
-    expect(withoutTrailer.find('section').exists()).toBe(false)
-    expect(withoutTrailer.find('iframe').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('renders no iframe when there is no trailer key', async () => {
+    const wrapper = await mountSuspended(TitleTrailer, {
+      route: '/?probe=4',
+      props: { open: true, trailerKey: null },
+    })
+
+    expect(document.querySelector('iframe')).toBeNull()
+
+    wrapper.unmount()
   })
 })

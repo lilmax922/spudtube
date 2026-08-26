@@ -34,6 +34,7 @@ const emit = defineEmits<{
   setStatus: [status: WatchStatus]
   clearStatus: []
   signInRequested: []
+  playTrailer: []
 }>()
 
 const { t } = useI18n()
@@ -65,10 +66,7 @@ const writer = computed<CrewMember | null>(() => {
 function playTrailer(): void {
   if (!hasTrailer.value)
     return
-  const target = document.getElementById('trailer-section')
-  if (target) {
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  emit('playTrailer')
 }
 
 const providerDotColors = ['#0ea5e9', '#22c55e', '#eab308', '#a855f7', '#f43f5e']

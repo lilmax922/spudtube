@@ -79,11 +79,11 @@
   "detail": {
     "loading": "載入中…",
     "error": "暫時無法取得資料，請稍後再試。",
-    "back": "返回首頁",
     "trailer": "預告片",
     "recommendations": "你可能也會喜歡",
     "runtimeMinutes": "{minutes} 分鐘",
     "playTrailer": "播放預告",
+    "close": "關閉",
     "more": "MORE",
     "noStream": "尚未提供串流",
     "watchSingle": "可在 {provider} 觀看",
@@ -112,10 +112,15 @@
       "hint": "Top Billed Cast",
       "fullCastLink": "完整演員與工作人員"
     },
+    "fullCast": {
+      "heading": "完整演員與工作人員",
+      "castSection": "演員",
+      "crewSection": "工作人員",
+      "other": "其他"
+    },
     "media": {
       "heading": "劇照",
-      "hint": "Backdrops",
-      "empty": "尚未提供劇照"
+      "hint": "Backdrops"
     },
     "keywords": {
       "heading": "關鍵字",

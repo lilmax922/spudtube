@@ -1,6 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MOVIE_DETAIL, MOVIE_WITHOUT_ARTWORK } from '../lib/title-detail-fixtures'
 import TitleIdentityBlock from './title-identity-block.vue'
 
@@ -204,21 +204,14 @@ describe('title identity block', () => {
     expect(wrapper.text()).toContain('+2')
   })
 
-  it('renders a play-trailer button that scrolls to the trailer section when trailer exists', async () => {
-    const scrollSpy = vi.spyOn(Element.prototype, 'scrollIntoView')
+  it('emits playTrailer when the play button is clicked and a trailer exists', async () => {
     const wrapper = await render(MOVIE_DETAIL, '/?probe=18')
 
-    const target = document.createElement('section')
-    target.id = 'trailer-section'
-    document.body.appendChild(target)
-    try {
-      await wrapper.findAll('button').find(button => button.attributes('aria-label') === '播放預告')!.trigger('click')
-      expect(scrollSpy).toHaveBeenCalled()
-    }
-    finally {
-      target.remove()
-      scrollSpy.mockRestore()
-    }
+    const playButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '播放預告')
+    expect(playButton).toBeDefined()
+    await playButton!.trigger('click')
+
+    expect(wrapper.emitted('playTrailer')).toHaveLength(1)
   })
 
   it('omits the play-trailer button when there is no trailer', async () => {

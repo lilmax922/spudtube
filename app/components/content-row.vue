@@ -76,21 +76,4 @@ onBeforeUnmount(() => {
 .content-row:hover :deep(.browse-carousel-viewport) {
   z-index: 5;
 }
-
-.content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:first-child .hover-card) {
-  left: 0;
-  right: -48px;
-}
-
-.content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:last-child .hover-card) {
-  left: -48px;
-  right: 0;
-}
-
-@media (max-width: 560px) {
-  .content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:first-child .hover-card),
-  .content-row :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:last-child .hover-card) {
-    display: none;
-  }
-}
 </style>

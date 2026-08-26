@@ -120,42 +120,8 @@ const hoverProviders = computed(() => {
         <span class="line-clamp-3 text-xs leading-snug">{{ title.name }}</span>
       </div>
 
-      <div class="title-card-hover-bar">
-        <span class="inline-flex items-center gap-1 rounded-full bg-background/70 px-2 py-0.5 text-[11px] font-bold text-foreground backdrop-blur">
-          <span aria-hidden="true">★</span> {{ ratingText }}
-        </span>
-      </div>
-    </div>
-
-    <h3 class="mt-2 line-clamp-2 text-sm font-medium text-foreground">
-      {{ title.name }}
-    </h3>
-    <p v-if="year" class="mt-0.5 text-xs tabular-nums text-muted-foreground">
-      {{ year }}
-    </p>
-
-    <div class="hover-card" aria-hidden="true">
-      <div class="hover-card-art relative aspect-[2/3] overflow-hidden rounded-t-xl bg-muted">
-        <NuxtImg
-          v-if="posterSrc && !imageFailed"
-          :src="posterSrc"
-          :srcset="posterSrcSet(props.title.posterPath)"
-          sizes="180px sm:240px md:320px"
-          :alt="title.name"
-          loading="lazy"
-          decoding="async"
-          class="h-full w-full object-cover"
-        />
-        <div
-          v-else
-          class="flex h-full w-full items-center justify-center bg-muted text-muted-foreground"
-        >
-          <Clapperboard :size="28" :stroke-width="1.75" aria-hidden="true" />
-        </div>
-      </div>
-
-      <div class="hover-card-body flex flex-col gap-2 bg-popover p-4 text-popover-foreground">
-        <div class="hover-card-title line-clamp-2 text-[17px] font-extrabold leading-tight tracking-tight">
+      <div class="hover-overlay-content">
+        <div class="line-clamp-2 text-[13px] font-bold leading-tight tracking-tight">
           {{ title.name }}
         </div>
 
@@ -170,12 +136,11 @@ const hoverProviders = computed(() => {
             :title="provider.name"
             loading="lazy"
             decoding="async"
-            class="h-6 w-6 rounded-md bg-muted object-contain p-0.5"
+            class="h-5 w-5 rounded bg-muted object-contain p-0.5"
           />
         </div>
 
-        <div class="hover-card-meta flex flex-wrap items-center gap-1.5 text-[11.5px] font-medium">
-          <span v-if="discoveryBadge" class="rounded bg-primary px-1.5 py-0.5 text-[9px] font-extrabold tracking-widest text-primary-foreground">{{ discoveryBadge }}</span>
+        <div class="flex flex-wrap items-center gap-1 text-[10px] font-medium">
           <span v-if="year">{{ year }}</span>
           <span>·</span>
           <span class="inline-flex items-center gap-1"><span aria-hidden="true">★</span> {{ ratingText }}</span>
@@ -183,31 +148,71 @@ const hoverProviders = computed(() => {
           <span>{{ kindLabel }}</span>
         </div>
 
-        <p v-if="hoverDescription" class="hover-card-desc line-clamp-2 text-[12.5px] leading-relaxed text-muted-foreground">
+        <p v-if="hoverDescription" class="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
           {{ hoverDescription }}
         </p>
       </div>
     </div>
+
+    <div class="hover-card" aria-hidden="true" />
   </NuxtLink>
 </template>
 
 <style scoped>
 .title-card-root {
   z-index: 1;
+  transition: box-shadow 0.22s;
 }
 .title-card-root:hover {
   z-index: 40;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
 }
 
 .title-card-art {
   isolation: isolate;
+}
+.title-card-art::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  top: auto;
+  height: 60%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0) 100%);
+  opacity: 0;
+  transition: opacity 0.22s;
+  z-index: 2;
+  pointer-events: none;
+}
+.group\/title-card:hover .title-card-art::before {
+  opacity: 1;
+}
+
+.hover-overlay-content {
+  position: absolute;
+  inset: 0;
+  top: auto;
+  height: 60%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 12px;
+  z-index: 3;
+  color: #fff;
+  overflow-wrap: anywhere;
+  opacity: 0;
+  transition: opacity 0.22s;
+  pointer-events: none;
+}
+.group\/title-card:hover .hover-overlay-content {
+  opacity: 1;
 }
 
 .discovery-badge {
   position: absolute;
   top: 0;
   right: 0;
-  z-index: 2;
+  z-index: 4;
   background: var(--primary);
   color: var(--primary-foreground);
   font-size: 10px;
@@ -220,68 +225,15 @@ const hoverProviders = computed(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
-.title-card-hover-bar {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  padding: 10px 10px 8px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  opacity: 0;
-  transition: opacity 0.2s;
-  z-index: 2;
-}
-.group\/title-card:hover .title-card-hover-bar {
-  opacity: 1;
-}
-
 .hover-card {
-  position: absolute;
-  top: -14px;
-  left: -24px;
-  right: -24px;
-  bottom: auto;
-  min-height: calc(100% + 28px);
-  background: var(--popover);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(8px) scale(0.96);
-  transition: opacity 0.22s, visibility 0.22s, transform 0.22s;
-  z-index: 50;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
-  display: flex;
-  flex-direction: column;
-  pointer-events: none;
-}
-
-.group\/title-card:hover .hover-card {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-
-.hover-card-title {
-  overflow-wrap: anywhere;
-}
-
-.hover-card-desc {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: none;
 }
 
 @media (max-width: 560px) {
-  .hover-card {
-    display: none;
+  .title-card-root:hover {
+    box-shadow: none;
   }
-  .title-card-hover-bar {
+  .hover-overlay-content {
     display: none;
   }
 }

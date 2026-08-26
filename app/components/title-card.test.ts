@@ -163,7 +163,7 @@ describe('title-card hover content', () => {
     expect(withOverview.text()).toContain('亞崔迪家族接受沙丘星的統治權。')
 
     const withoutOverview = await render()
-    expect(withoutOverview.find('.hover-card-desc').exists()).toBe(false)
+    expect(withoutOverview.find('.hover-overlay-content p').exists()).toBe(false)
     expect(withoutOverview.text()).not.toContain('它可能已從目錄中移除')
   })
 

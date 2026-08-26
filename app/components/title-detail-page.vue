@@ -14,7 +14,6 @@ import { useTitleStatus } from '../composables/use-title-status'
 import { authClient, signIn } from '../lib/auth-client'
 import AvailabilityPanel from './availability-panel.vue'
 import CastList from './cast-list.vue'
-import KeywordsPanel from './keywords-panel.vue'
 import MediaStrip from './media-strip.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
 import TitleFactsPanel from './title-facts-panel.vue'
@@ -145,7 +144,6 @@ const failed = computed(() => {
           </div>
           <aside class="order-2 flex flex-col lg:sticky lg:top-6 lg:self-start">
             <TitleFactsPanel :detail="detail.data.value" />
-            <KeywordsPanel :keywords="detail.data.value.keywords" />
           </aside>
         </div>
       </div>

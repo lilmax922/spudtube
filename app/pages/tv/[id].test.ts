@@ -80,7 +80,7 @@ describe('tv detail route', () => {
     })
   })
 
-  it('renders cast, keywords and tv-only facts (no budget / revenue)', async () => {
+  it('renders cast and tv-only facts (no budget / revenue)', async () => {
     registerEndpoints(94605)
 
     const wrapper = await renderPage('/tv/94605')
@@ -90,8 +90,9 @@ describe('tv detail route', () => {
 
     expect(wrapper.text()).toContain('主要演員')
     expect(wrapper.text()).toContain('Vi')
-    expect(wrapper.text()).toContain('關鍵字')
-    expect(wrapper.text()).toContain('steampunk')
+    // keywords section is removed from the detail page
+    expect(wrapper.text()).not.toContain('關鍵字')
+    expect(wrapper.text()).not.toContain('steampunk')
     expect(wrapper.text()).toContain('分級')
     expect(wrapper.text()).toContain('TV-MA')
     // tv detail must not render movie-only rows

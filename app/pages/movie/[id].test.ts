@@ -145,7 +145,7 @@ describe('movie detail route', () => {
     })
   })
 
-  it('renders the cast, media, keywords, extended facts and provider dots', async () => {
+  it('renders the cast, media, extended facts and provider dots', async () => {
     registerEndpoints(419430)
 
     const wrapper = await renderPage('/movie/419430')
@@ -166,10 +166,8 @@ describe('movie detail route', () => {
       .filter((src): src is string => src != null && src.includes('w1280'))
     expect(backdropImages.length).toBeGreaterThanOrEqual(2)
 
-    // keywords
-    expect(wrapper.text()).toContain('關鍵字')
-    expect(wrapper.text()).toContain('based on novel')
-    expect(wrapper.text()).toContain('desert')
+    // keywords section is removed from the detail page
+    expect(wrapper.text()).not.toContain('關鍵字')
 
     // facts panel extended fields
     expect(wrapper.text()).toContain('原名')

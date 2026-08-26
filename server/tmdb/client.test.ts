@@ -249,7 +249,7 @@ const MOVIE_DETAIL_UNTRANSLATED = {
 }
 
 describe('tmdb client — title detail', () => {
-  it('fetches movie detail with videos, translations, credits, keywords, images and release dates appended', async () => {
+  it('fetches movie detail with videos, translations, credits, images and release dates appended', async () => {
     const { fetchJson, requests } = createFakeTransport({
       '/3/movie/419430': MOVIE_DETAIL,
     })
@@ -262,7 +262,7 @@ describe('tmdb client — title detail', () => {
       headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
       params: {
         language: 'zh-TW',
-        append_to_response: 'videos,translations,credits,keywords,images,release_dates',
+        append_to_response: 'videos,translations,credits,images,release_dates',
       },
     })
     expect(detail).toEqual({
@@ -289,7 +289,6 @@ describe('tmdb client — title detail', () => {
       contentRating: null,
       cast: [],
       crew: [],
-      keywords: [],
       backdrops: [],
     })
   })
@@ -302,7 +301,7 @@ describe('tmdb client — title detail', () => {
 
     const detail = await client.title('TV_SHOW', 94605)
 
-    expect(requests[0]?.params.append_to_response).toBe('videos,translations,credits,keywords,images,content_ratings')
+    expect(requests[0]?.params.append_to_response).toBe('videos,translations,credits,images,content_ratings')
     expect(detail).toMatchObject({
       kind: 'TV_SHOW',
       tmdbId: 94605,
@@ -315,7 +314,7 @@ describe('tmdb client — title detail', () => {
     })
   })
 
-  it('extracts cast sorted by order, crew roles, keywords and backdrop paths', async () => {
+  it('extracts cast sorted by order, crew roles and backdrop paths', async () => {
     const { fetchJson } = createFakeTransport({
       '/3/movie/419430': {
         ...MOVIE_DETAIL,
@@ -329,7 +328,6 @@ describe('tmdb client — title detail', () => {
             { id: 98, name: 'Jon', job: 'Writer', department: 'Writing' },
           ],
         },
-        keywords: { keywords: [{ id: 1, name: 'desert' }, { id: 2, name: 'epic' }] },
         images: { backdrops: [{ file_path: '/bg1.jpg' }, { file_path: '/bg2.jpg' }] },
       },
     })
@@ -339,7 +337,6 @@ describe('tmdb client — title detail', () => {
 
     expect(detail?.cast.map(c => c.name)).toEqual(['First', 'Second'])
     expect(detail?.crew.map(c => c.job)).toEqual(['Director', 'Writer'])
-    expect(detail?.keywords).toEqual(['desert', 'epic'])
     expect(detail?.backdrops).toEqual(['/bg1.jpg', '/bg2.jpg'])
   })
 

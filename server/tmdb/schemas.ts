@@ -80,16 +80,6 @@ const rawCreditsSchema = z.object({
   crew: z.array(rawCrewMemberSchema).default([]),
 })
 
-const rawKeywordSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-})
-
-const rawKeywordsSchema = z.object({
-  keywords: z.array(rawKeywordSchema).optional(),
-  results: z.array(rawKeywordSchema).optional(),
-})
-
 const rawImageSchema = z.object({
   file_path: z.string(),
   aspect_ratio: z.number().optional(),
@@ -157,7 +147,6 @@ export const rawMovieDetailSchema = z.object({
     })
     .optional(),
   credits: rawCreditsSchema.optional(),
-  keywords: rawKeywordsSchema.optional(),
   images: rawImagesSchema.optional(),
   release_dates: rawReleaseDatesSchema.optional(),
 })
@@ -192,7 +181,6 @@ export const rawTvDetailSchema = z.object({
     })
     .optional(),
   credits: rawCreditsSchema.optional(),
-  keywords: rawKeywordsSchema.optional(),
   images: rawImagesSchema.optional(),
   content_ratings: rawContentRatingsSchema.optional(),
 })

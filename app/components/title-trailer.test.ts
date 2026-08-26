@@ -8,21 +8,38 @@ beforeEach(() => {
 
 afterEach(() => {
   document.cookie = 'spudtube-locale=; Max-Age=0; Path=/'
+  // drop any leftover dialog portals so tests stay isolated
+  document.querySelectorAll('[data-slot="dialog-overlay"], [data-slot="dialog-content"]')
+    .forEach(node => node.remove())
 })
 
-describe('title trailer modal', () => {
-  it('renders an autoplaying YouTube iframe in a modal when open', async () => {
+describe('title trailer overlay', () => {
+  it('plays an autoplaying YouTube iframe on a bare overlay when open', async () => {
     const wrapper = await mountSuspended(TitleTrailer, {
       route: '/?probe=1',
       props: { open: true, trailerKey: 'abc123' },
     })
 
+    const content = document.querySelector('[data-slot="dialog-content"]')
+    expect(content).not.toBeNull()
+    // lightbox chrome is stripped: transparent surface, no border, no shadow
+    expect(content!.className).toContain('bg-transparent')
+    expect(content!.className).toContain('border-0')
+    expect(content!.className).toContain('shadow-none')
+
     const iframe = document.querySelector('iframe')
     expect(iframe).not.toBeNull()
     expect(iframe!.getAttribute('src')).toContain('youtube-nocookie.com/embed/abc123')
     expect(iframe!.getAttribute('src')).toContain('autoplay=1')
-    expect(document.querySelector('[data-slot="dialog-content"]')).not.toBeNull()
-    expect(document.body.textContent).toContain('預告片')
+
+    // accessible name survives without a visible header
+    const title = document.querySelector('[data-slot="dialog-title"]')
+    expect(title?.textContent).toContain('預告片')
+
+    // responsive width keeps 16:9 inside both viewport axes
+    const videoBox = document.querySelector('[data-slot="dialog-content"] > div.relative')
+    expect(videoBox).not.toBeNull()
+    expect(videoBox!.className).toContain('w-[min(1120px')
 
     wrapper.unmount()
   })
@@ -35,18 +52,17 @@ describe('title trailer modal', () => {
 
     expect(document.querySelector('iframe')).toBeNull()
     expect(document.querySelector('[data-slot="dialog-content"]')).toBeNull()
-    expect(document.body.textContent).not.toContain('預告片')
 
     wrapper.unmount()
   })
 
-  it('emits update:open false when the close button is clicked', async () => {
+  it('emits update:open false when the floating close button is clicked', async () => {
     const wrapper = await mountSuspended(TitleTrailer, {
       route: '/?probe=3',
       props: { open: true, trailerKey: 'xyz' },
     })
 
-    const closeButton = document.querySelector<HTMLButtonElement>('[data-slot="dialog-close-button"]')
+    const closeButton = document.querySelector<HTMLButtonElement>('[data-slot="dialog-close"]')
     expect(closeButton).not.toBeNull()
     expect(closeButton!.getAttribute('aria-label')).toBe('關閉')
     closeButton!.click()

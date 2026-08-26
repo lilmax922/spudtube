@@ -132,13 +132,6 @@ export function mapCrew(raw: z.infer<typeof rawMovieDetailSchema>['credits']): C
   }))
 }
 
-export function mapKeywords(raw: z.infer<typeof rawMovieDetailSchema>['keywords']): string[] {
-  if (!raw)
-    return []
-  const list = raw.keywords ?? raw.results ?? []
-  return list.map(keyword => keyword.name)
-}
-
 export function mapBackdrops(raw: z.infer<typeof rawMovieDetailSchema>['images']): string[] {
   if (!raw)
     return []
@@ -204,7 +197,6 @@ export function mapMovieDetail(
     contentRating: pickContentRating(raw.release_dates, undefined),
     cast: mapCast(raw.credits),
     crew: mapCrew(raw.credits),
-    keywords: mapKeywords(raw.keywords),
     backdrops: mapBackdrops(raw.images),
   }
 }
@@ -234,7 +226,6 @@ export function mapTvDetail(
     contentRating: pickContentRating(undefined, raw.content_ratings),
     cast: mapCast(raw.credits),
     crew: mapCrew(raw.credits),
-    keywords: mapKeywords(raw.keywords),
     backdrops: mapBackdrops(raw.images),
   }
 }

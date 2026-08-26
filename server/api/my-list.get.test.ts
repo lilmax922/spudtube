@@ -66,7 +66,6 @@ describe('gET /api/my-list (seam S2)', () => {
       contentRating: null,
       cast: [],
       crew: [],
-      keywords: [],
       backdrops: [],
     }
   }

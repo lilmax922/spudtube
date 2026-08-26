@@ -30,7 +30,6 @@ export const MOVIE_DETAIL: TitleDetail = {
     { id: 12538, name: 'Denis Villeneuve', job: 'Director', department: 'Directing' },
     { id: 578, name: 'Jon Spaihts', job: 'Writer', department: 'Writing' },
   ],
-  keywords: ['based on novel', 'desert', 'space opera'],
   backdrops: ['/iopYFB1b6Bh7FWZh3onQhfhYyVq.jpg', '/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg'],
 }
 
@@ -65,7 +64,6 @@ export const TV_DETAIL: TitleDetail = {
     { id: 1226166, name: 'Hailee Steinfeld', character: 'Vi', profilePath: '/bWx6UvLBbW4n1tNHGwbjpqQOZB.jpg' },
   ],
   crew: [],
-  keywords: ['steampunk', 'sisters'],
   backdrops: [],
 }
 
@@ -90,7 +88,6 @@ export const MOVIE_WITHOUT_ARTWORK: TitleDetail = {
   contentRating: null,
   cast: [],
   crew: [],
-  keywords: [],
   backdrops: [],
 }
 

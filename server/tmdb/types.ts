@@ -52,7 +52,6 @@ export interface TitleDetail extends TitleSummary {
   contentRating: string | null
   cast: CastMember[]
   crew: CrewMember[]
-  keywords: string[]
   backdrops: string[]
 }
 

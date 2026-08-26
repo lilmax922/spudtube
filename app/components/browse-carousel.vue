@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { CarouselApi } from '@/components/ui/carousel'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { Carousel, CarouselContent } from '@/components/ui/carousel'
-import { calculatePeekWidth, getBrowseVisibleCount } from '../composables/use-carousel'
+import { calculatePeekWidth, getBrowseVisibleCount, getMidSnapShift } from '../composables/use-carousel'
 
 interface Props {
   ariaLabel?: string
@@ -25,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const peekWidth = computed(() => calculatePeekWidth(props.itemWidth, props.peekRatio))
 
+const outerRef = shallowRef<HTMLElement | null>(null)
 const carouselApi = ref<CarouselApi | undefined>(undefined)
 const canScrollPrev = ref(false)
 const canScrollNext = ref(false)
@@ -46,6 +47,26 @@ const state = computed<CarouselState>(() => {
 const isAtStart = computed(() => state.value === 'atStart' || state.value === 'single')
 const isAtEnd = computed(() => state.value === 'atEnd' || state.value === 'single')
 
+const viewportWidth = ref(typeof window === 'undefined' ? 1920 : window.innerWidth)
+const visibleCount = computed(() => getBrowseVisibleCount(viewportWidth.value))
+
+function measureItemWidth(): number {
+  const el = outerRef.value?.querySelector('[data-slot="carousel-item"]')
+  const w = el?.getBoundingClientRect().width ?? 0
+  return w > 0 ? w : props.itemWidth
+}
+
+// Group snaps are item-offset aligned; getMidSnapShift shifts them by a constant
+// so mid-scroll positions clip both edge items symmetrically (~peekRatio).
+// Start/end snaps are re-clamped to the scroll bounds by containScroll:'trimSnaps'.
+const carouselOpts = {
+  align: (viewSize: number) => getMidSnapShift(viewSize, measureItemWidth(), props.gap, props.peekRatio),
+  containScroll: 'trimSnaps' as const,
+  slidesToScroll: visibleCount.value,
+  dragFree: false,
+  skipSnaps: false,
+}
+
 function onInitApi(api: CarouselApi | undefined): void {
   if (!api)
     return
@@ -62,63 +83,51 @@ function onInitApi(api: CarouselApi | undefined): void {
 
 function scrollBy(direction: 'prev' | 'next'): void {
   const api = carouselApi.value as unknown as {
-    canScrollPrev: () => boolean
-    canScrollNext: () => boolean
-    selectedScrollSnap: () => number
-    scrollSnapList: () => number[]
-    scrollTo: (idx: number) => void
-    rootNode: () => HTMLElement
-    containerNode: () => HTMLElement
+    scrollPrev: () => void
+    scrollNext: () => void
   } | undefined
   if (!api)
     return
-
-  let viewportWidth = 0
-  try {
-    viewportWidth = api.rootNode()?.clientWidth ?? 0
-  }
-  catch {
-    viewportWidth = 0
-  }
-  if (viewportWidth === 0 && typeof document !== 'undefined') {
-    const el = document.querySelector('[data-slot="carousel-content"]') as HTMLElement | null
-    viewportWidth = el?.clientWidth ?? 0
-  }
-
-  const visible = getBrowseVisibleCount(viewportWidth)
-  const step = Math.max(1, visible)
-
-  const snaps = api.scrollSnapList()
-  const currentIdx = api.selectedScrollSnap()
-  const target = direction === 'next'
-    ? Math.min(currentIdx + step, snaps.length - 1)
-    : Math.max(currentIdx - step, 0)
-
-  api.scrollTo(target)
+  if (direction === 'next')
+    api.scrollNext()
+  else
+    api.scrollPrev()
 }
 
-const carouselOpts = computed(() => ({
-  align: 'start' as const,
-  containScroll: 'trimSnaps' as const,
-  slidesToScroll: 1 as const,
-  dragFree: false,
-  skipSnaps: false,
-}))
+function onWindowResize(): void {
+  viewportWidth.value = window.innerWidth
+}
 
-const phantomStyle = computed(() => ({
-  width: `${props.paddingLeft}px`,
-  marginRight: `-${props.gap}px`,
-}))
+// slidesToScroll / gutter feed Embla measurements; re-init after Vue patches styles.
+watch([visibleCount, () => props.paddingLeft], async () => {
+  await nextTick()
+  const api = carouselApi.value as unknown as { reInit: (opts: Record<string, unknown>) => void } | undefined
+  api?.reInit({ slidesToScroll: visibleCount.value })
+})
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize)
+})
 
 const contentStyle = computed(() => ({
-  paddingRight: `${props.paddingLeft}px`,
+  paddingLeft: `${props.paddingLeft}px`,
+}))
+
+const outerStyle = computed(() => ({
+  '--browse-gutter': `${props.paddingLeft}px`,
 }))
 </script>
 
 <template>
   <div
+    ref="outerRef"
     class="group/carousel browse-carousel-outer relative"
     :class="breakout ? 'browse-carousel-outer--breakout' : ''"
+    :style="outerStyle"
     :data-carousel-state="state"
     :data-peek-width="peekWidth"
     :data-carousel-padding="paddingLeft"
@@ -137,7 +146,6 @@ const contentStyle = computed(() => ({
         role="region"
         tabindex="0"
       >
-        <div class="carousel-phantom shrink-0" :style="phantomStyle" aria-hidden="true" />
         <slot />
       </CarouselContent>
     </Carousel>
@@ -181,12 +189,10 @@ const contentStyle = computed(() => ({
   overflow: visible;
 }
 
-.browse-carousel-viewport {
-  /* embla viewport already has overflow-x-hidden overflow-y-visible via CarouselContent */
-  /* keep hover trick for legacy browsers but with visible y it's less needed */
-  padding-bottom: 300px;
-  margin-bottom: -280px;
-  -webkit-overflow-scrolling: touch;
+/* Trailing gutter: Embla reads the last slide's margin-right as endGap,
+   so the atEnd snap parks the last item one gutter short of the right edge. */
+.browse-carousel-outer :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:last-child) {
+  margin-right: var(--browse-gutter);
 }
 
 :deep([data-slot="carousel-content"])::-webkit-scrollbar {

@@ -4,6 +4,7 @@ import {
   calculatePeekWidth,
   getBrowseVisibleCount,
   getCarouselState,
+  getMidSnapShift,
   getScrollAmount,
   getVisibleCount,
 } from './use-carousel'
@@ -127,6 +128,53 @@ describe('getVisibleCount', () => {
 
   it('returns at least 1 for narrow viewport', () => {
     expect(getVisibleCount(100, itemWidth, gap, peek, 'atStart')).toBe(1)
+  })
+})
+
+describe('getMidSnapShift', () => {
+  const gap = 16
+
+  it('returns 0 for non-positive viewport width', () => {
+    expect(getMidSnapShift(0, 240, gap, 0.25)).toBe(0)
+    expect(getMidSnapShift(-100, 240, gap, 0.25)).toBe(0)
+  })
+
+  it('1920 / item 240 → shift 72 (symmetric 56px mid peeks)', () => {
+    expect(getMidSnapShift(1920, 240, gap, 0.25)).toBe(72)
+  })
+
+  it('1280 / item 240 → shift 136 (symmetric 120px mid peeks)', () => {
+    expect(getMidSnapShift(1280, 240, gap, 0.25)).toBe(136)
+  })
+
+  it('880 / item 220 → shift 94 (symmetric 78px mid peeks)', () => {
+    expect(getMidSnapShift(880, 220, gap, 0.25)).toBe(94)
+  })
+
+  it('560 / item 168 → shift 104 (symmetric 88px mid peeks)', () => {
+    expect(getMidSnapShift(560, 168, gap, 0.25)).toBe(104)
+  })
+
+  it('keeps mid peeks symmetric across viewport widths', () => {
+    const w = 240
+    const step = w + gap
+    for (let width = 340; width <= 2560; width += 37) {
+      const shift = getMidSnapShift(width, w, gap, 0.25)
+      const hidden = (((step - shift) % step) + step) % step
+      const visibleLeft = w - hidden
+      const visibleRight = (hidden + width) % step
+      expect(Math.abs(visibleLeft - visibleRight), `width ${width}`).toBeLessThanOrEqual(1)
+      expect(visibleLeft, `width ${width}`).toBeGreaterThanOrEqual(0)
+      expect(visibleLeft, `width ${width}`).toBeLessThanOrEqual(w)
+    }
+  })
+
+  it('mid peek stays within half an item of the peekRatio target where geometry allows', () => {
+    // 1920: achievable symmetric peek 56 vs target 60
+    const shift = getMidSnapShift(1920, 240, gap, 0.25)
+    const step = 256
+    const hidden = (((step - shift) % step) + step) % step
+    expect(240 - hidden).toBe(56)
   })
 })
 

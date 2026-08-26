@@ -16,7 +16,7 @@ const { carouselRef, orientation } = useCarousel()
   <div
     ref="carouselRef"
     data-slot="carousel-content"
-    class="overflow-x-hidden overflow-y-visible"
+    class="overflow-x-clip overflow-y-visible"
     style="scrollbar-width: none; -ms-overflow-style: none;"
   >
     <div

@@ -79,6 +79,7 @@ describe('tmdb client — searchMulti', () => {
           releaseDate: '2021-10-22',
           voteAverage: 7.805,
           genreIds: [],
+          overview: 'Paul Atreides，亞崔迪家族的繼承人…',
         },
         {
           kind: 'TV_SHOW',
@@ -89,6 +90,7 @@ describe('tmdb client — searchMulti', () => {
           releaseDate: '2024-11-17',
           voteAverage: 0.714,
           genreIds: [],
+          overview: '萬年前的姊妹會故事。',
         },
       ],
     })
@@ -167,6 +169,7 @@ describe('tmdb client — discover', () => {
         releaseDate: '2024-02-27',
         voteAverage: 8.12,
         genreIds: [],
+        overview: null,
       },
     ])
   })
@@ -182,6 +185,72 @@ describe('tmdb client — discover', () => {
     expect(requests[0]?.url).toBe('https://api.themoviedb.org/3/discover/tv')
     expect(requests[0]?.params).toEqual({ sort_by: 'popularity.desc', page: '1', language: 'zh-TW' })
     expect(page.results[0]).toMatchObject({ kind: 'TV_SHOW', tmdbId: 94605, name: 'Arcane' })
+  })
+})
+
+describe('tmdb client — trending', () => {
+  it('reads the weekly trending list for the kind and language', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/trending/movie/week': DISCOVER_MOVIE_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const page = await client.trending('MOVIE', 2, 'en')
+
+    expect(requests[0]).toEqual({
+      url: 'https://api.themoviedb.org/3/trending/movie/week',
+      headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+      params: { page: '2', language: 'en' },
+    })
+    expect(page.results[0]).toMatchObject({ kind: 'MOVIE', tmdbId: 693134, name: '沙丘：第二部' })
+  })
+
+  it('serves repeat reads from the ttl cache without refetching', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/trending/tv/week': DISCOVER_TV_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    await client.trending('TV_SHOW')
+    await client.trending('TV_SHOW')
+
+    expect(requests).toHaveLength(1)
+  })
+})
+
+describe('tmdb client — topRated', () => {
+  it('reads the kind-scoped top rated list with paging params', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/tv/top_rated': DISCOVER_TV_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const page = await client.topRated('TV_SHOW', 3)
+
+    expect(requests[0]).toEqual({
+      url: 'https://api.themoviedb.org/3/tv/top_rated',
+      headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+      params: { page: '3', language: 'zh-TW' },
+    })
+    expect(page.results[0]).toMatchObject({ kind: 'TV_SHOW', tmdbId: 94605, name: 'Arcane' })
+  })
+
+  it('caches independently per kind segment', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/movie/top_rated': DISCOVER_MOVIE_PAGE,
+      '/3/tv/top_rated': DISCOVER_TV_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    await client.topRated('MOVIE')
+    await client.topRated('MOVIE')
+    await client.topRated('TV_SHOW')
+
+    expect(requests).toHaveLength(2)
+    expect(requests.map(request => request.url)).toEqual([
+      'https://api.themoviedb.org/3/movie/top_rated',
+      'https://api.themoviedb.org/3/tv/top_rated',
+    ])
   })
 })
 

@@ -18,6 +18,12 @@ export interface TitleSummary {
   releaseDate: string | null
   voteAverage: number | null
   genreIds?: number[]
+  overview?: string | null
+}
+
+export interface DiscoveryBadges {
+  trendingIds: number[]
+  topRatedIds: number[]
 }
 
 export interface Genre {

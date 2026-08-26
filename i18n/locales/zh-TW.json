@@ -10,6 +10,12 @@
     "empty": "沒有符合條件的片單",
     "error": "載入片單時發生錯誤"
   },
+  "card": {
+    "badges": {
+      "trending": "本週熱門",
+      "topRated": "高評價"
+    }
+  },
   "search": {
     "sectionLabel": "搜尋結果",
     "label": "搜尋",

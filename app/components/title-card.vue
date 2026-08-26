@@ -6,9 +6,8 @@ import { useI18n } from 'vue-i18n'
 import { useAvailability } from '../composables/use-availability'
 import { useDiscoveryBadges } from '../composables/use-discovery-badges'
 import { useRegion } from '../composables/use-region'
-import { providerLogoUrl } from '../lib/images'
+import { posterSrcSet, posterUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
-import { posterUrl } from '../lib/tmdb-image'
 
 const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean, overview?: string }>(), {
   showKind: false,
@@ -102,14 +101,17 @@ const hoverProviders = computed(() => {
         {{ discoveryBadge }}
       </span>
 
-      <img
+      <NuxtImg
         v-if="posterSrc && !imageFailed"
         :src="posterSrc"
+        :srcset="posterSrcSet(props.title.posterPath)"
+        sizes="180px sm:240px md:320px"
         :alt="title.name"
         loading="lazy"
+        decoding="async"
         class="h-full w-full object-cover transition-transform duration-300 group-hover/title-card:scale-105"
         @error="imageFailed = true"
-      >
+      />
       <div
         v-else
         class="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center text-muted-foreground"
@@ -134,13 +136,16 @@ const hoverProviders = computed(() => {
 
     <div class="hover-card" aria-hidden="true">
       <div class="hover-card-art relative aspect-[16/9] overflow-hidden rounded-t-xl bg-muted">
-        <img
+        <NuxtImg
           v-if="posterSrc && !imageFailed"
           :src="posterSrc"
+          :srcset="posterSrcSet(props.title.posterPath)"
+          sizes="180px sm:240px md:320px"
           :alt="title.name"
           loading="lazy"
+          decoding="async"
           class="h-full w-full object-cover"
-        >
+        />
         <div
           v-else
           class="flex h-full w-full items-center justify-center bg-muted text-muted-foreground"
@@ -155,15 +160,18 @@ const hoverProviders = computed(() => {
         </div>
 
         <div v-if="hoverProviders.length > 0" data-testid="provider-strip" class="flex items-center gap-1.5">
-          <img
+          <NuxtImg
             v-for="provider in hoverProviders"
             :key="provider.id"
             :src="providerLogoUrl(provider.logoPath) ?? undefined"
+            :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
+            sizes="24px"
             :alt="provider.name"
             :title="provider.name"
             loading="lazy"
+            decoding="async"
             class="h-6 w-6 rounded-md bg-muted object-contain p-0.5"
-          >
+          />
         </div>
 
         <div class="hover-card-meta flex flex-wrap items-center gap-1.5 text-[11.5px] font-medium">

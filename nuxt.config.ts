@@ -3,7 +3,7 @@ import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-08-23',
-  modules: ['@nuxt/eslint', '@nuxtjs/i18n', '@nuxt/test-utils/module'],
+  modules: ['@nuxt/eslint', '@nuxt/image', '@nuxtjs/i18n', '@nuxt/test-utils/module'],
   css: ['~/assets/css/tailwind.css'],
   vite: {
     plugins: [tailwindcss()],
@@ -20,6 +20,14 @@ export default defineNuxtConfig({
   },
   eslint: {
     config: { standalone: false },
+  },
+  image: {
+    // All remote artwork comes from TMDB; unlisted hosts (auth avatars) pass through untouched.
+    domains: ['image.tmdb.org'],
+    // Mirrors the design-system breakpoints (560/880/1280) so `sizes` hints in components
+    // can use the sm/md/lg keys; responsive srcsets are built from TMDB's own size ladder
+    // because IPX/sharp cannot run on the cloudflare_pages worker runtime.
+    screens: { xs: 320, sm: 560, md: 880, lg: 1280, xl: 1536, xxl: 1920 },
   },
   typescript: { strict: true },
   devtools: { enabled: true },

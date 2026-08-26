@@ -24,6 +24,7 @@
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.1",
     "@lucide/vue": "^1.33.0",
+    "@nuxt/image": "^2.1.0",
     "@nuxtjs/i18n": "^10.6.0",
     "@vueuse/core": "^14.4.0",
     "better-auth": "^1.7.1",

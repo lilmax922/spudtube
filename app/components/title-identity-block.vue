@@ -4,7 +4,7 @@ import type { WatchStatus } from '#server/db/schema/title-status'
 import type { TitleDetail } from '#server/tmdb/types'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { backdropUrl, posterUrl } from '../lib/images'
+import { backdropSrcSet, backdropUrl, posterSrcSet, posterUrl } from '../lib/images'
 import RatingTrio from './rating-trio.vue'
 import TitleStatusToggle from './title-status-toggle.vue'
 
@@ -44,13 +44,15 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
 
 <template>
   <section class="relative overflow-hidden rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
-    <img
+    <NuxtImg
       v-if="backdrop"
       :src="backdrop"
+      :srcset="backdropSrcSet(props.detail.backdropPath)"
+      sizes="100vw"
       alt=""
       class="absolute inset-0 h-full w-full object-cover"
       aria-hidden="true"
-    >
+    />
     <div
       v-if="backdrop"
       class="absolute inset-0 bg-background/80"
@@ -60,12 +62,16 @@ const showMetarow = computed(() => hasRuntime.value || hasGenres.value)
     <div class="relative flex flex-col gap-6 p-9 md:flex-row md:gap-7">
       <div class="w-[160px] shrink-0 md:w-[200px]">
         <div class="aspect-[2/3] overflow-hidden rounded-md bg-muted shadow-lg">
-          <img
+          <NuxtImg
             v-if="poster"
             :src="poster"
+            :srcset="posterSrcSet(props.detail.posterPath)"
+            sizes="160px sm:200px"
             :alt="detail.name"
+            loading="lazy"
+            decoding="async"
             class="h-full w-full object-cover"
-          >
+          />
         </div>
       </div>
 

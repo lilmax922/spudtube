@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Search } from '@lucide/vue'
+import { onKeyStroke } from '@vueuse/core'
 import { onBeforeUnmount, onMounted, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo, useFetch, useHead } from '#imports'
@@ -47,6 +48,23 @@ function onScroll(): void {
   const y = typeof window === 'undefined' ? 0 : window.scrollY
   isScrolled.value = y > 50
 }
+
+// ⌘K / Ctrl+K toggles the search panel; preventDefault stops the browser's
+// own search-shortcut (address-bar focus) from stealing the keystroke.
+// Function predicate keeps CapsLock ('K') working, which string filters miss;
+// dedupe ignores auto-repeat while the key is held.
+onKeyStroke(
+  event => event.key.toLowerCase() === 'k',
+  (event) => {
+    if (event.shiftKey || event.altKey)
+      return
+    if (event.metaKey || event.ctrlKey) {
+      event.preventDefault()
+      isSearchOpen.value = !isSearchOpen.value
+    }
+  },
+  { dedupe: true },
+)
 
 onMounted(() => {
   onScroll()
@@ -117,6 +135,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
             id="searchOpenBtn"
             type="button"
             :aria-label="t('search.open')"
+            aria-keyshortcuts="Meta+K Control+K"
             class="ghost"
             @click="openSearch"
           >

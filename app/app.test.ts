@@ -239,4 +239,32 @@ describe('app shell', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.find('button[aria-label="Clear search"]').exists()).toBe(true)
   })
+
+  it('opens and toggles the search overlay with Cmd+K / Ctrl+K', async () => {
+    const wrapper = await mountSuspended(App, { route: '/' })
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    // ⌘K (macOS) opens
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, cancelable: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    // Ctrl+K (Windows/Linux) also opens after closing
+    await wrapper.find('button[aria-label="Close search"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, cancelable: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    // same shortcut toggles closed again
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, cancelable: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    // plain k without modifier must not open
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k' }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+  })
 })

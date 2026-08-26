@@ -125,6 +125,10 @@ function clearHighlight(): void {
 onMounted(() => {
   if (!props.shouldFilter) {
     nextTick(() => clearHighlight())
+    // reka's ListboxRoot auto-highlights the first item via an immediate
+    // modelValue watcher that flushes in a later microtask than our nextTick
+    // here; run a macrotask so we always land after that mount-time highlight.
+    setTimeout(clearHighlight, 0)
   }
 })
 </script>

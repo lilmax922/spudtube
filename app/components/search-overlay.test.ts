@@ -1,5 +1,5 @@
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { shallowRef } from 'vue'
 import SearchOverlay from './search-overlay.vue'
 
@@ -24,6 +24,9 @@ vi.mock('../composables/use-keyword-search', () => ({
 }))
 
 describe('search-overlay', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
   it('hides the dialog when closed and shows it when open', async () => {
     const hidden = await mountSuspended(SearchOverlay, { props: { query: '', open: false } })
     expect(hidden.find('[role="dialog"]').exists()).toBe(false)
@@ -94,5 +97,24 @@ describe('search-overlay', () => {
     expect(form.classes().join(' ')).toContain('rounded-md')
     expect(form.classes().join(' ')).toContain('bg-card')
     expect(form.classes().join(' ')).toContain('border-input')
+  })
+
+  it('does not highlight any item on open even when recents exist', async () => {
+    localStorage.setItem('spudtube:recent', JSON.stringify(['dune', 'toy story']))
+    const wrapper = await mountSuspended(SearchOverlay, { props: { query: '', open: true } })
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(wrapper.find('.recentItem').exists()).toBe(true)
+    expect(wrapper.findAll('[data-highlighted]')).toHaveLength(0)
+  })
+
+  it('highlights the first recent when the user presses ArrowDown', async () => {
+    localStorage.setItem('spudtube:recent', JSON.stringify(['dune', 'toy story']))
+    const wrapper = await mountSuspended(SearchOverlay, { props: { query: '', open: true } })
+    await new Promise(resolve => setTimeout(resolve, 50))
+    await wrapper.find('input').trigger('keydown', { key: 'ArrowDown' })
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const highlighted = wrapper.findAll('[data-highlighted]')
+    expect(highlighted).toHaveLength(1)
+    expect(highlighted[0]?.text()).toContain('dune')
   })
 })

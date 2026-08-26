@@ -219,7 +219,7 @@ describe('search page', () => {
     expect(count.text()).toContain('2')
     expect(header.classes().join(' ')).toContain('gap-3')
     expect(header.classes().join(' ')).not.toContain('justify-between')
-    expect(header.classes().join(' ')).toContain('items-baseline')
+    expect(header.classes().join(' ')).toContain('items-center')
   })
 
   it('shows header from route query even before searchedQuery is populated', async () => {

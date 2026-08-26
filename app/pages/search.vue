@@ -53,7 +53,7 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
   <div class="mx-auto w-full max-w-[1280px] px-6 pb-10 pt-6">
     <div
       v-if="displayQuery"
-      class="mb-6 flex items-baseline gap-3 border-b border-border pb-5"
+      class="mb-6 flex items-center gap-3 border-b border-border pb-5"
       data-testid="search-header"
     >
       <h1 class="flex items-center gap-2 text-[18px] font-bold tracking-tight text-foreground">

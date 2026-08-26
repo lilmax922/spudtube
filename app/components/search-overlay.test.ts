@@ -99,15 +99,16 @@ describe('search-overlay', () => {
     expect(form.classes().join(' ')).toContain('border-input')
   })
 
-  it('does not highlight any item on open even when recents exist', async () => {
+  it('highlights the most recent search on open', async () => {
     localStorage.setItem('spudtube:recent', JSON.stringify(['dune', 'toy story']))
     const wrapper = await mountSuspended(SearchOverlay, { props: { query: '', open: true } })
     await new Promise(resolve => setTimeout(resolve, 50))
-    expect(wrapper.find('.recentItem').exists()).toBe(true)
-    expect(wrapper.findAll('[data-highlighted]')).toHaveLength(0)
+    const highlighted = wrapper.findAll('[data-highlighted]')
+    expect(highlighted).toHaveLength(1)
+    expect(highlighted[0]?.text()).toContain('dune')
   })
 
-  it('highlights the first recent when the user presses ArrowDown', async () => {
+  it('moves the highlight to the next recent on ArrowDown', async () => {
     localStorage.setItem('spudtube:recent', JSON.stringify(['dune', 'toy story']))
     const wrapper = await mountSuspended(SearchOverlay, { props: { query: '', open: true } })
     await new Promise(resolve => setTimeout(resolve, 50))
@@ -115,6 +116,6 @@ describe('search-overlay', () => {
     await new Promise(resolve => setTimeout(resolve, 50))
     const highlighted = wrapper.findAll('[data-highlighted]')
     expect(highlighted).toHaveLength(1)
-    expect(highlighted[0]?.text()).toContain('dune')
+    expect(highlighted[0]?.text()).toContain('toy story')
   })
 })

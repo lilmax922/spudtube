@@ -124,11 +124,13 @@ function clearHighlight(): void {
 
 onMounted(() => {
   if (!props.shouldFilter) {
-    nextTick(() => clearHighlight())
-    // reka's ListboxRoot auto-highlights the first item via an immediate
-    // modelValue watcher that flushes in a later microtask than our nextTick
-    // here; run a macrotask so we always land after that mount-time highlight.
-    setTimeout(clearHighlight, 0)
+    // Select the first entry on open (the most-recent search when present) so
+    // Enter acts on it immediately. Reka's own mount-time highlight races with
+    // item registration, so trigger it explicitly — queued from the parent's
+    // mounted hook it runs after the watchers' clears. The filter input owns
+    // focus (focusable=false), so this never steals focus.
+    const inst = listboxRef.value as any
+    inst?.highlightFirstItem?.()
   }
 })
 </script>

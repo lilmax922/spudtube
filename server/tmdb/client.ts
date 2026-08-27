@@ -177,13 +177,16 @@ export function createTmdbClient({
 
     title(kind: Kind, tmdbId: number, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<TitleDetail | null> {
       const segment = toMediaSegment(kind)
+      const append = kind === 'MOVIE'
+        ? 'videos,translations,credits,images,release_dates'
+        : 'videos,translations,credits,images,content_ratings'
       return cache.wrap(`detail:${language}:${segment}:${tmdbId}`, value =>
         value ? DETAIL_TTL_MS : NOT_FOUND_TTL_MS, async () => {
         let raw: unknown
         try {
           raw = await request(`/${segment}/${tmdbId}`, {
             language,
-            append_to_response: 'videos,translations',
+            append_to_response: append,
           })
         }
         catch (error) {

@@ -100,19 +100,42 @@
   "detail": {
     "loading": "Loading…",
     "error": "Couldn't load this title right now. Please try again later.",
-    "back": "Back to home",
     "trailer": "Trailer",
     "recommendations": "You might also like",
     "runtimeMinutes": "{minutes} min",
+    "playTrailer": "Play trailer",
+    "more": "MORE",
+    "less": "LESS",
+    "noStream": "Not streaming yet",
+    "watchSingle": "Available on {provider}",
+    "watchMultiple": "Available on {count} providers",
+    "averageRating": "Average",
+    "voteCount": "{count} ratings",
+    "signInHint": "Tap the logo to go home",
     "kind": {
       "movie": "Movie",
       "tv": "TV Show"
     },
     "facts": {
-      "heading": "Facts",
-      "kind": "Type",
+      "heading": "Details",
       "released": "Released",
-      "runtime": "Runtime"
+      "originalName": "Original title",
+      "status": "Status",
+      "originalLanguage": "Original language",
+      "budget": "Budget",
+      "revenue": "Revenue"
+    },
+    "cast": {
+      "heading": "Top billed cast"
+    },
+    "media": {
+      "heading": "Media"
+    },
+    "crew": {
+      "director": "Director",
+      "writer": "Writer",
+      "screenplay": "Screenplay",
+      "original": "Original work"
     },
     "notFound": {
       "title": "Title not found",

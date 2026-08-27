@@ -1,10 +1,9 @@
-import type { VueWrapper } from '@vue/test-utils'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MOVIE_DETAIL, MOVIE_WITHOUT_ARTWORK } from '../lib/title-detail-fixtures'
 import TitleIdentityBlock from './title-identity-block.vue'
 
-async function render(detail = MOVIE_DETAIL, route = '/?probe=1'): Promise<VueWrapper<InstanceType<typeof TitleIdentityBlock>>> {
+async function render(detail = MOVIE_DETAIL, route = '/?probe=1') {
   return await mountSuspended(TitleIdentityBlock, { route, props: { detail } })
 }
 
@@ -17,23 +16,23 @@ afterEach(() => {
 })
 
 describe('title identity block', () => {
-  it('renders the title with year inline, plus overview, genres and runtime', async () => {
+  it('renders the title with meta row, overview, genres and runtime', async () => {
     const wrapper = await render()
 
     expect(wrapper.text()).toContain('沙丘')
-    expect(wrapper.text()).toContain('(2021)')
+    expect(wrapper.text()).toContain('2021')
     expect(wrapper.text()).toContain('天賦異稟的保羅·亞崔迪…')
     expect(wrapper.text()).toContain('科幻')
     expect(wrapper.text()).toContain('冒險')
     expect(wrapper.text()).toContain('155 分鐘')
   })
 
-  it('renders backdrop and poster images from the TMDB CDN', async () => {
+  it('renders backdrop images from the TMDB CDN', async () => {
     const wrapper = await render(MOVIE_DETAIL, '/?probe=2')
 
     const images = wrapper.findAll('img').map(img => img.attributes('src'))
     expect(images).toContain('https://image.tmdb.org/t/p/w1280/jYEW5xZkZk2WTrdbMGAPFuBqbDc.jpg')
-    expect(images).toContain('https://image.tmdb.org/t/p/w500/d5NXSklXoIq1Ue0nbpZppWPop2P.jpg')
+    expect(images).not.toContain('https://image.tmdb.org/t/p/w500/d5NXSklXoIq1Ue0nbpZppWPop2P.jpg')
   })
 
   it('hides the tagline when absent', async () => {
@@ -48,9 +47,12 @@ describe('title identity block', () => {
     const noMeta = { ...MOVIE_WITHOUT_ARTWORK, releaseDate: null, runtimeMinutes: null, genres: [] }
     const wrapper = await render(noMeta, '/?probe=4')
 
-    expect(wrapper.text()).not.toContain('(2021)')
+    expect(wrapper.text()).not.toContain('2021')
     expect(wrapper.text()).not.toContain('155 分鐘')
-    expect(wrapper.findAll('span.rounded-full')).toHaveLength(0)
+    expect(wrapper.text()).not.toContain('科幻')
+    expect(wrapper.text()).not.toContain('冒險')
+    const genrePills = wrapper.findAll('span.rounded-full').filter(node => ['科幻', '冒險'].includes(node.text()))
+    expect(genrePills).toHaveLength(0)
   })
 
   it('forwards rating actions from the trio to the page', async () => {
@@ -124,5 +126,98 @@ describe('title identity block', () => {
     await wrapper.findAll('button').find(button => button.attributes('aria-label') === '加入待看清單')!.trigger('click')
 
     expect(wrapper.emitted('signInRequested')).toHaveLength(1)
+  })
+
+  it('applies Contract shape and typography tokens', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=11')
+
+    const title = wrapper.find('h1')
+    expect(title.classes().join(' ')).toContain('font-extrabold')
+    expect(title.classes().join(' ')).toContain('tracking-')
+    expect(title.text()).toContain('沙丘')
+
+    const metaRow = wrapper.find('div.tabular-nums')
+    expect(metaRow.exists()).toBe(true)
+    expect(metaRow.text()).toContain('2021')
+    expect(metaRow.text()).toContain('155')
+
+    const overview = wrapper.find('p[class*="max-w"]')
+    expect(overview.classes().join(' ')).toContain('font-normal')
+    expect(overview.classes().join(' ')).toContain('leading-[1.7]')
+    expect(overview.classes().join(' ')).not.toContain('tabular-nums')
+  })
+
+  it('uses a functional black mask over the backdrop and hides it when absent', async () => {
+    const withBackdrop = await render(MOVIE_DETAIL, '/?probe=12')
+    const overlay = withBackdrop.find('div.bg-black\\/35')
+    expect(overlay.exists()).toBe(true)
+    const gradientMask = withBackdrop.find('div[style*="linear-gradient"]')
+    expect(gradientMask.exists()).toBe(true)
+
+    const withoutBackdrop = await render(MOVIE_WITHOUT_ARTWORK, '/?probe=13')
+    expect(withoutBackdrop.find('div.bg-black\\/35').exists()).toBe(false)
+    expect(withoutBackdrop.findAll('img')).toHaveLength(0)
+  })
+
+  it('never renders the tagline', async () => {
+    const withTagline = await render(MOVIE_DETAIL, '/?probe=14')
+    expect(withTagline.text()).not.toContain('超越即將來臨。')
+  })
+
+  it('emits playTrailer when the play button is clicked and a trailer exists', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=18')
+
+    const playButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '播放預告')
+    expect(playButton).toBeDefined()
+    await playButton!.trigger('click')
+
+    expect(wrapper.emitted('playTrailer')).toHaveLength(1)
+  })
+
+  it('omits the play-trailer button when there is no trailer', async () => {
+    const wrapper = await mountSuspended(TitleIdentityBlock, {
+      route: '/?probe=19',
+      props: { detail: { ...MOVIE_DETAIL, trailerKey: null } },
+    })
+
+    expect(wrapper.findAll('button').find(button => button.attributes('aria-label') === '播放預告')).toBeUndefined()
+  })
+
+  it('displays the TMDB vote average as a one-decimal star score in row 6', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=20')
+
+    expect(wrapper.text()).toContain('7.8')
+    expect(wrapper.text()).not.toContain('7.805')
+    expect(wrapper.find('svg[aria-hidden="true"]').exists()).toBe(true)
+  })
+
+  it('hides the rating score when voteAverage is null', async () => {
+    const wrapper = await render({ ...MOVIE_DETAIL, voteAverage: null }, '/?probe=20b')
+
+    const scoreText = wrapper.find('span.tabular-nums')
+    expect(scoreText.exists()).toBe(false)
+  })
+
+  it('renders content rating in a badge component after the genres', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=23')
+
+    const badge = wrapper.find('[data-slot="badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toContain('PG-13')
+  })
+
+  it('hides content rating badge when contentRating is absent', async () => {
+    const wrapper = await render({ ...MOVIE_DETAIL, contentRating: null }, '/?probe=24')
+
+    expect(wrapper.find('[data-slot="badge"]').exists()).toBe(false)
+  })
+
+  it('does not render director or writer crewline in the hero', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=25')
+
+    expect(wrapper.text()).not.toContain('導演')
+    expect(wrapper.text()).not.toContain('編劇')
+    expect(wrapper.text()).not.toContain('Denis Villeneuve')
+    expect(wrapper.text()).not.toContain('Jon Spaihts')
   })
 })

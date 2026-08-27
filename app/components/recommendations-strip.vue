@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
 import { useI18n } from 'vue-i18n'
-import { CarouselItem } from '@/components/ui/carousel'
-import BrowseCarousel from './browse-carousel.vue'
-import TitleCard from './title-card.vue'
+import { posterUrl } from '../lib/images'
+import { titleDetailPath } from '../lib/kind'
 
 interface Props {
   titles: TitleSummary[]
@@ -15,17 +14,28 @@ const { t } = useI18n()
 
 <template>
   <section v-if="props.titles.length > 0">
-    <h2 class="text-[16.5px] font-bold tracking-tight text-foreground">
+    <h2 class="mb-4 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
       {{ t('detail.recommendations') }}
     </h2>
-    <BrowseCarousel class="mt-4" :aria-label="t('detail.recommendations')" :breakout="false">
-      <CarouselItem
+    <div class="flex gap-4 overflow-x-auto pb-6">
+      <NuxtLink
         v-for="title in props.titles"
         :key="`${title.kind}-${title.tmdbId}`"
-        class="pl-0 basis-auto w-[240px] shrink-0 snap-start max-[880px]:w-[220px] max-[560px]:w-[168px]"
+        :to="titleDetailPath(title.kind, title.tmdbId)"
+        class="group w-[168px] shrink-0 rounded-[var(--radius)] outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       >
-        <TitleCard :title="title" />
-      </CarouselItem>
-    </BrowseCarousel>
+        <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius)] bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+          <img
+            v-if="posterUrl(title.posterPath)"
+            :src="posterUrl(title.posterPath)!"
+            :alt="title.name"
+            class="h-full w-full object-cover"
+          >
+        </div>
+        <p class="mt-2 truncate text-sm font-normal leading-[1.7] text-muted-foreground group-hover:text-foreground">
+          {{ title.name }}
+        </p>
+      </NuxtLink>
+    </div>
   </section>
 </template>

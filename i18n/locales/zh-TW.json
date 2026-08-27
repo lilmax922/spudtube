@@ -100,19 +100,42 @@
   "detail": {
     "loading": "載入中…",
     "error": "暫時無法取得資料，請稍後再試。",
-    "back": "返回首頁",
     "trailer": "預告片",
     "recommendations": "你可能也會喜歡",
     "runtimeMinutes": "{minutes} 分鐘",
+    "playTrailer": "播放預告",
+    "more": "更多",
+    "less": "收合",
+    "noStream": "尚未提供串流",
+    "watchSingle": "可在 {provider} 觀看",
+    "watchMultiple": "可在 {count} 個平台觀看",
+    "averageRating": "均分",
+    "voteCount": "{count} 人評分",
+    "signInHint": "點擊 Logo 回首頁",
     "kind": {
       "movie": "電影",
       "tv": "影集"
     },
     "facts": {
-      "heading": "作品資料",
-      "kind": "類型",
+      "heading": "詳細資料",
       "released": "上映／首播",
-      "runtime": "片長"
+      "originalName": "原名",
+      "status": "狀態",
+      "originalLanguage": "原語言",
+      "budget": "預算",
+      "revenue": "票房"
+    },
+    "cast": {
+      "heading": "主要演員"
+    },
+    "media": {
+      "heading": "劇照"
+    },
+    "crew": {
+      "director": "導演",
+      "writer": "編劇",
+      "screenplay": "編劇",
+      "original": "原作"
     },
     "notFound": {
       "title": "找不到這部作品",

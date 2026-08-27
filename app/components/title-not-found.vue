@@ -6,10 +6,10 @@ const { t } = useI18n()
 
 <template>
   <div class="mx-auto flex w-full max-w-[1280px] flex-col items-center gap-4 px-6 py-20 text-center">
-    <h1 class="text-2xl font-bold tracking-tight">
+    <h1 class="text-2xl font-extrabold tracking-[-0.02em] text-foreground">
       {{ t('detail.notFound.title') }}
     </h1>
-    <p class="max-w-prose text-muted-foreground">
+    <p class="max-w-prose text-sm font-normal leading-[1.7] text-muted-foreground">
       {{ t('detail.notFound.body') }}
     </p>
     <NuxtLink

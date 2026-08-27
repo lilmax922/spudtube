@@ -8,7 +8,7 @@ import type {
   rawTvDetailSchema,
   rawTvSummarySchema,
 } from './schemas'
-import type { Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
+import type { CastMember, CrewMember, Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
 
 export function toKind(mediaType: string): Kind | null {
   if (mediaType === 'movie')
@@ -111,6 +111,71 @@ export function pickOverview(
   return en?.data.overview || zh?.data.overview || ''
 }
 
+export function mapCast(raw: z.infer<typeof rawMovieDetailSchema>['credits']): CastMember[] {
+  if (!raw)
+    return []
+  return raw.cast
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map(cast => ({
+      id: cast.id,
+      name: cast.name,
+      character: orNull(cast.character),
+      profilePath: cast.profile_path,
+    }))
+}
+
+export function mapCrew(raw: z.infer<typeof rawMovieDetailSchema>['credits']): CrewMember[] {
+  if (!raw)
+    return []
+  return raw.crew.map(member => ({
+    id: member.id,
+    name: member.name,
+    job: member.job,
+    department: member.department ?? null,
+  }))
+}
+
+export function mapBackdrops(raw: z.infer<typeof rawMovieDetailSchema>['images']): string[] {
+  if (!raw)
+    return []
+  return raw.backdrops.map(image => image.file_path)
+}
+
+export function pickContentRating(
+  releaseDates: z.infer<typeof rawMovieDetailSchema>['release_dates'],
+  contentRatings: z.infer<typeof rawTvDetailSchema>['content_ratings'],
+  preferredRegion = 'TW',
+): string | null {
+  const fromMovie = releaseDates?.results
+  if (fromMovie && fromMovie.length > 0) {
+    const preferred = fromMovie.find(entry => entry.iso_3166_1 === preferredRegion)
+    const fallback = fromMovie.find(entry => entry.iso_3166_1 === 'US') ?? fromMovie[0]
+    const chosen = preferred ?? fallback
+    if (chosen) {
+      const cert = chosen.release_dates.find(entry => entry.certification !== '')
+      if (cert)
+        return cert.certification
+    }
+  }
+  const fromTv = contentRatings?.results
+  if (fromTv && fromTv.length > 0) {
+    const preferred = fromTv.find(entry => entry.iso_3166_1 === preferredRegion)
+    const fallback = fromTv.find(entry => entry.iso_3166_1 === 'US') ?? fromTv[0]
+    const chosen = preferred ?? fallback
+    if (chosen && chosen.rating !== '')
+      return chosen.rating
+  }
+  return null
+}
+
+export function pickCrewByJob(
+  crew: CrewMember[],
+  job: string,
+): CrewMember | null {
+  return crew.find(member => member.job === job) ?? null
+}
+
 export function mapMovieDetail(
   raw: z.infer<typeof rawMovieDetailSchema>,
   language: TmdbLanguage = 'zh-TW',
@@ -125,9 +190,18 @@ export function mapMovieDetail(
     voteAverage: raw.vote_average,
     overview: pickOverview(raw.overview, raw.translations, language),
     tagline: orNull(raw.tagline),
+    originalName: raw.original_title ?? null,
+    originalLanguage: raw.original_language ?? null,
+    status: raw.status ?? null,
     genres: mapGenres(raw.genres),
     runtimeMinutes: raw.runtime,
     trailerKey: pickTrailerKey(raw.videos, language),
+    budget: raw.budget ?? null,
+    revenue: raw.revenue ?? null,
+    contentRating: pickContentRating(raw.release_dates, undefined),
+    cast: mapCast(raw.credits),
+    crew: mapCrew(raw.credits),
+    backdrops: mapBackdrops(raw.images),
   }
 }
 
@@ -145,9 +219,18 @@ export function mapTvDetail(
     voteAverage: raw.vote_average,
     overview: pickOverview(raw.overview, raw.translations, language),
     tagline: orNull(raw.tagline),
+    originalName: raw.original_name ?? null,
+    originalLanguage: raw.original_language ?? null,
+    status: raw.status ?? null,
     genres: mapGenres(raw.genres),
     runtimeMinutes: raw.episode_run_time[0] ?? null,
     trailerKey: pickTrailerKey(raw.videos, language),
+    budget: null,
+    revenue: null,
+    contentRating: pickContentRating(undefined, raw.content_ratings),
+    cast: mapCast(raw.credits),
+    crew: mapCrew(raw.credits),
+    backdrops: mapBackdrops(raw.images),
   }
 }
 

@@ -321,7 +321,7 @@ const MOVIE_DETAIL_UNTRANSLATED = {
 }
 
 describe('tmdb client — title detail', () => {
-  it('fetches movie detail with videos and translations appended', async () => {
+  it('fetches movie detail with videos, translations, credits, images and release dates appended', async () => {
     const { fetchJson, requests } = createFakeTransport({
       '/3/movie/419430': MOVIE_DETAIL,
     })
@@ -332,7 +332,10 @@ describe('tmdb client — title detail', () => {
     expect(requests[0]).toEqual({
       url: 'https://api.themoviedb.org/3/movie/419430',
       headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
-      params: { language: 'zh-TW', append_to_response: 'videos,translations' },
+      params: {
+        language: 'zh-TW',
+        append_to_response: 'videos,translations,credits,images,release_dates',
+      },
     })
     expect(detail).toEqual({
       kind: 'MOVIE',
@@ -344,23 +347,33 @@ describe('tmdb client — title detail', () => {
       voteAverage: 7.805,
       overview: '天賦異稟的保羅·亞崔迪…',
       tagline: '超越即將來臨。',
+      originalName: null,
+      originalLanguage: null,
+      status: null,
       genres: [
         { id: 878, name: '科幻' },
         { id: 12, name: '冒險' },
       ],
       runtimeMinutes: 155,
       trailerKey: 'zhTrailerKey',
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
     })
   })
 
-  it('maps tv detail from tv-shaped fields', async () => {
-    const { fetchJson } = createFakeTransport({
+  it('maps tv detail from tv-shaped fields with content_ratings appended', async () => {
+    const { fetchJson, requests } = createFakeTransport({
       '/3/tv/94605': TV_DETAIL,
     })
     const client = createTmdbClient({ token: 'test-token', fetchJson })
 
     const detail = await client.title('TV_SHOW', 94605)
 
+    expect(requests[0]?.params.append_to_response).toBe('videos,translations,credits,images,content_ratings')
     expect(detail).toMatchObject({
       kind: 'TV_SHOW',
       tmdbId: 94605,
@@ -368,7 +381,54 @@ describe('tmdb client — title detail', () => {
       releaseDate: '2021-11-06',
       runtimeMinutes: 42,
       trailerKey: null,
+      budget: null,
+      revenue: null,
     })
+  })
+
+  it('extracts cast sorted by order, crew roles and backdrop paths', async () => {
+    const { fetchJson } = createFakeTransport({
+      '/3/movie/419430': {
+        ...MOVIE_DETAIL,
+        credits: {
+          cast: [
+            { id: 2, name: 'Second', character: 'Beta', profile_path: '/b.jpg', order: 1 },
+            { id: 1, name: 'First', character: 'Alpha', profile_path: '/a.jpg', order: 0 },
+          ],
+          crew: [
+            { id: 99, name: 'Denis', job: 'Director', department: 'Directing' },
+            { id: 98, name: 'Jon', job: 'Writer', department: 'Writing' },
+          ],
+        },
+        images: { backdrops: [{ file_path: '/bg1.jpg' }, { file_path: '/bg2.jpg' }] },
+      },
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const detail = await client.title('MOVIE', 419430)
+
+    expect(detail?.cast.map(c => c.name)).toEqual(['First', 'Second'])
+    expect(detail?.crew.map(c => c.job)).toEqual(['Director', 'Writer'])
+    expect(detail?.backdrops).toEqual(['/bg1.jpg', '/bg2.jpg'])
+  })
+
+  it('picks content rating from TW then US then first available', async () => {
+    const { fetchJson } = createFakeTransport({
+      '/3/movie/419430': {
+        ...MOVIE_DETAIL,
+        release_dates: {
+          results: [
+            { iso_3166_1: 'US', release_dates: [{ certification: 'PG-13', type: 3 }] },
+            { iso_3166_1: 'TW', release_dates: [{ certification: '保護級', type: 3 }] },
+          ],
+        },
+      },
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const detail = await client.title('MOVIE', 419430)
+
+    expect(detail?.contentRating).toBe('保護級')
   })
 
   it('falls back to the English overview when the localized one is empty', async () => {

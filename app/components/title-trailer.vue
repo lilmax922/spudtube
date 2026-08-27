@@ -1,30 +1,58 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 
 interface Props {
+  open: boolean
   trailerKey: string | null
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+}>()
 
 const { t } = useI18n()
+
+const embedUrl = computed(() => {
+  if (!props.trailerKey)
+    return null
+  return `https://www.youtube-nocookie.com/embed/${props.trailerKey}?autoplay=1`
+})
+
+function onOpenChange(value: boolean): void {
+  emit('update:open', value)
+}
 </script>
 
 <template>
-  <section
-    v-if="trailerKey"
-    class="rounded-lg bg-card p-5 shadow-[0_4px_12px_rgba(0,0,0,0.25)] backdrop-blur-[12px]"
+  <Dialog
+    :open="open"
+    @update:open="onOpenChange"
   >
-    <h2 class="mb-3 flex items-center gap-2 text-[16.5px] font-bold tracking-tight text-foreground">
-      {{ t('detail.trailer') }}
-    </h2>
-    <div class="aspect-video w-full overflow-hidden rounded-md bg-black">
-      <iframe
-        :src="`https://www.youtube-nocookie.com/embed/${trailerKey}`"
-        class="h-full w-full"
-        :title="t('detail.trailer')"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen
-      />
-    </div>
-  </section>
+    <DialogContent
+      :show-close-button="false"
+      overlay-class="bg-black"
+      class="w-auto max-w-none overflow-visible rounded-none border-0 bg-transparent p-0 shadow-none"
+    >
+      <DialogTitle class="sr-only">
+        {{ t('detail.trailer') }}
+      </DialogTitle>
+      <div class="relative mx-auto w-[min(1120px,calc(100vw_-_2rem),calc((100dvh_-_7rem)_*_16/9))]">
+        <div
+          v-if="embedUrl"
+          class="aspect-video w-full overflow-hidden rounded-lg bg-black ring-1 ring-white/15"
+        >
+          <iframe
+            :src="embedUrl"
+            class="h-full w-full"
+            :title="t('detail.trailer')"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          />
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>

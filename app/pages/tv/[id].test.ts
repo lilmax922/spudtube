@@ -79,4 +79,23 @@ describe('tv detail route', () => {
       expect(wrapper.text()).toContain('找不到這部作品')
     })
   })
+
+  it('renders cast and tv-only facts (no budget / revenue)', async () => {
+    registerEndpoints(94605)
+
+    const wrapper = await renderPage('/tv/94605')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Hailee Steinfeld')
+    })
+
+    expect(wrapper.text()).toContain('主要演員')
+    expect(wrapper.text()).toContain('Vi')
+    // keywords section is removed from the detail page
+    expect(wrapper.text()).not.toContain('關鍵字')
+    expect(wrapper.text()).not.toContain('steampunk')
+    expect(wrapper.text()).toContain('TV-MA')
+    // tv detail must not render movie-only rows
+    expect(wrapper.text()).not.toContain('預算')
+    expect(wrapper.text()).not.toContain('票房')
+  })
 })

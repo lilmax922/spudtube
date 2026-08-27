@@ -3,7 +3,7 @@ import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
 import { useTitleDetail } from '../composables/use-title-detail'
@@ -11,6 +11,8 @@ import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
 import { authClient, signIn } from '../lib/auth-client'
 import AvailabilityPanel from './availability-panel.vue'
+import CastList from './cast-list.vue'
+import MediaStrip from './media-strip.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
 import TitleFactsPanel from './title-facts-panel.vue'
 import TitleIdentityBlock from './title-identity-block.vue'
@@ -29,13 +31,17 @@ const titleId = computed(() => route.params.id ?? '')
 
 const { detail, recommendations } = useTitleDetail(props.kind, titleId)
 
-// Subscribes to the shared session atom that app.vue's useSession(useFetch) feeds;
-// no second get-session request, and sign-in/sign-out updates land reactively here.
 const session = authClient.useSession()
 const signedIn = computed(() => session.value.data?.user != null)
 
 const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(props.kind, titleId, signedIn)
 const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(props.kind, titleId, signedIn)
+
+const trailerOpen = ref(false)
+
+function onPlayTrailer(): void {
+  trailerOpen.value = true
+}
 
 function onSelectRating(label: RatingLabel): void {
   void rate(label)
@@ -72,8 +78,8 @@ const failed = computed(() => {
 </script>
 
 <template>
-  <div class="py-8">
-    <p v-if="detail.pending.value" class="px-4 text-muted-foreground">
+  <div>
+    <p v-if="detail.pending.value" class="mx-auto max-w-[1280px] px-6 py-8 text-muted-foreground">
       {{ t('detail.loading') }}
     </p>
     <div v-else-if="failed" class="mx-auto max-w-[1280px] px-6 py-12 text-center">
@@ -90,46 +96,35 @@ const failed = computed(() => {
     </div>
     <TitleNotFound v-else-if="notFound" />
     <template v-else-if="detail.data.value">
-      <div class="mx-auto w-full max-w-[1280px] px-6">
-        <div class="pb-2.5">
-          <NuxtLink
-            to="/"
-            class="inline-flex min-h-10 items-center gap-1 rounded-full px-3 py-1 text-[13px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          >
-            <ArrowLeft :size="14" :stroke-width="1.75" aria-hidden="true" />
-            {{ t('detail.back') }}
-          </NuxtLink>
-        </div>
+      <TitleIdentityBlock
+        :detail="detail.data.value"
+        :rating="rating"
+        :status="status"
+        :signed-in="signedIn"
+        :rating-pending="ratingPending"
+        :status-pending="statusPending"
+        @select-rating="onSelectRating"
+        @clear-rating="onClearRating"
+        @set-status="onSetStatus"
+        @clear-status="onClearStatus"
+        @sign-in-requested="onSignInRequested"
+        @play-trailer="onPlayTrailer"
+      />
 
-        <div class="mb-8">
-          <TitleIdentityBlock
-            :detail="detail.data.value"
-            :rating="rating"
-            :status="status"
-            :signed-in="signedIn"
-            :rating-pending="ratingPending"
-            :status-pending="statusPending"
-            @select-rating="onSelectRating"
-            @clear-rating="onClearRating"
-            @set-status="onSetStatus"
-            @clear-status="onClearStatus"
-            @sign-in-requested="onSignInRequested"
-          />
-        </div>
-
-        <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr] md:gap-8">
-          <aside class="flex flex-col gap-4">
-            <TitleFactsPanel :detail="detail.data.value" />
-          </aside>
-          <main class="flex min-w-0 flex-col gap-4">
-            <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
-            <TitleTrailer :trailer-key="detail.data.value.trailerKey" />
-          </main>
-        </div>
-      </div>
+      <TitleTrailer
+        v-if="detail.data.value.trailerKey"
+        v-model:open="trailerOpen"
+        :trailer-key="detail.data.value.trailerKey"
+      />
 
       <div class="mx-auto w-full max-w-[1280px] px-6">
-        <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
+        <TitleFactsPanel :detail="detail.data.value" />
+        <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
+        <CastList :cast="detail.data.value.cast" :crew="detail.data.value.crew" />
+        <MediaStrip :paths="detail.data.value.backdrops" />
+        <div class="mt-8 border-t border-border pt-8">
+          <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
+        </div>
       </div>
     </template>
   </div>

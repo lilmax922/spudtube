@@ -18,7 +18,7 @@ export default withNuxt(
     },
   },
   {
-    files: ['app/components/ui/**/*.{vue,ts}'],
+    files: ['app/components/ui/**/*.{js,mjs,ts,vue}'],
     rules: {
       'unicorn/filename-case': 'off',
     },

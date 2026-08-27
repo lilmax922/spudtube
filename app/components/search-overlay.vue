@@ -6,8 +6,8 @@ import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from '#imports'
 import { useKeywordSearch } from '../composables/use-keyword-search'
+import { posterUrl } from '../lib/images'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
-import { posterUrl } from '../lib/tmdb-image'
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from './ui/command'
 
 interface Props {

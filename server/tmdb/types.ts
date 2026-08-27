@@ -17,6 +17,13 @@ export interface TitleSummary {
   backdropPath: string | null
   releaseDate: string | null
   voteAverage: number | null
+  genreIds?: number[]
+  overview?: string | null
+}
+
+export interface DiscoveryBadges {
+  trendingIds: number[]
+  topRatedIds: number[]
 }
 
 export interface Genre {

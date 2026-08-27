@@ -30,12 +30,14 @@ const { t } = useI18n()
     </button>
     <template v-else>
       <span class="flex min-w-0 items-center gap-2" :title="user.name">
-        <img
+        <NuxtImg
           v-if="user.image"
           :src="user.image"
           :alt="user.name"
+          loading="lazy"
+          decoding="async"
           class="size-7 shrink-0 rounded-full"
-        >
+        />
         <span class="hidden truncate text-sm text-muted-foreground sm:inline">
           {{ user.name }}
         </span>

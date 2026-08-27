@@ -10,6 +10,12 @@
     "empty": "No titles match your filters",
     "error": "Something went wrong while loading titles"
   },
+  "card": {
+    "badges": {
+      "trending": "Trending",
+      "topRated": "Top rated"
+    }
+  },
   "search": {
     "sectionLabel": "Search results",
     "label": "Search",

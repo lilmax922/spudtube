@@ -6,11 +6,18 @@ import { useI18n } from 'vue-i18n'
 import { useFetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'
 
-export interface AvailabilityData {
-  catalog: AsyncData<ProviderCatalog | undefined, NuxtError | undefined>
+export interface AvailabilityOptions {
+  /** Cards defer the request until the title is actually inspected. */
+  immediate?: boolean
 }
 
-export function useAvailability(kind: Kind, tmdbId: number): AvailabilityData {
+export interface AvailabilityData {
+  catalog: AsyncData<ProviderCatalog | undefined, NuxtError | undefined>
+  loadCatalog: () => Promise<void>
+}
+
+export function useAvailability(kind: Kind, tmdbId: number, options: AvailabilityOptions = {}): AvailabilityData {
+  const { immediate = true } = options
   let localeRef: Ref<string>
   try {
     localeRef = (useI18n().locale as unknown) as Ref<string>
@@ -24,7 +31,17 @@ export function useAvailability(kind: Kind, tmdbId: number): AvailabilityData {
       query: { language: localeRef },
       watch: [localeRef],
       key: computed(() => `providers:${kind}:${tmdbId}:${localeRef.value}`),
+      immediate,
     },
   )
-  return { catalog }
+  return { catalog, loadCatalog }
+
+  async function loadCatalog(): Promise<void> {
+    try {
+      await catalog.execute()
+    }
+    catch {
+      // Hover-only enrichment stays silent on failure; the strip simply never appears.
+    }
+  }
 }

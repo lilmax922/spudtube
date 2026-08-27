@@ -79,10 +79,10 @@ const failed = computed(() => {
 
 <template>
   <div>
-    <p v-if="detail.pending.value" class="mx-auto max-w-[1280px] px-6 py-8 text-muted-foreground">
+    <p v-if="detail.pending.value" class="mx-auto max-w-[var(--max-content-width)] px-[var(--content-gutter)] py-8 text-muted-foreground">
       {{ t('detail.loading') }}
     </p>
-    <div v-else-if="failed" class="mx-auto max-w-[1280px] px-6 py-12 text-center">
+    <div v-else-if="failed" class="mx-auto max-w-[var(--max-content-width)] px-[var(--content-gutter)] py-12 text-center">
       <p class="text-muted-foreground">
         {{ t('detail.error') }}
       </p>
@@ -117,7 +117,7 @@ const failed = computed(() => {
         :trailer-key="detail.data.value.trailerKey"
       />
 
-      <div class="mx-auto w-full max-w-[1280px] px-6">
+      <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
         <TitleFactsPanel :detail="detail.data.value" />
         <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
         <CastList :cast="detail.data.value.cast" :crew="detail.data.value.crew" />

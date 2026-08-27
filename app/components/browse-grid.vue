@@ -152,7 +152,7 @@ void refresh()
 
 <template>
   <section class="flex flex-col gap-8" :aria-label="mode === 'search' ? t('search.sectionLabel') : t('browse.sectionLabel')">
-    <div v-if="mode === 'browse'" class="mx-auto flex w-full max-w-[1280px] flex-wrap items-center gap-x-8 gap-y-4 px-6">
+    <div v-if="mode === 'browse'" class="mx-auto flex w-full max-w-[var(--max-content-width)] flex-wrap items-center gap-x-8 gap-y-4 px-[var(--content-gutter)]">
       <KindToggle :model-value="kind" @update:model-value="setKind" />
       <div v-if="genres.length > 0" class="flex flex-wrap items-center gap-2">
         <GenreChips
@@ -171,7 +171,7 @@ void refresh()
       </button>
     </div>
 
-    <div v-if="gridError && gridItems.length === 0" class="mx-auto w-full max-w-[1280px] px-6">
+    <div v-if="gridError && gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
       <p class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
         {{ mode === 'search' ? t('search.error') : t('browse.error') }}
       </p>
@@ -179,7 +179,7 @@ void refresh()
 
     <div
       v-else-if="gridLoading && gridItems.length === 0"
-      class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
+      class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
       aria-busy="true"
     >
       <div
@@ -189,14 +189,14 @@ void refresh()
       />
     </div>
 
-    <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[1280px] px-6">
+    <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
       <p class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
         {{ emptyMessage }}
       </p>
     </div>
 
     <template v-else>
-      <div v-if="mode === 'search'" class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]" :aria-busy="gridLoading || gridLoadingMore">
+      <div v-if="mode === 'search'" class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]" :aria-busy="gridLoading || gridLoadingMore">
         <TitleCard
           v-for="title in gridItems"
           :key="`${title.kind}-${title.tmdbId}`"
@@ -218,7 +218,7 @@ void refresh()
 
       <div
         v-else
-        class="mx-auto grid w-full max-w-[1280px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-6 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
+        class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
         :aria-busy="gridLoading || gridLoadingMore"
       >
         <TitleCard
@@ -234,14 +234,14 @@ void refresh()
 
     <p
       v-if="gridError && gridItems.length > 0"
-      class="mx-auto w-full max-w-[1280px] px-6 text-center text-sm text-muted-foreground"
+      class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] text-center text-sm text-muted-foreground"
     >
       {{ mode === 'search' ? t('search.error') : t('browse.error') }}
     </p>
 
     <p
       v-if="!isRowsMode && (gridLoadingMore || (gridLoading && gridItems.length > 0))"
-      class="mx-auto flex w-full max-w-[1280px] items-center justify-center gap-2 px-6 text-sm text-muted-foreground"
+      class="mx-auto flex w-full max-w-[var(--max-content-width)] items-center justify-center gap-2 px-[var(--content-gutter)] text-sm text-muted-foreground"
     >
       <LoaderCircle :size="16" :stroke-width="1.75" class="animate-spin" aria-hidden="true" />
       {{ loadingMessage }}

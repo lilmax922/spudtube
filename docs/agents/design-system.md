@@ -91,9 +91,9 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 
 ### Grid & Container
 
-- **Max content width** 1280px。
+- **Max content width** 1680px（`--max-content-width`，`tailwind.css :root/.dark` 單一真相；見 `ADR-0007`）。
 - **Grid**：結果網格 `repeat(auto-fill, minmax(180px,1fr))`，gap 16；窄視口縮至 `minmax(152px,1fr)`。
-- **Container**：頁面內容置中於 1280 容器，左右各 `24px` 內距。
+- **Container**：頁面內容置中於 `var(--max-content-width)` 容器，左右各 `var(--content-gutter)` 內距（默認 `24px`，`@media(min-width:880px)` → `40px`，`--max-shelf-content-width:calc(var(--max-content-width) - var(--content-gutter)*2)` 備用）。
 
 ### Whitespace Philosophy
 
@@ -157,7 +157,7 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 
 ### Navigation & Footer
 
-- **Top nav**：置於 1280 容器內，次要導覽以 `muted-foreground` 文字為主。
+- **Top nav**：置於 `var(--max-content-width)` 容器內（`header-inner` / `filter-inner`），次要導覽以 `muted-foreground` 文字為主。
 - **Footer**：`card` 背景 + `border-top`（分隔線例外），單欄置中，僅文字與連結。
 
 ## Do's and Don'ts
@@ -188,8 +188,9 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 
 | Name | Width | Key Changes |
 |---|---|---|
-| Desktop | 1280px | 預設 |
-| Tablet | 880px | 單欄化（若有雙欄）、卡片 `180→168` |
+| Large | 1680px | `MaxContentWidth` 上限（`xl`），`--content-gutter 24→40px` 已在 `880px` 切換 |
+| Desktop | 1280px | 預設容器（`lg`），`image.screens lg:1280` |
+| Tablet | 880px | 單欄化（若有雙欄）、卡片 `180→168`、`--content-gutter 24→40` 切點 |
 | Mobile | 560px | 卡片 `152`、`pgrid minmax(152,1fr)`、hover 卡隱藏 |
 
 ### Touch Targets

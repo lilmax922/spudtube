@@ -5,7 +5,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-[1280px] flex-col items-center gap-4 px-6 py-20 text-center">
+  <div class="mx-auto flex w-full max-w-[var(--max-content-width)] flex-col items-center gap-4 px-[var(--content-gutter)] py-20 text-center">
     <h1 class="text-2xl font-extrabold tracking-[-0.02em] text-foreground">
       {{ t('detail.notFound.title') }}
     </h1>

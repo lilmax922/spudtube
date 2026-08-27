@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
   z-index: -1;
 }
 .heroInner {
-  max-width: 1280px;
+  max-width: var(--max-content-width);
   width: 100%;
   margin: 0 auto;
   display: flex;

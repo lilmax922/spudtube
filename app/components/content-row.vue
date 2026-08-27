@@ -22,11 +22,21 @@ const displayItems = computed(() => props.items)
 
 const gutter = ref(24)
 
+function getCssVarNumber(name: string, fallback: number): number {
+  if (typeof window === 'undefined' || typeof document === 'undefined')
+    return fallback
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  const n = Number.parseFloat(raw)
+  return Number.isFinite(n) ? n : fallback
+}
+
 function updateGutter(): void {
   if (typeof window === 'undefined')
     return
   const vw = window.innerWidth
-  gutter.value = Math.max(24, (vw - 1280) / 2 + 24)
+  const max = getCssVarNumber('--max-content-width', 1680)
+  const base = getCssVarNumber('--content-gutter', 24)
+  gutter.value = Math.max(base, (vw - max) / 2 + base)
 }
 
 onMounted(() => {
@@ -41,7 +51,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="content-row relative z-[1] hover:z-[20]">
-    <div class="mx-auto flex w-full max-w-[1280px] items-baseline gap-3.5 px-6 pb-3">
+    <div class="mx-auto flex w-full max-w-[var(--max-content-width)] items-baseline gap-3.5 px-[var(--content-gutter)] pb-3">
       <h3 class="text-[16.5px] font-bold tracking-tight text-foreground">
         {{ title }}
       </h3>

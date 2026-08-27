@@ -184,7 +184,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 0 24px;
+  padding: 0 var(--content-gutter);
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.35) 45%, transparent 100%);
   border-bottom: none;
   transition: background 0.28s ease, backdrop-filter 0.28s ease;
@@ -195,7 +195,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
   -webkit-backdrop-filter: blur(10px);
 }
 .header-inner {
-  max-width: 1280px;
+  max-width: var(--max-content-width);
   width: 100%;
   margin: 0 auto;
   display: flex;

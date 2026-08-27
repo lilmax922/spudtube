@@ -55,7 +55,7 @@ const countText = computed(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 12px 24px;
+  padding: 12px var(--content-gutter);
   background: rgba(20, 20, 22, 0.92);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -63,7 +63,7 @@ const countText = computed(() => {
   -webkit-backdrop-filter: blur(12px);
 }
 .filter-inner {
-  max-width: 1280px;
+  max-width: var(--max-content-width);
   width: 100%;
   margin: 0 auto;
   display: flex;

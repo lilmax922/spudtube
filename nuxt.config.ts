@@ -24,10 +24,10 @@ export default defineNuxtConfig({
   image: {
     // All remote artwork comes from TMDB; unlisted hosts (auth avatars) pass through untouched.
     domains: ['image.tmdb.org'],
-    // Mirrors the design-system breakpoints (560/880/1280) so `sizes` hints in components
-    // can use the sm/md/lg keys; responsive srcsets are built from TMDB's own size ladder
+    // Mirrors the design-system breakpoints (560/880/1280/1680) so `sizes` hints in components
+    // can use the sm/md/lg/xl keys; responsive srcsets are built from TMDB's own size ladder
     // because IPX/sharp cannot run on the cloudflare_pages worker runtime.
-    screens: { xs: 320, sm: 560, md: 880, lg: 1280, xl: 1536, xxl: 1920 },
+    screens: { xs: 320, sm: 560, md: 880, lg: 1280, xl: 1680, xxl: 1920 },
   },
   typescript: { strict: true },
   devtools: { enabled: true },

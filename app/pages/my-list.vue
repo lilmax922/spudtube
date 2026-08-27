@@ -41,7 +41,7 @@ function entryPath(entry: MyListEntry): string {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1280px] px-6 py-8">
+  <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] py-8">
     <h1 class="text-2xl font-bold tracking-tight text-foreground">
       {{ t('myList.heading') }}
     </h1>

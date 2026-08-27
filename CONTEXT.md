@@ -70,3 +70,9 @@ _Avoid_: slider, scroller, vega carousel
 **TitleCard**:
 The card representing a single Title inside a BrowseCarousel (or grid). It shows the Title's artwork, year, and rating, and reveals additional detail on hover/focus. It does not encode Availability; that belongs to the Title detail surface.
 _Avoid_: tile, poster, video, thumbnail
+
+### Layout
+
+**MaxContentWidth**:
+The maximum inline size of every centered page surface (header inner, BrowseGrid, ContentRow head, footers, detail/my-list/search shells) before side gutters take over. A single CSS variable (`--max-content-width`) is the source of truth; all `max-width` and gutter math derive from it.
+_Avoid_: container width, page width, max-width, ContentMaxWidth

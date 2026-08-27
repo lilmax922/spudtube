@@ -37,4 +37,13 @@ describe('search-field', () => {
     await clear.trigger('click')
     expect(wrapper.emitted('clear')).toHaveLength(1)
   })
+
+  it('keeps the clear button visible when clearable is true even with an empty query', async () => {
+    const wrapper = await mountSuspended(SearchField, { props: { query: '', clearable: true } })
+    expect(wrapper.find('button').exists()).toBe(true)
+    expect(wrapper.find('button').attributes('aria-label')).toBe('Clear search')
+
+    const emptyNotClearable = await mountSuspended(SearchField, { props: { query: '', clearable: false } })
+    expect(emptyNotClearable.find('button').exists()).toBe(false)
+  })
 })

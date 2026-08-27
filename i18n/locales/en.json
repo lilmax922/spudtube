@@ -21,9 +21,24 @@
     "label": "Search",
     "placeholder": "Search movies and TV shows",
     "clear": "Clear search",
+    "close": "Close search",
+    "open": "Open search",
     "noResults": "No results for \"{query}\"",
     "loading": "Searching…",
-    "error": "Something went wrong while searching"
+    "error": "Something went wrong while searching",
+    "related": "results for \"{query}\"",
+    "count": "{count} results",
+    "recentSearches": "Recent Searches",
+    "trendingSearches": "Trending Searches",
+    "clearAll": "Clear all",
+    "noRecent": "No recent searches",
+    "noResultsTitle": "No results",
+    "tryDifferent": "Try different keywords",
+    "tabs": {
+      "all": "All",
+      "movies": "Movies",
+      "tvShows": "TV Shows"
+    }
   },
   "language": {
     "label": "Language"

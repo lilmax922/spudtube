@@ -68,11 +68,13 @@ afterEach(() => {
 })
 
 describe('language switcher', () => {
-  it('renders a control per configured locale', async () => {
+  it('renders a control per configured locale inside dropdown menu', async () => {
     const wrapper = await mountSuspended(LanguageSwitcher, { route: '/?probe=1' })
-    const labels = wrapper.findAll('button').map(button => button.text())
+    const menuLabels = wrapper.find('#langMenu').findAll('button').map(button => button.text())
 
-    expect(labels).toEqual(['繁體中文', 'English'])
+    expect(menuLabels).toEqual(['繁體中文', 'English'])
+    // main button shows short label
+    expect(wrapper.find('#langBtn').text()).toMatch(/繁中|EN/)
   })
 
   it('marks the persisted locale as active', async () => {
@@ -87,7 +89,8 @@ describe('language switcher', () => {
 
   it('switches language instantly and persists the choice', async () => {
     const wrapper = await mountSuspended(LanguageSwitcher, { route: '/?probe=3' })
-
+    // open menu first (prototype dropdown)
+    await wrapper.find('#langBtn').trigger('click')
     await findButton(wrapper, '繁體中文')!.trigger('click')
     await flushPromises()
 
@@ -113,6 +116,7 @@ describe('display locale resolution through the app shell', () => {
   it('re-renders landing strings without reload', async () => {
     const wrapper = await mountSuspended(App, { route: '/?probe=6' })
 
+    await wrapper.find('#langBtn').trigger('click')
     await findButton(wrapper, '繁體中文')!.trigger('click')
     await flushPromises()
 
@@ -127,6 +131,7 @@ describe('display locale orthogonal to region', () => {
     document.cookie = 'spudtube-region=US; Path=/'
     const wrapper = await mountSuspended(LanguageSwitcher, { route: '/?probe=7' })
 
+    await wrapper.find('#langBtn').trigger('click')
     await findButton(wrapper, '繁體中文')!.trigger('click')
     await flushPromises()
 

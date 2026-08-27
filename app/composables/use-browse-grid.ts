@@ -56,7 +56,13 @@ export interface BrowseGridState {
   clearGenres: () => void
 }
 
-export function useBrowseGrid(fetcher: BrowseFetcher = createApiBrowseFetcher()): BrowseGridState {
+let browseGridInstance: BrowseGridState | undefined
+
+export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
+  const isDefault = fetcher === undefined
+  if (isDefault && browseGridInstance)
+    return browseGridInstance
+  const actualFetcher = fetcher ?? createApiBrowseFetcher()
   const kind = ref<Kind>('MOVIE')
   const selectedGenreIds = ref<number[]>([])
   const genres = ref<Genre[]>([])
@@ -71,13 +77,13 @@ export function useBrowseGrid(fetcher: BrowseFetcher = createApiBrowseFetcher())
     localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
   )
   const { loadFirstPage, loadNextPage, ...paged } = usePagedResults<TitleSummary>(page =>
-    fetcher.fetchDiscover(kind.value, selectedGenreIds.value, page, tmdbLanguage.value),
+    actualFetcher.fetchDiscover(kind.value, selectedGenreIds.value, page, tmdbLanguage.value),
   )
 
   async function refresh(): Promise<void> {
     try {
       const [genreList, applied] = await Promise.all([
-        fetcher.fetchGenres(kind.value, tmdbLanguage.value),
+        actualFetcher.fetchGenres(kind.value, tmdbLanguage.value),
         loadFirstPage(),
       ])
       if (applied)
@@ -114,7 +120,7 @@ export function useBrowseGrid(fetcher: BrowseFetcher = createApiBrowseFetcher())
     void refresh()
   }
 
-  return {
+  const state: BrowseGridState = {
     ...paged,
     kind,
     selectedGenreIds,
@@ -125,4 +131,11 @@ export function useBrowseGrid(fetcher: BrowseFetcher = createApiBrowseFetcher())
     toggleGenre,
     clearGenres,
   }
+  if (isDefault)
+    browseGridInstance = state
+  return state
+}
+
+export function resetBrowseGridForTest(): void {
+  browseGridInstance = undefined
 }

@@ -1,5 +1,5 @@
 import type { Genre, TitleSummary } from '#server/tmdb/types'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { shallowRef } from 'vue'
 import App from './app.vue'
@@ -16,7 +16,15 @@ const mock = vi.hoisted(() => ({
     search: vi.fn(),
     clear: vi.fn(),
   },
+  overlaySearch: {
+    search: vi.fn(),
+    clear: vi.fn(),
+    loadMore: vi.fn(),
+  },
+  navigateTo: vi.fn(),
 }))
+
+mockNuxtImport('navigateTo', () => mock.navigateTo)
 
 const browseState = {
   kind: shallowRef<'MOVIE' | 'TV_SHOW'>('MOVIE'),
@@ -60,6 +68,23 @@ vi.mock('./composables/use-search-state', () => ({
   }),
 }))
 
+vi.mock('./composables/use-keyword-search', () => ({
+  useKeywordSearch: () => ({
+    query: shallowRef(''),
+    searchedQuery: shallowRef(''),
+    items: shallowRef<TitleSummary[]>([]),
+    page: shallowRef(0),
+    totalPages: shallowRef(0),
+    loading: shallowRef(false),
+    loadingMore: shallowRef(false),
+    error: shallowRef(false),
+    hasMore: shallowRef(false),
+    search: mock.overlaySearch.search,
+    loadMore: mock.overlaySearch.loadMore,
+    clear: mock.overlaySearch.clear,
+  }),
+}))
+
 const titles: TitleSummary[] = [
   {
     kind: 'MOVIE',
@@ -82,6 +107,14 @@ describe('app shell', () => {
     vi.useRealTimers()
     mock.search.search.mockReset()
     mock.search.clear.mockReset()
+    mock.overlaySearch.search.mockReset()
+    mock.overlaySearch.clear.mockReset()
+    mock.navigateTo.mockReset()
+    searchState.query.value = ''
+    searchState.mode.value = 'browse'
+    searchState.searchedQuery.value = ''
+    browseState.items.value = []
+    browseState.genres.value = []
   })
 
   it('renders brand and lands directly on the browse grid', async () => {
@@ -95,46 +128,143 @@ describe('app shell', () => {
     expect(wrapper.text()).toContain('Movies')
   })
 
-  it('renders the search field in the header', async () => {
+  it('renders a search trigger in the header that opens the overlay', async () => {
     const wrapper = await mountSuspended(App, { route: '/' })
+
+    const trigger = wrapper.find('button[aria-label="Open search"]')
+    expect(trigger.exists()).toBe(true)
+    expect(wrapper.find('input[type="search"]').exists()).toBe(false)
+
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
 
     const input = wrapper.find('input[type="search"]')
     expect(input.exists()).toBe(true)
     expect(input.attributes('placeholder')).toBe('Search movies and TV shows')
   })
 
-  it('debounces typing before searching', async () => {
+  it('keeps homepage browse grid stable while typing in overlay (no global search mutation)', async () => {
     vi.useFakeTimers()
+    browseState.items.value = titles
+    browseState.genres.value = genres
     const wrapper = await mountSuspended(App, { route: '/' })
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     await wrapper.find('input[type="search"]').setValue('dune')
+    // global search should not be invoked by overlay typing
     expect(mock.search.search).not.toHaveBeenCalled()
+    // homepage should still show browse titles, not filtered
+    expect(wrapper.text()).toContain('沙丘')
 
-    await vi.advanceTimersByTimeAsync(200)
+    await vi.advanceTimersByTimeAsync(400)
     expect(mock.search.search).not.toHaveBeenCalled()
-
-    await vi.advanceTimersByTimeAsync(150)
-    expect(mock.search.search).toHaveBeenCalledWith('dune')
+    // overlay internal debounce should have fired
+    expect(mock.overlaySearch.search).toHaveBeenCalledWith('dune')
   })
 
-  it('searches immediately on submit without waiting for the debounce', async () => {
+  it('navigates to /search on submit with Enter', async () => {
     const wrapper = await mountSuspended(App, { route: '/' })
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     await wrapper.find('input[type="search"]').setValue('dune')
     await wrapper.find('form[role="search"]').trigger('submit')
 
-    expect(mock.search.search).toHaveBeenCalledWith('dune')
+    expect(mock.navigateTo).toHaveBeenCalledWith({ path: '/search', query: { q: 'dune' } })
+    // global search should not be called directly; navigation drives search page
+    expect(mock.search.search).not.toHaveBeenCalled()
   })
 
-  it('clears the search state via the field clear button', async () => {
+  it('clears the overlay query via the field clear button without invoking global clear', async () => {
     const wrapper = await mountSuspended(App, { route: '/' })
-    searchState.query.value = 'dune'
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const input = wrapper.find('input[type="search"]')
+    await input.setValue('dune')
+    await wrapper.vm.$nextTick()
 
     const clear = wrapper.find('button[aria-label="Clear search"]')
     expect(clear.exists()).toBe(true)
 
     await clear.trigger('click')
+    await wrapper.vm.$nextTick()
 
-    expect(mock.search.clear).toHaveBeenCalled()
+    const updatedInput = wrapper.find('input[type="search"]')
+    expect((updatedInput.element as HTMLInputElement).value).toBe('')
+    // app's clear only clears overlay query, not global search state
+    expect(mock.search.clear).not.toHaveBeenCalled()
+  })
+
+  it('closes the search overlay via close button, backdrop and Escape without trapping', async () => {
+    const wrapper = await mountSuspended(App, { route: '/' })
+    const trigger = wrapper.find('button[aria-label="Open search"]')
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    const close = wrapper.find('button[aria-label="Close search"]')
+    // when query empty, button is close
+    expect(close.exists()).toBe(true)
+    await close.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    // backdrop click (outer container)
+    await wrapper.find('[role="presentation"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+  })
+
+  it('shows close button when query empty and clear button when query present (clearable decoupled)', async () => {
+    const wrapper = await mountSuspended(App, { route: '/' })
+    await wrapper.find('button[aria-label="Open search"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('button[aria-label="Close search"]').exists()).toBe(true)
+    expect(wrapper.find('button[aria-label="Clear search"]').exists()).toBe(false)
+
+    await wrapper.find('input[type="search"]').setValue('dune')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('button[aria-label="Clear search"]').exists()).toBe(true)
+  })
+
+  it('opens and toggles the search overlay with Cmd+K / Ctrl+K', async () => {
+    const wrapper = await mountSuspended(App, { route: '/' })
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    // ⌘K (macOS) opens
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, cancelable: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    // Ctrl+K (Windows/Linux) also opens after closing
+    await wrapper.find('button[aria-label="Close search"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, cancelable: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+    // same shortcut toggles closed again
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, cancelable: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+
+    // plain k without modifier must not open
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k' }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
 })

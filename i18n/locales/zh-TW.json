@@ -83,8 +83,8 @@
     "recommendations": "你可能也會喜歡",
     "runtimeMinutes": "{minutes} 分鐘",
     "playTrailer": "播放預告",
-    "close": "關閉",
-    "more": "MORE",
+    "more": "更多",
+    "less": "收合",
     "noStream": "尚未提供串流",
     "watchSingle": "可在 {provider} 觀看",
     "watchMultiple": "可在 {count} 個平台觀看",
@@ -96,31 +96,19 @@
       "tv": "影集"
     },
     "facts": {
-      "heading": "作品資料",
-      "kind": "類型",
+      "heading": "詳細資料",
       "released": "上映／首播",
-      "runtime": "片長",
       "originalName": "原名",
       "status": "狀態",
       "originalLanguage": "原語言",
       "budget": "預算",
-      "revenue": "票房",
-      "contentRating": "分級"
+      "revenue": "票房"
     },
     "cast": {
-      "heading": "主要演員",
-      "hint": "Top Billed Cast",
-      "fullCastLink": "完整演員與工作人員"
-    },
-    "fullCast": {
-      "heading": "完整演員與工作人員",
-      "castSection": "演員",
-      "crewSection": "工作人員",
-      "other": "其他"
+      "heading": "主要演員"
     },
     "media": {
-      "heading": "劇照",
-      "hint": "Backdrops"
+      "heading": "劇照"
     },
     "crew": {
       "director": "導演",

@@ -27,6 +27,12 @@ describe('title trailer overlay', () => {
     expect(content!.className).toContain('border-0')
     expect(content!.className).toContain('shadow-none')
 
+    // pure black backdrop and no close button chrome
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]')
+    expect(overlay).not.toBeNull()
+    expect(overlay!.className).toContain('bg-black')
+    expect(document.querySelector('[data-slot="dialog-close"]')).toBeNull()
+
     const iframe = document.querySelector('iframe')
     expect(iframe).not.toBeNull()
     expect(iframe!.getAttribute('src')).toContain('youtube-nocookie.com/embed/abc123')
@@ -56,16 +62,33 @@ describe('title trailer overlay', () => {
     wrapper.unmount()
   })
 
-  it('emits update:open false when the floating close button is clicked', async () => {
+  it('emits update:open false when Escape is pressed', async () => {
     const wrapper = await mountSuspended(TitleTrailer, {
       route: '/?probe=3',
       props: { open: true, trailerKey: 'xyz' },
     })
 
-    const closeButton = document.querySelector<HTMLButtonElement>('[data-slot="dialog-close"]')
-    expect(closeButton).not.toBeNull()
-    expect(closeButton!.getAttribute('aria-label')).toBe('關閉')
-    closeButton!.click()
+    // reka registers escape via onKeyStroke on window
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+
+    await vi.waitFor(() => {
+      expect(wrapper.emitted('update:open')).toEqual([[false]])
+    })
+
+    wrapper.unmount()
+  })
+
+  it('emits update:open false when clicking outside the video', async () => {
+    const wrapper = await mountSuspended(TitleTrailer, {
+      route: '/?probe=5',
+      props: { open: true, trailerKey: 'xyz' },
+    })
+
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]')
+    expect(overlay).not.toBeNull()
+    // reka defers its outside-pointerdown listener by one macrotask
+    await new Promise(resolve => setTimeout(resolve, 0))
+    overlay!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
 
     await vi.waitFor(() => {
       expect(wrapper.emitted('update:open')).toEqual([[false]])

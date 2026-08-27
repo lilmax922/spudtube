@@ -12,6 +12,7 @@ defineOptions({
 
 const props = withDefaults(defineProps<DialogContentProps & {
   class?: HTMLAttributes['class']
+  overlayClass?: HTMLAttributes['class']
   showCloseButton?: boolean
   closeLabel?: string
 }>(), {
@@ -21,7 +22,7 @@ const props = withDefaults(defineProps<DialogContentProps & {
 
 const emits = defineEmits<DialogContentEmits>()
 
-const delegatedProps = reactiveOmit(props, 'class', 'showCloseButton', 'closeLabel')
+const delegatedProps = reactiveOmit(props, 'class', 'overlayClass', 'showCloseButton', 'closeLabel')
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
@@ -29,7 +30,10 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   <DialogPortal>
     <DialogOverlay
       data-slot="dialog-overlay"
-      class="data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/60"
+      :class="cn(
+        'data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 z-50 bg-black/60',
+        props.overlayClass,
+      )"
     />
     <DialogContent
       data-slot="dialog-content"

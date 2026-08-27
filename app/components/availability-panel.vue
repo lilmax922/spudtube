@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { AvailabilityGroups, Kind, RegionAvailability } from '#server/tmdb/types'
-import { Globe } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { isCuratedRegion } from '#shared/region/region'
@@ -56,8 +55,7 @@ function onRegionChange(event: Event): void {
     :aria-label="t('availability.heading')"
   >
     <div class="mb-3.5 flex flex-wrap items-center justify-between gap-3">
-      <h2 class="flex items-center gap-1.5 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
-        <Globe :size="14" :stroke-width="1.75" aria-hidden="true" class="text-muted-foreground" />
+      <h2 class="text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
         {{ t('availability.heading') }}
       </h2>
       <label class="flex items-center gap-2">
@@ -86,26 +84,26 @@ function onRegionChange(event: Event): void {
         :key="group.key"
         class="flex items-start gap-4 border-t border-border py-3 first:border-t-0 first:pt-0"
       >
-        <span class="w-14 shrink-0 pt-1 text-[12.5px] font-medium text-muted-foreground">
+        <span class="shrink-0 whitespace-nowrap pt-1.5 text-[12.5px] font-medium text-muted-foreground">
           {{ t(`availability.groups.${group.key}`) }}
         </span>
-        <div class="flex flex-wrap gap-2">
-          <span
-            v-for="provider in group.providers"
-            :key="provider.id"
-            class="flex h-10 items-center rounded-md bg-muted px-2"
-            :title="provider.name"
-          >
+        <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <template v-for="provider in group.providers" :key="provider.id">
             <img
               v-if="provider.logoPath"
               :src="providerLogoUrl(provider.logoPath) ?? undefined"
               :alt="provider.name"
-              class="max-h-6 max-w-24 object-contain"
+              :title="provider.name"
+              class="h-10 w-auto max-w-48 rounded-[20%] object-contain"
             >
-            <span v-else class="max-w-28 truncate text-xs font-medium text-muted-foreground">
+            <span
+              v-else
+              :title="provider.name"
+              class="text-sm font-medium text-foreground/90"
+            >
               {{ provider.name }}
             </span>
-          </span>
+          </template>
         </div>
       </div>
     </template>

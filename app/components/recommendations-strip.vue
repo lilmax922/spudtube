@@ -14,9 +14,8 @@ const { t } = useI18n()
 
 <template>
   <section v-if="props.titles.length > 0">
-    <h2 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
+    <h2 class="mb-4 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
       {{ t('detail.recommendations') }}
-      <span class="text-[11px] font-medium normal-case tracking-normal text-muted-foreground">You May Also Like</span>
     </h2>
     <div class="flex gap-4 overflow-x-auto pb-6">
       <NuxtLink

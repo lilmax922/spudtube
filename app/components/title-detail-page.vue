@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
-import type { Kind, Provider } from '#server/tmdb/types'
+import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
-import { useAvailability } from '../composables/use-availability'
-import { useRegion } from '../composables/use-region'
 import { useTitleDetail } from '../composables/use-title-detail'
 import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
@@ -39,26 +37,11 @@ const signedIn = computed(() => session.value.data?.user != null)
 const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(props.kind, titleId, signedIn)
 const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(props.kind, titleId, signedIn)
 
-const tmdbId = computed(() => detail.data.value?.tmdbId ?? null)
-const { catalog } = useAvailability(props.kind, tmdbId)
-const { region } = useRegion()
-
 const trailerOpen = ref(false)
 
 function onPlayTrailer(): void {
   trailerOpen.value = true
 }
-
-const heroProviders = computed<Provider[]>(() => {
-  const data = catalog.data.value
-  if (!data || tmdbId.value == null)
-    return []
-  const regionData = data[region.value]
-  if (!regionData)
-    return []
-  const groups = regionData.groups
-  return [...groups.subscription, ...groups.free, ...groups.rent, ...groups.buy]
-})
 
 function onSelectRating(label: RatingLabel): void {
   void rate(label)
@@ -115,7 +98,6 @@ const failed = computed(() => {
     <template v-else-if="detail.data.value">
       <TitleIdentityBlock
         :detail="detail.data.value"
-        :providers="heroProviders"
         :rating="rating"
         :status="status"
         :signed-in="signedIn"
@@ -136,19 +118,10 @@ const failed = computed(() => {
       />
 
       <div class="mx-auto w-full max-w-[1280px] px-6">
-        <div class="grid grid-cols-1 gap-8 py-8 lg:grid-cols-[1fr_320px]">
-          <div class="order-1 flex min-w-0 flex-col">
-            <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
-            <CastList :cast="detail.data.value.cast" :crew="detail.data.value.crew" />
-            <MediaStrip :paths="detail.data.value.backdrops" />
-          </div>
-          <aside class="order-2 flex flex-col lg:sticky lg:top-6 lg:self-start">
-            <TitleFactsPanel :detail="detail.data.value" />
-          </aside>
-        </div>
-      </div>
-
-      <div class="mx-auto w-full max-w-[1280px] px-6">
+        <TitleFactsPanel :detail="detail.data.value" />
+        <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
+        <CastList :cast="detail.data.value.cast" :crew="detail.data.value.crew" />
+        <MediaStrip :paths="detail.data.value.backdrops" />
         <div class="mt-8 border-t border-border pt-8">
           <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
         </div>

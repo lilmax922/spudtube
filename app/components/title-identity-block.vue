@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
-import type { CrewMember, Provider, TitleDetail } from '#server/tmdb/types'
+import type { TitleDetail } from '#server/tmdb/types'
 import { Play } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { backdropUrl, posterUrl } from '../lib/images'
+import { backdropUrl } from '../lib/images'
 import { kindLabelKey } from '../lib/kind'
 import RatingTrio from './rating-trio.vue'
 import TitleStatusToggle from './title-status-toggle.vue'
+import { Badge } from './ui/badge'
 
 interface Props {
   detail: TitleDetail
-  providers?: Provider[]
   rating?: RatingLabel | null
   status?: WatchStatus | null
   signedIn?: boolean
@@ -20,7 +20,6 @@ interface Props {
   statusPending?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
-  providers: () => [],
   rating: null,
   status: null,
   signedIn: false,
@@ -39,28 +38,16 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const poster = computed(() => posterUrl(props.detail.posterPath))
 const backdrop = computed(() => backdropUrl(props.detail.backdropPath))
 const year = computed(() => props.detail.releaseDate?.slice(0, 4) ?? null)
 const hasRuntime = computed(() => props.detail.runtimeMinutes != null)
-const hasGenres = computed(() => props.detail.genres.length > 0)
 const kindLabel = computed(() => t(kindLabelKey(props.detail.kind)))
-
-const providerCount = computed(() => props.providers.length)
-const watchLabel = computed(() => {
-  if (providerCount.value === 0)
-    return t('detail.noStream')
-  if (providerCount.value === 1)
-    return t('detail.watchSingle', { provider: props.providers[0]?.name ?? '' })
-  return t('detail.watchMultiple', { count: providerCount.value })
-})
 
 const hasTrailer = computed(() => props.detail.trailerKey != null && props.detail.trailerKey !== '')
 
-const director = computed<CrewMember | null>(() => props.detail.crew.find(member => member.job === 'Director') ?? null)
-const writer = computed<CrewMember | null>(() => {
-  const wantedJobs = ['Writer', 'Screenplay', 'Novel', 'Original Story']
-  return props.detail.crew.find(member => wantedJobs.includes(member.job)) ?? null
+const ratingScore = computed(() => {
+  const v = props.detail.voteAverage
+  return v != null ? v.toFixed(1) : null
 })
 
 function playTrailer(): void {
@@ -68,8 +55,6 @@ function playTrailer(): void {
     return
   emit('playTrailer')
 }
-
-const providerDotColors = ['#0ea5e9', '#22c55e', '#eab308', '#a855f7', '#f43f5e']
 </script>
 
 <template>
@@ -94,93 +79,56 @@ const providerDotColors = ['#0ea5e9', '#22c55e', '#eab308', '#a855f7', '#f43f5e'
     <div
       class="pointer-events-none absolute inset-0"
       aria-hidden="true"
-      style="background: linear-gradient(to right, rgba(0,0,0,.72) 0%, rgba(0,0,0,.45) 18%, transparent 32%, transparent 68%, rgba(0,0,0,.45) 82%, rgba(0,0,0,.72) 100%), linear-gradient(to top, rgba(0,0,0,.62) 0%, rgba(0,0,0,.22) 36%, transparent 58%)"
+      style="background: linear-gradient(to right, rgba(0,0,0,.72) 0%, rgba(0,0,0,.45) 18%, transparent 32%, transparent 68%, rgba(0,0,0,.45) 82%, rgba(0,0,0,.72) 100%), linear-gradient(to top, rgba(0,0,0,.78) 0%, rgba(0,0,0,.28) 38%, transparent 60%)"
     />
 
-    <div class="relative mx-auto flex w-full max-w-[1280px] flex-col gap-7 md:flex-row md:items-end">
-      <div class="w-[160px] shrink-0 md:w-[200px]">
-        <div class="aspect-[2/3] overflow-hidden rounded-[var(--radius)] bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.25)] ring-1 ring-white/12 backdrop-blur-sm">
-          <img
-            v-if="poster"
-            :src="poster"
-            :alt="detail.name"
-            class="h-full w-full object-cover"
-          >
-          <div
-            v-else
-            class="flex h-full w-full items-center justify-center bg-white/[0.06] text-4xl font-extrabold tracking-tight text-white/80"
-            aria-hidden="true"
-          >
-            {{ detail.name.slice(0, 1).toUpperCase() }}
-          </div>
-        </div>
-      </div>
-
-      <div class="flex min-w-0 max-w-[560px] flex-1 flex-col">
-        <h1 class="text-[30px] font-extrabold leading-[1.15] tracking-[-0.02em] text-white">
+    <div class="relative flex w-full flex-col justify-end pb-10 pt-48 md:pb-14">
+      <div class="max-w-[620px]">
+        <!-- Row 1: Title -->
+        <h1 class="text-[30px] font-extrabold leading-[1.15] tracking-[-0.02em] text-white md:text-[34px]">
           {{ detail.name }}
-          <span v-if="year" class="ml-2 text-xl font-semibold tabular-nums tracking-normal text-white/62"> {{ year }}</span>
         </h1>
 
-        <div class="mt-2.5 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-white/88">
-          <span class="rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[11.5px] font-semibold tracking-wide text-white/92 backdrop-blur-sm">
-            {{ kindLabel }}
-          </span>
-          <span v-if="hasRuntime" class="tabular-nums">
-            {{ t('detail.runtimeMinutes', { minutes: detail.runtimeMinutes }) }}
-          </span>
-          <span v-if="hasRuntime && hasGenres" aria-hidden="true" class="text-white/35">·</span>
-          <span class="flex flex-wrap items-center gap-1.5">
-            <span
-              v-for="genre in detail.genres"
-              :key="genre.id"
-              class="rounded-full bg-white/10 px-2 py-0.5 text-[11.5px] font-medium text-white/80 ring-1 ring-white/10 backdrop-blur-sm"
-            >
-              {{ genre.name }}
-            </span>
-            <span v-if="!hasGenres && !hasRuntime" class="text-white/60">—</span>
-          </span>
-          <span v-if="detail.voteAverage != null" class="ml-1 inline-flex items-center gap-1 rounded-[6px] border border-white/25 bg-white/10 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-white backdrop-blur-sm">
-            ★ {{ detail.voteAverage.toFixed(1) }}
-          </span>
+        <!-- Row 2: Kind · Genres · Content Rating -->
+        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold text-white/88">
+          <span>{{ kindLabel }}</span>
+          <template v-for="genre in detail.genres" :key="genre.id">
+            <span aria-hidden="true" class="text-white/35">·</span>
+            <span>{{ genre.name }}</span>
+          </template>
+          <Badge
+            v-if="detail.contentRating"
+            variant="secondary"
+            class="ml-1 text-[11px] font-bold"
+          >
+            {{ detail.contentRating }}
+          </Badge>
         </div>
 
-        <div
-          v-if="providers.length > 0"
-          class="mt-3 flex items-center gap-3"
+        <!-- Row 4: Overview -->
+        <p
+          v-if="detail.overview"
+          class="mt-3 line-clamp-3 max-w-[30vw] text-sm font-normal leading-[1.7] text-white/88"
         >
-          <div class="flex items-center" aria-hidden="true">
-            <span
-              v-for="(provider, index) in providers.slice(0, 4)"
-              :key="provider.id"
-              class="flex size-7 items-center justify-center rounded-full border-2 border-background text-[10px] font-extrabold text-white"
-              :style="{
-                backgroundColor: providerDotColors[index % providerDotColors.length],
-                marginLeft: index === 0 ? '0' : '-8px',
-                zIndex: providers.length - index,
-              }"
-              :title="provider.name"
-            >
-              {{ provider.name.slice(0, 1) }}
-            </span>
-            <span
-              v-if="providers.length > 4"
-              class="flex size-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-bold text-muted-foreground"
-              :style="{ marginLeft: '-8px' }"
-              aria-hidden="true"
-            >
-              +{{ providers.length - 4 }}
-            </span>
-          </div>
-          <span class="text-[12.5px] font-medium text-white/82">{{ watchLabel }}</span>
-        </div>
+          {{ detail.overview }}
+        </p>
 
-        <div class="mt-4 flex flex-wrap items-center gap-3">
+        <!-- Row 5: Play Trailer · Rating Trio · Watchlist -->
+        <div class="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            v-if="hasTrailer"
+            type="button"
+            class="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+            :aria-label="t('detail.playTrailer')"
+            @click="playTrailer"
+          >
+            <Play :size="16" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
+            {{ t('detail.playTrailer') }}
+          </button>
           <RatingTrio
             :label="rating"
             :signed-in="signedIn"
             :pending="ratingPending"
-            :vote-average="detail.voteAverage"
             @select="emit('selectRating', $event)"
             @clear="emit('clearRating')"
             @sign-in-requested="emit('signInRequested')"
@@ -193,37 +141,23 @@ const providerDotColors = ['#0ea5e9', '#22c55e', '#eab308', '#a855f7', '#f43f5e'
             @clear-status="emit('clearStatus')"
             @sign-in-requested="emit('signInRequested')"
           />
-          <button
-            v-if="hasTrailer"
-            type="button"
-            class="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-            :aria-label="t('detail.playTrailer')"
-            @click="playTrailer"
-          >
-            <Play :size="16" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
-            {{ t('detail.playTrailer') }}
-          </button>
         </div>
 
-        <p v-if="detail.tagline" class="mt-4 text-sm font-normal italic leading-[1.7] text-white/85">
-          “{{ detail.tagline }}”
-        </p>
-        <p v-if="detail.overview" class="mt-3 max-w-2xl text-sm font-normal leading-[1.7] text-white/88">
-          {{ detail.overview }}
-        </p>
-
+        <!-- Row 6: Year · Runtime · Rating Score -->
         <div
-          v-if="director || writer"
-          class="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px] text-white/70"
+          v-if="year || hasRuntime || ratingScore"
+          class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium tabular-nums text-white/70"
         >
-          <span v-if="director">
-            <b class="font-semibold text-white/92">{{ t('detail.crew.director') }}</b>
-            {{ director.name }}
-          </span>
-          <span v-if="writer && writer.id !== director?.id">
-            <b class="font-semibold text-white/92">{{ t('detail.crew.writer') }}</b>
-            {{ writer.name }}
-          </span>
+          <span v-if="year">{{ year }}</span>
+          <span v-if="year && hasRuntime" aria-hidden="true" class="text-white/35">·</span>
+          <span v-if="hasRuntime">{{ t('detail.runtimeMinutes', { minutes: detail.runtimeMinutes }) }}</span>
+          <template v-if="ratingScore">
+            <span aria-hidden="true" class="text-white/35">·</span>
+            <span class="inline-flex items-center gap-1.5 font-semibold text-white/88">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="size-[13px]" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" /></svg>
+              {{ ratingScore }}
+            </span>
+          </template>
         </div>
       </div>
     </div>

@@ -21,8 +21,6 @@ describe('title-status-toggle', () => {
   it('renders both idle actions for a signed-out visitor', async () => {
     const wrapper = await render({ signedIn: false })
 
-    expect(wrapper.text()).toContain('Watchlist')
-    expect(wrapper.text()).toContain('Watched')
     expect(findButton(wrapper, 'Add to watchlist')?.attributes('aria-pressed')).toBe('false')
     expect(findButton(wrapper, 'Mark as watched')?.attributes('aria-pressed')).toBe('false')
   })

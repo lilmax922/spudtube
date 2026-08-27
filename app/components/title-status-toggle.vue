@@ -24,7 +24,6 @@ const { t } = useI18n()
 interface StatusAction {
   status: WatchStatus
   icon: Component
-  label: string
   labelAdd: string
   labelRemove: string
 }
@@ -33,14 +32,12 @@ const ACTIONS: StatusAction[] = [
   {
     status: 'WATCHLISTED',
     icon: Bookmark,
-    label: 'watchStatus.watchlist',
     labelAdd: 'watchStatus.watchlistAdd',
     labelRemove: 'watchStatus.watchlistRemove',
   },
   {
     status: 'WATCHED',
     icon: CircleCheck,
-    label: 'watchStatus.watched',
     labelAdd: 'watchStatus.watchedMark',
     labelRemove: 'watchStatus.watchedClear',
   },
@@ -79,7 +76,6 @@ function onActionClick(action: StatusAction): void {
         :fill="status === action.status ? 'currentColor' : 'none'"
         aria-hidden="true"
       />
-      {{ t(action.label) }}
     </button>
   </div>
 </template>

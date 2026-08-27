@@ -145,7 +145,7 @@ describe('movie detail route', () => {
     })
   })
 
-  it('renders the cast, media, extended facts and provider dots', async () => {
+  it('renders the cast, media and extended facts', async () => {
     registerEndpoints(419430)
 
     const wrapper = await renderPage('/movie/419430')
@@ -157,7 +157,6 @@ describe('movie detail route', () => {
     expect(wrapper.text()).toContain('主要演員')
     expect(wrapper.text()).toContain('Timothée Chalamet')
     expect(wrapper.text()).toContain('Paul Atreides')
-    expect(wrapper.text()).toContain('完整演員與工作人員')
 
     // media backdrops
     expect(wrapper.text()).toContain('劇照')
@@ -169,37 +168,25 @@ describe('movie detail route', () => {
     // keywords section is removed from the detail page
     expect(wrapper.text()).not.toContain('關鍵字')
 
+    // hero carries kind, genres, rating badge and the year/runtime meta row
+    expect(wrapper.text()).toContain('電影')
+    expect(wrapper.text()).toContain('PG-13')
+    expect(wrapper.text()).toContain('2021')
+    expect(wrapper.text()).toContain('155 分鐘')
+
     // facts panel extended fields
     expect(wrapper.text()).toContain('原名')
     expect(wrapper.text()).toContain('Dune')
     expect(wrapper.text()).toContain('狀態')
     expect(wrapper.text()).toContain('Released')
-    expect(wrapper.text()).toContain('分級')
-    expect(wrapper.text()).toContain('PG-13')
 
-    // provider avatars surface in hero — wait for the provider fetch to land
+    // streaming providers live only in the availability section below the hero
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain('可在')
+      expect(wrapper.text()).toContain('訂閱')
     })
-    expect(wrapper.text()).toContain('2 個平台觀看')
-    // the dot avatars render the first letter of each provider's name
-    const dotLetters = wrapper.findAll('span.flex.size-7')
-      .map(node => node.text())
-      .filter(text => text.length === 1)
-    expect(dotLetters.length).toBeGreaterThanOrEqual(2)
-
-    // full cast & crew dialog lists the whole crew
-    expect(document.querySelector('[data-slot="dialog-content"]')).toBeNull()
-    const fullCastTrigger = wrapper.findAll('button').find(button => button.text().includes('完整演員與工作人員'))
-    expect(fullCastTrigger).toBeDefined()
-    await fullCastTrigger!.trigger('click')
-    await vi.waitFor(() => {
-      expect(document.querySelector('[data-slot="dialog-content"]')).not.toBeNull()
-    })
-    expect(document.body.textContent).toContain('Denis Villeneuve')
-    expect(document.body.textContent).toContain('Directing')
+    const providerAlts = wrapper.findAll('img').map(image => image.attributes('alt'))
+    expect(providerAlts).toEqual(expect.arrayContaining(['CATCHPLAY+', 'Netflix']))
 
     wrapper.unmount()
-    expect(document.querySelector('[data-slot="dialog-content"]')).toBeNull()
   })
 })

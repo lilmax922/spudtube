@@ -92,7 +92,7 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 ### Grid & Container
 
 - **Max content width** 1280px。
-- **Grid**：結果網格 `repeat(auto-fill, minmax(240px,1fr))`，gap 16；窄視口縮至 `minmax(168px,1fr)`。
+- **Grid**：結果網格 `repeat(auto-fill, minmax(180px,1fr))`，gap 16；窄視口縮至 `minmax(152px,1fr)`。
 - **Container**：頁面內容置中於 1280 容器，左右各 `24px` 內距。
 
 ### Whitespace Philosophy
@@ -131,7 +131,7 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 
 ### Imagery & Geometry
 
-- **海報** `16:9`，圓角 `12px`。
+- **海報** `2:3`，圓角 `12px`。
 - **詳情海報** `2:3`，圓角 `var(--radius)`。
 - 圖像維持比例不裁切。
 
@@ -189,8 +189,8 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 | Name | Width | Key Changes |
 |---|---|---|
 | Desktop | 1280px | 預設 |
-| Tablet | 880px | 單欄化（若有雙欄）、卡片 `240→220` |
-| Mobile | 560px | 卡片 `168`、`pgrid minmax(168,1fr)`、hover 卡隱藏 |
+| Tablet | 880px | 單欄化（若有雙欄）、卡片 `180→168` |
+| Mobile | 560px | 卡片 `152`、`pgrid minmax(152,1fr)`、hover 卡隱藏 |
 
 ### Touch Targets
 
@@ -205,7 +205,7 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 
 ### Image Behavior
 
-- 海報與劇照皆 `16:9`，維持比例不裁切。
+- 瀏覽/輪播海報 `2:3`；詳情頁海報 `2:3`。
 
 ## Iteration Guide
 

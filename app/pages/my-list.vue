@@ -5,8 +5,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definePageMeta, useFetch } from '#imports'
 import { authClient } from '../lib/auth-client'
+import { posterSrcSet, posterUrl } from '../lib/images'
 import { toMediaSegment } from '../lib/kind'
-import { posterUrl } from '../lib/tmdb-image'
 
 // Only signed-in Users may browse the list; the my-list middleware bounces everyone else home.
 definePageMeta({ middleware: 'my-list' })
@@ -87,13 +87,16 @@ function entryPath(entry: MyListEntry): string {
           class="group flex items-center gap-4 rounded-lg bg-card p-3 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         >
           <div class="h-20 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-            <img
+            <NuxtImg
               v-if="entry.title.posterPath"
-              :src="posterUrl(entry.title.posterPath, 'w185')"
+              :src="posterUrl(entry.title.posterPath) ?? undefined"
+              :srcset="posterSrcSet(entry.title.posterPath) ?? undefined"
+              sizes="56px"
               :alt="entry.title.name"
               loading="lazy"
+              decoding="async"
               class="h-full w-full object-cover"
-            >
+            />
             <div
               v-else
               class="flex h-full w-full items-center justify-center"

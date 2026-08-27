@@ -84,12 +84,10 @@ function playTrailer(): void {
 
     <div class="relative flex w-full flex-col justify-end pb-10 pt-48 md:pb-14">
       <div class="max-w-[620px]">
-        <!-- Row 1: Title -->
         <h1 class="text-[30px] font-extrabold leading-[1.15] tracking-[-0.02em] text-white md:text-[34px]">
           {{ detail.name }}
         </h1>
 
-        <!-- Row 2: Kind · Genres · Content Rating -->
         <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold text-white/88">
           <span>{{ kindLabel }}</span>
           <template v-for="genre in detail.genres" :key="genre.id">
@@ -105,7 +103,6 @@ function playTrailer(): void {
           </Badge>
         </div>
 
-        <!-- Row 4: Overview -->
         <p
           v-if="detail.overview"
           class="mt-3 line-clamp-3 max-w-[30vw] text-sm font-normal leading-[1.7] text-white/88"
@@ -113,7 +110,6 @@ function playTrailer(): void {
           {{ detail.overview }}
         </p>
 
-        <!-- Row 5: Play Trailer · Rating Trio · Watchlist -->
         <div class="mt-5 flex flex-wrap items-center gap-3">
           <button
             v-if="hasTrailer"
@@ -143,7 +139,6 @@ function playTrailer(): void {
           />
         </div>
 
-        <!-- Row 6: Year · Runtime · Rating Score -->
         <div
           v-if="year || hasRuntime || ratingScore"
           class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium tabular-nums text-white/70"

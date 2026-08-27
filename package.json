@@ -24,6 +24,7 @@
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.1",
     "@lucide/vue": "^1.33.0",
+    "@nuxt/image": "^2.1.0",
     "@nuxtjs/i18n": "^10.6.0",
     "@vueuse/core": "^14.4.0",
     "better-auth": "^1.7.1",
@@ -31,6 +32,7 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
+    "embla-carousel-vue": "^8.6.0",
     "h3": "^1.15.11",
     "nuxt": "^4.5.2",
     "pg": "^8.23.0",

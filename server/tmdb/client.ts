@@ -59,6 +59,8 @@ export interface DiscoverOptions {
 export interface TmdbClient {
   searchMulti: (query: string, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   discover: (kind: Kind, options?: DiscoverOptions) => Promise<Page<TitleSummary>>
+  trending: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  topRated: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   title: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<TitleDetail | null>
   watchProviders: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<ProviderCatalog>
   recommendations: (kind: Kind, tmdbId: number, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
@@ -131,6 +133,40 @@ export function createTmdbClient({
       const segment = toMediaSegment(kind)
       return cache.wrap(`discover:${language}:${segment}:${params.with_genres ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(await request(`/discover/${segment}`, params))
+        return mapPage(raw, raw.results.map(item =>
+          kind === 'MOVIE'
+            ? mapMovieSummary(rawMovieSummarySchema.parse(item))
+            : mapTvSummary(rawTvSummarySchema.parse(item)),
+        ))
+      })
+    },
+
+    trending(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      const segment = toMediaSegment(kind)
+      return cache.wrap(`trending:${language}:${segment}:${page}`, SEARCH_TTL_MS, async () => {
+        const raw = rawListPageSchema.parse(
+          await request(`/trending/${segment}/week`, {
+            page: String(page),
+            language,
+          }),
+        )
+        return mapPage(raw, raw.results.map(item =>
+          kind === 'MOVIE'
+            ? mapMovieSummary(rawMovieSummarySchema.parse(item))
+            : mapTvSummary(rawTvSummarySchema.parse(item)),
+        ))
+      })
+    },
+
+    topRated(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      const segment = toMediaSegment(kind)
+      return cache.wrap(`top-rated:${language}:${segment}:${page}`, SEARCH_TTL_MS, async () => {
+        const raw = rawListPageSchema.parse(
+          await request(`/${segment}/top_rated`, {
+            page: String(page),
+            language,
+          }),
+        )
         return mapPage(raw, raw.results.map(item =>
           kind === 'MOVIE'
             ? mapMovieSummary(rawMovieSummarySchema.parse(item))

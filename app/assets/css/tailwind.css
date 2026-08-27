@@ -55,6 +55,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 :root {
+    --header-h: 64px;
     --background: oklch(0.105 0.012 275);
     --foreground: oklch(0.96 0.008 280);
     --card: oklch(0.155 0.018 278);
@@ -90,6 +91,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .dark {
+    --header-h: 64px;
     --background: oklch(0.105 0.012 275);
     --foreground: oklch(0.96 0.008 280);
     --card: oklch(0.155 0.018 278);

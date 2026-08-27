@@ -17,4 +17,10 @@ export default withNuxt(
       'unicorn/filename-case': ['error', { case: 'kebabCase' }],
     },
   },
+  {
+    files: ['app/components/ui/**/*.{js,mjs,ts,vue}'],
+    rules: {
+      'unicorn/filename-case': 'off',
+    },
+  },
 )

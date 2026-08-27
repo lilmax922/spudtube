@@ -37,6 +37,8 @@ export function mapMovieSummary(
     backdropPath: raw.backdrop_path,
     releaseDate: raw.release_date,
     voteAverage: raw.vote_average,
+    genreIds: raw.genre_ids ?? [],
+    overview: raw.overview || null,
   }
 }
 
@@ -49,6 +51,8 @@ export function mapTvSummary(raw: z.infer<typeof rawTvSummarySchema>): TitleSumm
     backdropPath: raw.backdrop_path,
     releaseDate: raw.first_air_date,
     voteAverage: raw.vote_average,
+    genreIds: raw.genre_ids ?? [],
+    overview: raw.overview || null,
   }
 }
 

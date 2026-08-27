@@ -10,14 +10,35 @@
     "empty": "沒有符合條件的片單",
     "error": "載入片單時發生錯誤"
   },
+  "card": {
+    "badges": {
+      "trending": "本週熱門",
+      "topRated": "高評價"
+    }
+  },
   "search": {
     "sectionLabel": "搜尋結果",
     "label": "搜尋",
     "placeholder": "搜尋電影和電視劇",
     "clear": "清除搜尋",
+    "close": "關閉搜尋",
+    "open": "開啟搜尋",
     "noResults": "沒有與「{query}」相符的結果",
     "loading": "搜尋中…",
-    "error": "搜尋時發生錯誤"
+    "error": "搜尋時發生錯誤",
+    "related": "「{query}」的相關搜尋",
+    "count": "共 {count} 項結果",
+    "recentSearches": "近期搜尋",
+    "trendingSearches": "熱門搜尋",
+    "clearAll": "清除全部",
+    "noRecent": "尚無搜尋紀錄",
+    "noResultsTitle": "沒有結果",
+    "tryDifferent": "試試其他關鍵字",
+    "tabs": {
+      "all": "全部",
+      "movies": "電影",
+      "tvShows": "電視劇"
+    }
   },
   "language": {
     "label": "語言"

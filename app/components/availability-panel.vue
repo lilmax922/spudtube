@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { isCuratedRegion } from '#shared/region/region'
 import { useAvailability } from '../composables/use-availability'
 import { useRegion } from '../composables/use-region'
-import { providerLogoUrl } from '../lib/images'
+import { providerLogoSrcSet, providerLogoUrl } from '../lib/images'
 
 interface Props {
   kind: Kind
@@ -92,6 +92,8 @@ function onRegionChange(event: Event): void {
             <img
               v-if="provider.logoPath"
               :src="providerLogoUrl(provider.logoPath) ?? undefined"
+              :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
+              sizes="96px"
               :alt="provider.name"
               :title="provider.name"
               class="h-10 w-auto max-w-48 rounded-[20%] object-contain"

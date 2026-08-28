@@ -84,11 +84,11 @@ function playTrailer(): void {
 
     <div class="relative flex w-full flex-col justify-end pb-10 pt-48 md:pb-14">
       <div class="max-w-[620px]">
-        <h1 class="text-[30px] font-extrabold leading-[1.15] tracking-[-0.02em] text-white md:text-[34px]">
+        <h1 class="text-display text-white">
           {{ detail.name }}
         </h1>
 
-        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold text-white/88">
+        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption-md font-semibold text-white/88">
           <span>{{ kindLabel }}</span>
           <template v-for="genre in detail.genres" :key="genre.id">
             <span aria-hidden="true" class="text-white/35">·</span>
@@ -97,7 +97,7 @@ function playTrailer(): void {
           <Badge
             v-if="detail.contentRating"
             variant="secondary"
-            class="ml-1 text-[11px] font-bold"
+            class="ml-1 text-caption-sm font-bold"
           >
             {{ detail.contentRating }}
           </Badge>
@@ -105,7 +105,7 @@ function playTrailer(): void {
 
         <p
           v-if="detail.overview"
-          class="mt-3 line-clamp-3 max-w-[30vw] text-sm font-normal leading-[1.7] text-white/88"
+          class="mt-3 line-clamp-3 max-w-[30vw] text-body-lg text-white/88"
         >
           {{ detail.overview }}
         </p>
@@ -114,7 +114,7 @@ function playTrailer(): void {
           <button
             v-if="hasTrailer"
             type="button"
-            class="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+            class="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-button-md text-primary-foreground transition-[filter] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
             :aria-label="t('detail.playTrailer')"
             @click="playTrailer"
           >
@@ -141,7 +141,7 @@ function playTrailer(): void {
 
         <div
           v-if="year || hasRuntime || ratingScore"
-          class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium tabular-nums text-white/70"
+          class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption-md font-medium tabular-nums text-white/70"
         >
           <span v-if="year">{{ year }}</span>
           <span v-if="year && hasRuntime" aria-hidden="true" class="text-white/35">·</span>

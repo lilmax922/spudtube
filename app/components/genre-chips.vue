@@ -21,7 +21,7 @@ function isSelected(genreId: number): boolean {
       v-for="genre in genres"
       :key="genre.id"
       type="button"
-      class="inline-flex min-h-10 h-[30px] items-center rounded-full border border-transparent px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex min-h-10 h-[30px] items-center rounded-full border border-transparent px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       :class="isSelected(genre.id)
         ? 'bg-primary text-primary-foreground'
         : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"

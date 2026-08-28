@@ -88,7 +88,7 @@ const hoverProviders = computed(() => {
       <span
         v-if="showKind"
         data-testid="kind-badge"
-        class="absolute left-2 top-2 z-[2] rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-foreground backdrop-blur"
+        class="absolute left-2 top-2 z-[2] rounded-md bg-background/70 px-1.5 py-0.5 text-caption-sm font-semibold uppercase tracking-wide text-foreground backdrop-blur"
       >
         {{ kindLabel }}
       </span>
@@ -117,11 +117,11 @@ const hoverProviders = computed(() => {
         class="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center text-muted-foreground"
       >
         <Clapperboard :size="24" :stroke-width="1.75" aria-hidden="true" />
-        <span class="line-clamp-3 text-xs leading-snug">{{ title.name }}</span>
+        <span class="line-clamp-3 text-caption-sm leading-snug">{{ title.name }}</span>
       </div>
 
       <div class="hover-overlay-content">
-        <div class="line-clamp-2 text-[13px] font-bold leading-tight tracking-tight">
+        <div class="line-clamp-2 text-caption-md font-bold leading-tight tracking-tight">
           {{ title.name }}
         </div>
 
@@ -140,7 +140,7 @@ const hoverProviders = computed(() => {
           />
         </div>
 
-        <div class="flex flex-wrap items-center gap-1 text-[10px] font-medium">
+        <div class="flex flex-wrap items-center gap-1 text-caption-sm font-medium">
           <span v-if="year">{{ year }}</span>
           <span>·</span>
           <span class="inline-flex items-center gap-1"><span aria-hidden="true">★</span> {{ ratingText }}</span>
@@ -148,7 +148,7 @@ const hoverProviders = computed(() => {
           <span>{{ kindLabel }}</span>
         </div>
 
-        <p v-if="hoverDescription" class="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+        <p v-if="hoverDescription" class="line-clamp-2 text-caption-sm leading-relaxed text-muted-foreground">
           {{ hoverDescription }}
         </p>
       </div>
@@ -215,9 +215,9 @@ const hoverProviders = computed(() => {
   z-index: 4;
   background: var(--primary);
   color: var(--primary-foreground);
-  font-size: 10px;
-  font-weight: 800;
+  font-size: var(--text-caption-sm);
   letter-spacing: 0.06em;
+  font-weight: 800;
   padding: 6px 11px;
   border-radius: 0 12px 0 8px;
   line-height: 1;

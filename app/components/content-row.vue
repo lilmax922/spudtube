@@ -52,13 +52,13 @@ onBeforeUnmount(() => {
 <template>
   <section class="content-row relative z-[1] hover:z-[20]">
     <div class="mx-auto flex w-full max-w-[var(--max-content-width)] items-baseline gap-3.5 px-[var(--content-gutter)] pb-3">
-      <h3 class="text-[16.5px] font-bold tracking-tight text-foreground">
+      <h3 class="text-heading-lg text-foreground">
         {{ title }}
       </h3>
       <button
         v-if="displayItems.length > 0"
         type="button"
-        class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[13px] font-bold text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-button-md font-bold text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         :aria-label="`查看更多 ${title}`"
         @click="emit('seeMore')"
       >

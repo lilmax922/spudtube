@@ -23,7 +23,7 @@ function pathToUrl(path: string): string | null {
     class="border-t border-border py-6"
     :aria-label="t('detail.media.heading')"
   >
-    <h2 class="mb-4 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
+    <h2 class="mb-4 text-heading-lg text-foreground">
       {{ t('detail.media.heading') }}
     </h2>
     <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">

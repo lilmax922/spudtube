@@ -75,8 +75,10 @@ const countText = computed(() => {
   height: 30px;
   padding: 0 12px;
   border-radius: 9999px;
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: var(--text-caption-md);
+  line-height: var(--leading-caption-md);
+  letter-spacing: var(--tracking-caption-md);
+  font-weight: var(--weight-button-md);
   color: var(--muted-foreground);
   border: 1px solid var(--input);
   background: transparent;
@@ -104,8 +106,10 @@ const countText = computed(() => {
 }
 .filterCount {
   margin-left: auto;
-  font-size: 12.5px;
+  font-size: var(--text-caption-md);
+  line-height: var(--leading-caption-md);
+  letter-spacing: var(--tracking-caption-md);
   color: var(--muted-foreground);
-  font-weight: 500;
+  font-weight: var(--weight-button-md);
 }
 </style>

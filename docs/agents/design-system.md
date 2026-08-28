@@ -68,17 +68,36 @@ Provider 識別使用 icon，不以固定色塊作為系統色。
 - **Mono 不使用**。
 - 數字排版：僅 `metadata / price / rating` 等數據性文字啟用 `font-variant-numeric: tabular-nums`（`tnum`），其餘不啟用。
 
-### Hierarchy
+### Scale — Single Truth `tailwind.css :root/.dark`
 
-基準僅定原則，不鎖死具體 `36px/24px` 像素。具體字級由各功能 spec 在排版時決定，但須遵守以下原則：
+> 以 `app/assets/css/tailwind.css` 為唯一真相，本文件僅以 `{text.xxx}` 引用，不重抄數值。`docs/design/prototype.html` 不作為依據。
 
-- **同一字族貫穿**，僅以 `800 → 400` 的字重落差與負字距建立層級。
-- **大標負字距**，內文保持 `0`；區塊標題以字重與間距區分，不依賴顏色或裝飾。
-- 內文預設語感為 `14/400/1.7` 級別（以此為錨點微調，不寫死於基準）。
+| Token | `{text.*}` | Size / Weight / LineHeight / Tracking | Use | Responsive |
+|---|---|---|---|---|
+| `display` | `{text.display}` | `44/800/1.1/-0.02em / balance` | `hero-carousel` 標題、`title-identity-block h1` 作品名（兩處同步） | `32@880` → `28@560` |
+| `heading-xl` | `{text.heading-xl}` | `24/700/1.25/-0.015em` | 頁面主標 `my-list/search/not-found` `h1` | `22@880` → `20@560` |
+| `heading-lg` | `{text.heading-lg}` | `20/700/1.3/-0.01em` | 區塊標題 `content-row h3` + detail 5 區 `facts/cast/recommendations/media/availability h2`（正常大小寫 `foreground`） | `18@880` → `16.5@560` |
+| `heading-sm` | `{text.heading-sm}` | `16.5/700/1.3/-0.01em` | 次級區塊 / 備用（`h3` 預設映射保留） | 固定 |
+| `heading-xs` | `{text.heading-xs}` | `13/700/1.4/0.06em uppercase` | 僅標籤 / badge `TV-MA` 等（`h4` 預設映射保留，不用於章節標題） | 固定 |
+| `body-lg` | `{text.body-lg}` | `16/400/1.6/0` | 放大內文 `detail overview` / `facts dd` | `14@560` |
+| `body-md` | `{text.body-md}` | `14/400/1.7/0` | 預設內文錨點 | 固定 |
+| `body-sm-strong` | `{text.body-sm-strong}` | `14/500/1.6/0.2px` | 強內文 / meta 強 | 固定 |
+| `caption-md` | `{text.caption-md}` | `13/400/1.4/0.1px` | 卡片 meta `title-card` / 人名  `cast` | 固定 |
+| `caption-sm` | `{text.caption-sm}` | `12/400/1.5/0.4px` | 細註 `11/400` 於窄視口 | `11@560` |
+| `button-md` | `{text.button-md}` | `14/500/1.6/0.2px` | 按鈕 / chips / `See more` | 固定 |
+| `link-md` | `{text.link-md}` | `14/500/1.4/0.3px` | 文字連結 | 固定 |
+
+消費：`@layer utilities` `.text-display` 等 12 類 + `@layer base` `h1→display / h2→heading-xl / h3→heading-sm / h4→heading-xs` 映射；`--text-* / --leading-* / --tracking-* / --weight-*` 四組為單一真相，`@media(max-width:880px)` 與 `@560px` 覆蓋 `display / heading-xl / heading-lg / caption-sm / body-lg`，與 `--content-gutter` 同語言。`heading-xs` 僅用於標籤，不用於章節標題（對標 Prime/Apple/Disney：`10-13↑` 限 badge）。
+
+### Hierarchy Principles
+
+- **同一 Outfit 字族貫穿**，僅以 `800→400` 字重落差與負字距建立層級。
+- **大標負字距**（`display -0.02em / heading -0.015~-0.01em`），`body` 保持 `0`，`heading-xs` 以 `0.06em uppercase` 區分。
+- **僅 `display` 啟用 `text-wrap:balance`**，其餘 `pretty/normal`；`tabular-nums` 僅數據行另加，不寫入 token。
 
 ### Note on Font Substitutes
 
-Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作第二字族。
+Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作第二字族。`font-feature: "calt","kern","liga"` 為 Outfit 內建，不額外宣告；`ss03` 等 Inter 專屬不引入。
 
 ## Layout
 

@@ -51,16 +51,16 @@ function formatUsd(value: number): string {
     class="border-t border-border py-6"
     :aria-label="t('detail.facts.heading')"
   >
-    <h2 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
+    <h2 class="mb-4 flex items-center gap-2 text-heading-lg text-foreground">
       {{ t('detail.facts.heading') }}
     </h2>
     <dl class="grid gap-x-6 gap-y-5 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
       <div v-for="cell in facts" :key="cell.key">
-        <dt class="text-xs font-medium text-muted-foreground">
+        <dt class="text-caption-sm font-medium text-muted-foreground">
           {{ t(`detail.facts.${cell.key}`) }}
         </dt>
         <dd
-          class="mt-1 break-words text-sm font-semibold text-foreground"
+          class="mt-1 break-words text-body-lg font-semibold text-foreground"
           :class="cell.numeric && 'tabular-nums'"
         >
           {{ cell.value }}

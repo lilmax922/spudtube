@@ -65,7 +65,7 @@ onBeforeUnmount(() => {
     <button
       id="langBtn"
       type="button"
-      class="inline-flex h-[38px] items-center gap-1.5 rounded-full border border-transparent bg-transparent px-3 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex h-[38px] items-center gap-1.5 rounded-full border border-transparent bg-transparent px-3 text-caption-md font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       aria-haspopup="menu"
       :aria-expanded="isOpen"
       :aria-label="t('language.label')"
@@ -87,7 +87,7 @@ onBeforeUnmount(() => {
         role="menuitem"
         :data-lang="item.code"
         :aria-pressed="item.code === locale"
-        class="flex w-full items-center justify-between gap-3.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        class="flex w-full items-center justify-between gap-3.5 rounded-lg px-3 py-2 text-left text-caption-md font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         @click="choose(item.code)"
       >
         <span>{{ item.name }}</span>

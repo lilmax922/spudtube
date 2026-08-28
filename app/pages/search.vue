@@ -56,11 +56,11 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
       class="mb-6 flex items-center gap-3 border-b border-border pb-5"
       data-testid="search-header"
     >
-      <h1 class="flex items-center gap-2 text-[18px] font-bold tracking-tight text-foreground">
+      <h1 class="flex items-center gap-2 text-heading-xl font-bold tracking-tight text-foreground">
         <Search :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
         <span>{{ t('search.related', { query: displayQuery }) }}</span>
       </h1>
-      <span class="text-xs font-medium text-muted-foreground">
+      <span class="text-caption-sm font-medium text-muted-foreground">
         <template v-if="loading && items.length === 0">
           {{ t('search.loading') }}
         </template>
@@ -72,7 +72,7 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
     <section class="flex flex-col gap-6" :aria-label="t('search.sectionLabel')">
       <p
         v-if="error && items.length === 0"
-        class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+        class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
       >
         {{ t('search.error') }}
       </p>
@@ -91,7 +91,7 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
 
       <p
         v-else-if="items.length === 0"
-        class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+        class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
       >
         {{ emptyMessage }}
       </p>
@@ -113,14 +113,14 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
 
       <p
         v-if="error && items.length > 0"
-        class="text-center text-sm text-muted-foreground"
+        class="text-center text-body-md text-muted-foreground"
       >
         {{ t('search.error') }}
       </p>
 
       <p
         v-if="loadingMore || (loading && items.length > 0)"
-        class="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+        class="flex items-center justify-center gap-2 text-body-md text-muted-foreground"
       >
         <LoaderCircle :size="16" :stroke-width="1.75" class="animate-spin" aria-hidden="true" />
         {{ t('search.loading') }}

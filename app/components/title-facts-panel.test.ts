@@ -70,13 +70,11 @@ describe('title facts panel', () => {
     expect(nameCell?.classes().join(' ')).not.toContain('tabular-nums')
   })
 
-  it('keeps section heading at Outfit 700 with prototype detailSection tracking', async () => {
+  it('keeps section heading at heading-lg 20/700 foreground', async () => {
     const wrapper = await mountSuspended(TitleFactsPanel, { route: '/?probe=6', props: { detail: MOVIE_DETAIL } })
 
     const heading = wrapper.find('h2')
-    expect(heading.classes().join(' ')).toContain('font-bold')
-    expect(heading.classes().join(' ')).toContain('uppercase')
-    expect(heading.classes().join(' ')).toContain('tracking-[')
-    expect(heading.classes().join(' ')).toContain('text-muted-foreground')
+    expect(heading.classes().join(' ')).toContain('text-heading-lg')
+    expect(heading.classes().join(' ')).toContain('text-foreground')
   })
 })

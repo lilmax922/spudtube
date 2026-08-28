@@ -269,7 +269,7 @@ watch(activeTab, () => {
               aria-autocomplete="list"
               :aria-label="t('search.label')"
               :placeholder="t('search.placeholder')"
-              class="h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              class="h-10 w-full bg-transparent text-body-md text-foreground outline-none placeholder:text-muted-foreground"
             >
           </ListboxFilter>
           <button
@@ -287,13 +287,13 @@ watch(activeTab, () => {
         >
           <template v-if="query.trim() === ''">
             <div class="searchSection p-[18px_16px]">
-              <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
+              <h4 class="flex items-center gap-1.5 text-caption-md font-bold text-foreground">
                 <Clock :size="14" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
                 {{ t('search.recentSearches') }}
                 <button
                   v-if="recents.length > 0"
                   type="button"
-                  class="clearAll ml-auto text-xs font-medium text-muted-foreground hover:text-foreground"
+                  class="clearAll ml-auto text-caption-sm font-medium text-muted-foreground hover:text-foreground"
                   @click="clearRecents"
                 >
                   {{ t('search.clearAll') }}
@@ -307,7 +307,7 @@ watch(activeTab, () => {
                   v-for="item in recents"
                   :key="item"
                   :value="item"
-                  class="recentItem flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-left text-sm text-foreground hover:bg-muted data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                  class="recentItem flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-left text-body-md text-foreground hover:bg-muted data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
                   :data-q="item"
                   @select="onSelectRecent(item)"
                 >
@@ -317,13 +317,13 @@ watch(activeTab, () => {
               </CommandGroup>
               <p
                 v-else
-                class="mt-3 text-sm text-muted-foreground"
+                class="mt-3 text-body-md text-muted-foreground"
               >
                 {{ t('search.noRecent') }}
               </p>
             </div>
             <div class="searchSection border-t border-border p-[18px_16px]">
-              <h4 class="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
+              <h4 class="flex items-center gap-1.5 text-caption-md font-bold text-foreground">
                 <TrendingUp :size="14" :stroke-width="1.75" class="text-primary" aria-hidden="true" />
                 {{ t('search.trendingSearches') }}
               </h4>
@@ -333,7 +333,7 @@ watch(activeTab, () => {
                   :key="trend"
                   :value="trend"
                   :data-q="trend"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 text-[13px] font-medium text-muted-foreground transition-colors hover:border-ring hover:text-foreground data-[highlighted]:border-ring data-[highlighted]:text-foreground data-[highlighted]:bg-muted"
+                  class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 text-caption-md font-medium text-muted-foreground transition-colors hover:border-ring hover:text-foreground data-[highlighted]:border-ring data-[highlighted]:text-foreground data-[highlighted]:bg-muted"
                   @select="onSelectTrending(trend)"
                 >
                   <SearchIcon :size="12" :stroke-width="1.75" aria-hidden="true" />
@@ -349,7 +349,7 @@ watch(activeTab, () => {
                 :key="tab.id"
                 type="button"
                 :data-tab="tab.id"
-                class="inline-flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                class="inline-flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-caption-md font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
                 :class="activeTab === tab.id ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground hover:text-foreground'"
                 @click="activeTab = tab.id"
               >
@@ -358,14 +358,14 @@ watch(activeTab, () => {
             </div>
             <div
               v-if="overlaySearch.loading.value && filteredItems.length === 0"
-              class="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"
+              class="flex items-center justify-center gap-2 py-8 text-body-md text-muted-foreground"
             >
               <Star :size="14" class="animate-spin" aria-hidden="true" />
               {{ t('search.loading') }}
             </div>
             <div
               v-else-if="overlaySearch.error.value && filteredItems.length === 0"
-              class="py-8 text-center text-sm text-muted-foreground"
+              class="py-8 text-center text-body-md text-muted-foreground"
             >
               {{ t('search.error') }}
             </div>
@@ -374,7 +374,7 @@ watch(activeTab, () => {
               class="py-8 text-center"
             >
               <b class="block text-foreground">{{ t('search.noResultsTitle') }}</b>
-              <span class="text-sm text-muted-foreground">{{ t('search.tryDifferent') }}</span>
+              <span class="text-body-md text-muted-foreground">{{ t('search.tryDifferent') }}</span>
             </CommandEmpty>
             <CommandGroup
               v-else
@@ -402,15 +402,15 @@ watch(activeTab, () => {
                     >
                     <span
                       v-else
-                      class="text-[28px] font-extrabold text-white"
+                      class="text-heading-xl font-extrabold text-white"
                     >{{ title.name.charAt(0) }}</span>
                   </div>
                   <div class="meta flex min-w-0 flex-1 flex-col gap-1.5">
-                    <b class="line-clamp-1 flex items-center gap-2 text-[16px] font-bold text-foreground">
+                    <b class="line-clamp-1 flex items-center gap-2 text-body-lg font-bold text-foreground">
                       {{ title.name }}
-                      <span class="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">{{ kindLabel(title.kind) }}</span>
+                      <span class="shrink-0 rounded border border-border px-1.5 py-0.5 text-caption-sm font-medium text-muted-foreground">{{ kindLabel(title.kind) }}</span>
                     </b>
-                    <span class="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                    <span class="inline-flex items-center gap-1.5 text-caption-md text-muted-foreground">
                       <span>{{ year(title) }}</span>
                       <span class="size-1 rounded-full bg-border" aria-hidden="true" />
                       <span class="inline-flex items-center gap-1 text-[#facc15]">★ {{ title.voteAverage?.toFixed(1) ?? '—' }}</span>

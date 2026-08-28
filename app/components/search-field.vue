@@ -32,7 +32,7 @@ const { t } = useI18n()
       type="search"
       :aria-label="t('search.label')"
       :placeholder="t('search.placeholder')"
-      class="h-full w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+      class="h-full w-full bg-transparent text-body-md text-foreground outline-none placeholder:text-muted-foreground"
       @input="emit('update:query', ($event.target as HTMLInputElement).value)"
     >
     <button

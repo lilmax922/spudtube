@@ -22,7 +22,7 @@ const { t } = useI18n()
     <button
       v-if="!user"
       type="button"
-      class="inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex h-10 items-center gap-1 rounded-full px-3 text-button-md text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       @click="emit('signIn')"
     >
       <LogIn class="size-4" stroke-width="1.75" />
@@ -38,7 +38,7 @@ const { t } = useI18n()
           decoding="async"
           class="size-7 shrink-0 rounded-full"
         />
-        <span class="hidden truncate text-sm text-muted-foreground sm:inline">
+        <span class="hidden truncate text-body-md text-muted-foreground sm:inline">
           {{ user.name }}
         </span>
       </span>

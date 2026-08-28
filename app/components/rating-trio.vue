@@ -73,7 +73,7 @@ function onOptionClick(option: RatingLabel): void {
 <template>
   <TooltipProvider :delay-duration="500">
     <div class="flex items-center gap-2">
-      <span v-if="voteAverage != null" class="flex items-center gap-1.5 text-[13px] font-semibold text-foreground/85">
+      <span v-if="voteAverage != null" class="flex items-center gap-1.5 text-caption-md font-semibold text-foreground/85">
         <Star :size="14" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
         {{ voteAverage }}
         <span class="ml-1 font-medium text-muted-foreground">{{ t('rating.average') }}</span>

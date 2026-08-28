@@ -88,7 +88,7 @@ const failed = computed(() => {
       </p>
       <NuxtLink
         to="/"
-        class="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        class="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-button-md text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       >
         <ArrowLeft :size="16" :stroke-width="1.75" aria-hidden="true" />
         {{ t('detail.notFound.backHome') }}

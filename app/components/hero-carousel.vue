@@ -199,9 +199,10 @@ onBeforeUnmount(() => {
   padding-bottom: 8px;
 }
 .heroTitle {
-  font-size: 38px;
-  line-height: 1.15;
-  font-weight: 800;
+  font-size: var(--text-display);
+  line-height: var(--leading-display);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
   color: #fff;
   text-wrap: balance;
 }
@@ -210,7 +211,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: var(--text-caption-md);
+  line-height: var(--leading-caption-md);
+  letter-spacing: var(--tracking-caption-md);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
   flex-wrap: wrap;
@@ -223,7 +226,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   margin-top: 12px;
-  font-size: 13px;
+  font-size: var(--text-caption-md);
+  line-height: var(--leading-caption-md);
+  letter-spacing: var(--tracking-caption-md);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.88);
   flex-wrap: wrap;
@@ -237,7 +242,8 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: var(--text-caption-sm);
+  line-height: var(--leading-caption-sm);
   font-weight: 800;
   color: #fff;
   flex-shrink: 0;
@@ -254,9 +260,10 @@ onBeforeUnmount(() => {
   border-radius: 9999px;
   background: #fff;
   color: #111;
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: -0.01em;
+  font-weight: var(--weight-display);
+  font-size: var(--text-button-md);
+  line-height: var(--leading-button-md);
+  letter-spacing: var(--tracking-button-md);
   border: none;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
   display: inline-flex;
@@ -319,9 +326,6 @@ onBeforeUnmount(() => {
   border-radius: 9999px;
 }
 @media (max-width: 880px) {
-  .heroTitle {
-    font-size: 28px;
-  }
   .heroCarousel {
     min-height: 480px;
   }

@@ -42,7 +42,7 @@ function entryPath(entry: MyListEntry): string {
 
 <template>
   <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] py-8">
-    <h1 class="text-2xl font-bold tracking-tight text-foreground">
+    <h1 class="text-heading-xl font-bold tracking-tight text-foreground">
       {{ t('myList.heading') }}
     </h1>
 
@@ -57,7 +57,7 @@ function entryPath(entry: MyListEntry): string {
         type="button"
         role="tab"
         :aria-selected="activeTab === tab.key"
-        class="-mb-px inline-flex h-10 items-center rounded-t-lg border-b-2 px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        class="-mb-px inline-flex h-10 items-center rounded-t-lg border-b-2 px-4 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         :class="activeTab === tab.key
           ? 'border-primary text-foreground'
           : 'border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground'"
@@ -67,15 +67,15 @@ function entryPath(entry: MyListEntry): string {
       </button>
     </div>
 
-    <div v-if="pending" class="py-12 text-center text-sm text-muted-foreground">
+    <div v-if="pending" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.loading') }}
     </div>
-    <div v-else-if="error" class="py-12 text-center text-sm text-muted-foreground">
+    <div v-else-if="error" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.error') }}
     </div>
     <p
       v-else-if="activeEntries.length === 0"
-      class="py-12 text-center text-sm text-muted-foreground"
+      class="py-12 text-center text-body-md text-muted-foreground"
     >
       {{ t(`myList.empty.${activeTab}`) }}
     </p>
@@ -105,10 +105,10 @@ function entryPath(entry: MyListEntry): string {
             </div>
           </div>
           <div class="min-w-0">
-            <p class="truncate text-sm font-medium text-foreground">
+            <p class="truncate text-button-md text-foreground">
               {{ entry.title.name }}
             </p>
-            <p class="mt-0.5 text-xs text-muted-foreground">
+            <p class="mt-0.5 text-caption-sm text-muted-foreground">
               {{ entry.title.releaseDate?.slice(0, 4) ?? t(`detail.kind.${toMediaSegment(entry.kind)}`) }}
             </p>
           </div>
@@ -120,7 +120,7 @@ function entryPath(entry: MyListEntry): string {
           <div class="flex h-20 w-14 shrink-0 items-center justify-center rounded-md bg-muted">
             <Clapperboard :size="20" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
           </div>
-          <p class="text-sm text-muted-foreground">
+          <p class="text-body-md text-muted-foreground">
             {{ t('myList.removed') }}
           </p>
         </div>

@@ -14,7 +14,7 @@ const { t } = useI18n()
 
 <template>
   <section v-if="props.titles.length > 0">
-    <h2 class="mb-4 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
+    <h2 class="mb-4 text-heading-lg text-foreground">
       {{ t('detail.recommendations') }}
     </h2>
     <div class="flex gap-4 overflow-x-auto pb-6">
@@ -32,7 +32,7 @@ const { t } = useI18n()
             class="h-full w-full object-cover"
           >
         </div>
-        <p class="mt-2 truncate text-sm font-normal leading-[1.7] text-muted-foreground group-hover:text-foreground">
+        <p class="mt-2 truncate text-body-md text-muted-foreground group-hover:text-foreground">
           {{ title.name }}
         </p>
       </NuxtLink>

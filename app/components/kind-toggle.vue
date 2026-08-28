@@ -19,7 +19,7 @@ const options: { value: Kind, labelKey: 'browse.kindMovies' | 'browse.kindTvShow
       v-for="option in options"
       :key="option.value"
       type="button"
-      class="inline-flex h-[30px] min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex h-[30px] min-h-10 items-center rounded-full px-4 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       :class="option.value === modelValue
         ? 'bg-primary text-primary-foreground'
         : 'text-muted-foreground hover:text-foreground'"

@@ -27,7 +27,7 @@ function avatarUrl(path: string | null): string | null {
     class="border-t border-border py-6"
     :aria-label="t('detail.cast.heading')"
   >
-    <h2 class="mb-4 text-sm font-bold uppercase tracking-[0.06em] text-muted-foreground">
+    <h2 class="mb-4 text-heading-lg text-foreground">
       {{ t('detail.cast.heading') }}
     </h2>
     <div class="flex gap-5 overflow-x-auto pb-1">
@@ -51,12 +51,12 @@ function avatarUrl(path: string | null): string | null {
             aria-hidden="true"
           />
         </div>
-        <span class="line-clamp-2 w-full text-xs leading-tight text-foreground">
+        <span class="line-clamp-2 w-full text-caption-md leading-tight text-foreground">
           {{ member.name }}
         </span>
         <span
           v-if="member.character"
-          class="line-clamp-1 w-full text-xs leading-tight text-muted-foreground"
+          class="line-clamp-1 w-full text-caption-md leading-tight text-muted-foreground"
         >
           {{ member.character }}
         </span>

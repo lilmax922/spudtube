@@ -164,7 +164,7 @@ void refresh()
       <button
         v-if="selectedGenreIds.length > 0"
         type="button"
-        class="inline-flex min-h-10 items-center rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        class="inline-flex min-h-10 items-center rounded-full px-3 text-button-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         @click="clearGenres"
       >
         {{ t('browse.clearAll') }}
@@ -172,7 +172,7 @@ void refresh()
     </div>
 
     <div v-if="gridError && gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
-      <p class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+      <p class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
         {{ mode === 'search' ? t('search.error') : t('browse.error') }}
       </p>
     </div>
@@ -190,7 +190,7 @@ void refresh()
     </div>
 
     <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
-      <p class="rounded-lg bg-card p-8 text-center text-sm text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+      <p class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
         {{ emptyMessage }}
       </p>
     </div>
@@ -234,14 +234,14 @@ void refresh()
 
     <p
       v-if="gridError && gridItems.length > 0"
-      class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] text-center text-sm text-muted-foreground"
+      class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] text-center text-body-md text-muted-foreground"
     >
       {{ mode === 'search' ? t('search.error') : t('browse.error') }}
     </p>
 
     <p
       v-if="!isRowsMode && (gridLoadingMore || (gridLoading && gridItems.length > 0))"
-      class="mx-auto flex w-full max-w-[var(--max-content-width)] items-center justify-center gap-2 px-[var(--content-gutter)] text-sm text-muted-foreground"
+      class="mx-auto flex w-full max-w-[var(--max-content-width)] items-center justify-center gap-2 px-[var(--content-gutter)] text-body-md text-muted-foreground"
     >
       <LoaderCircle :size="16" :stroke-width="1.75" class="animate-spin" aria-hidden="true" />
       {{ loadingMessage }}

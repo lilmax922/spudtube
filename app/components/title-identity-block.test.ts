@@ -132,8 +132,7 @@ describe('title identity block', () => {
     const wrapper = await render(MOVIE_DETAIL, '/?probe=11')
 
     const title = wrapper.find('h1')
-    expect(title.classes().join(' ')).toContain('font-extrabold')
-    expect(title.classes().join(' ')).toContain('tracking-')
+    expect(title.classes().join(' ')).toContain('text-display')
     expect(title.text()).toContain('沙丘')
 
     const metaRow = wrapper.find('div.tabular-nums')
@@ -142,8 +141,7 @@ describe('title identity block', () => {
     expect(metaRow.text()).toContain('155')
 
     const overview = wrapper.find('p[class*="max-w"]')
-    expect(overview.classes().join(' ')).toContain('font-normal')
-    expect(overview.classes().join(' ')).toContain('leading-[1.7]')
+    expect(overview.classes().join(' ')).toContain('text-body-lg')
     expect(overview.classes().join(' ')).not.toContain('tabular-nums')
   })
 

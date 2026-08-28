@@ -26,11 +26,9 @@ describe('title not found', () => {
     const wrapper = await mountSuspended(TitleNotFound, { route: '/?probe=2' })
 
     const heading = wrapper.find('h1')
-    expect(heading.classes().join(' ')).toContain('font-extrabold')
-    expect(heading.classes().join(' ')).toContain('tracking-')
+    expect(heading.classes().join(' ')).toContain('text-heading-xl')
 
     const body = wrapper.find('p')
-    expect(body.classes().join(' ')).toContain('font-normal')
-    expect(body.classes().join(' ')).toContain('leading-[1.7]')
+    expect(body.classes().join(' ')).toContain('text-body-md')
   })
 })

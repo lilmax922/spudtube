@@ -206,9 +206,10 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: var(--text-heading-lg);
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-display);
+  font-weight: var(--weight-display);
   padding: 6px 8px;
   border-radius: var(--radius);
   cursor: pointer;
@@ -231,7 +232,9 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
   height: 32px;
   padding: 0 14px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--text-button-md);
+  line-height: var(--leading-button-md);
+  letter-spacing: var(--tracking-button-md);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.72);
   transition: background 0.16s, color 0.16s;
@@ -265,7 +268,9 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
   padding: 0 14px;
   border-radius: 9999px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--text-caption-md);
+  line-height: var(--leading-caption-md);
+  letter-spacing: var(--tracking-caption-md);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   text-decoration: none;
 }
@@ -319,7 +324,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
   }
   .primeNavBtn {
     padding: 0 10px;
-    font-size: 13px;
+    font-size: var(--text-caption-md);
   }
 }
 @media (max-width: 560px) {
@@ -327,7 +332,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
     padding: 0 14px;
   }
   .logo {
-    font-size: 17px;
+    font-size: var(--text-heading-sm);
   }
 }
 </style>

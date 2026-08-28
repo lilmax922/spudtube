@@ -61,7 +61,7 @@ function onActionClick(action: StatusAction): void {
       v-for="action in ACTIONS"
       :key="action.status"
       type="button"
-      class="inline-flex h-10 items-center gap-1.5 rounded-full border border-input bg-muted px-3 text-button-md text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex h-[38px] items-center gap-1.5 rounded-full border border-input bg-muted px-3 text-button-md text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       :class="status === action.status && 'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'"
       :aria-label="status === action.status ? t(action.labelRemove) : t(action.labelAdd)"
       :aria-pressed="status === action.status"

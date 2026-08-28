@@ -94,13 +94,18 @@ function onRegionUpdate(value: unknown): void {
       <div
         v-for="group in visibleGroups"
         :key="group.key"
-        class="grid grid-cols-[72px_1fr] items-start gap-4 border-t border-border py-3.5 first:border-t-0 first:pt-0"
+        class="grid grid-cols-[72px_1fr] items-start gap-4 border-t border-border py-3.5 first:border-t-0 first:pt-0 max-[560px]:grid-cols-1 max-[560px]:gap-2"
         data-testid="availability-group"
       >
-        <span class="pt-3 text-caption-md font-medium text-muted-foreground">
+        <span class="pt-3 text-caption-md font-medium text-muted-foreground max-[560px]:pt-0">
           {{ t(`availability.groups.${group.key}`) }}
         </span>
-        <div class="flex min-w-0 flex-wrap items-center gap-3">
+        <div
+          class="flex min-w-0 flex-nowrap snap-x snap-mandatory items-center gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+          role="list"
+          tabindex="0"
+          :aria-label="t(`availability.groups.${group.key}`)"
+        >
           <template
             v-for="provider in group.providers"
             :key="provider.id"
@@ -113,7 +118,7 @@ function onRegionUpdate(value: unknown): void {
               :title="provider.name"
               :aria-label="provider.name"
               data-testid="provider-link"
-              class="shrink-0 rounded-[20%] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+              class="shrink-0 snap-start rounded-[20%] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
             >
               <img
                 :src="providerLogoUrl(provider.logoPath) ?? undefined"
@@ -137,14 +142,14 @@ function onRegionUpdate(value: unknown): void {
               height="50"
               loading="lazy"
               data-testid="provider-image"
-              class="h-[50px] w-[50px] shrink-0 rounded-[20%] object-cover"
+              class="h-[50px] w-[50px] shrink-0 snap-start rounded-[20%] object-cover"
             >
             <span
               v-else
               :title="provider.name"
               :aria-label="provider.name"
               data-testid="provider-fallback"
-              class="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[20%] bg-muted text-caption-sm font-bold leading-none text-muted-foreground"
+              class="flex h-[50px] w-[50px] shrink-0 snap-start items-center justify-center rounded-[20%] bg-muted text-caption-sm font-bold leading-none text-muted-foreground"
             >
               {{ provider.name.slice(0, 2).toUpperCase() }}
             </span>

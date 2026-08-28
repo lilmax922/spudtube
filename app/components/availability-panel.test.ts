@@ -136,13 +136,54 @@ describe('availability panel', () => {
       expect(g.classes().some(c => c.includes('grid'))).toBe(true)
       const row = g.find('div.flex')
       expect(row.exists()).toBe(true)
-      expect(row.classes()).toContain('flex-wrap')
+      expect(row.classes()).toContain('flex-nowrap')
+      expect(row.classes()).not.toContain('flex-wrap')
       expect(row.classes()).toContain('items-center')
+      expect(row.classes()).toContain('overflow-x-auto')
     }
     // no provider-pill with name anymore; images are direct children
     expect(wrapper.findAll('[data-testid="provider-pill"]').length).toBe(0)
     const imgs = wrapper.findAll('img')
     expect(imgs.length).toBeGreaterThan(0)
+  })
+
+  it('keeps single-column layout with horizontal scroll on narrow viewport (no wrap, hidden scrollbar, snap)', async () => {
+    setCatalog(PROVIDER_CATALOG_MULTI_GROUP)
+    const wrapper = await renderPanel()
+
+    const groups = wrapper.findAll('[data-testid="availability-group"]')
+    expect(groups.length).toBeGreaterThan(0)
+    for (const g of groups) {
+      // desktop: grid 72px label; narrow: stack label above icons via max-[560px]:grid-cols-1
+      expect(g.classes().join(' ')).toContain('grid-cols-[72px_1fr]')
+      expect(g.classes().join(' ')).toContain('max-[560px]:grid-cols-1')
+      const label = g.find('span')
+      expect(label.classes().join(' ')).toContain('max-[560px]:pt-0')
+      const row = g.find('div.flex')
+      expect(row.classes()).toContain('flex-nowrap')
+      expect(row.classes()).toContain('overflow-x-auto')
+      expect(row.classes()).toContain('overflow-y-hidden')
+      expect(row.classes().join(' ')).toContain('[scrollbar-width:none]')
+      expect(row.classes().join(' ')).toContain('[-ms-overflow-style:none]')
+      expect(row.classes().join(' ')).toContain('[&::-webkit-scrollbar]:hidden')
+      expect(row.classes()).toContain('overscroll-x-contain')
+      expect(row.classes()).toContain('snap-x')
+      expect(row.attributes('role')).toBe('list')
+      expect(row.attributes('tabindex')).toBe('0')
+    }
+    // provider icons stay 50px 20% radius and do not shrink, snap-start for scroll
+    for (const img of wrapper.findAll('img')) {
+      expect(img.classes().join(' ')).toContain('shrink-0')
+      expect(img.classes().join(' ')).toContain('snap-start')
+    }
+    for (const a of wrapper.findAll('[data-testid="provider-link"]')) {
+      expect(a.classes().join(' ')).toContain('shrink-0')
+      expect(a.classes().join(' ')).toContain('snap-start')
+    }
+    const fallback = wrapper.find('[data-testid="provider-fallback"]')
+    if (fallback.exists()) {
+      expect(fallback.classes().join(' ')).toContain('snap-start')
+    }
   })
 
   it('links each provider image to the TMDB watch link for the region (region-level link, not per-provider)', async () => {

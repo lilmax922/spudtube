@@ -65,6 +65,7 @@ describe('title identity block', () => {
     expect(rateButton).toBeDefined()
     await rateButton!.trigger('click')
     await wrapper.findAll('button').find(button => button.attributes('aria-label') === '超棒')!.trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 650))
 
     expect(wrapper.emitted('selectRating')).toEqual([['AWESOME']])
   })
@@ -81,6 +82,7 @@ describe('title identity block', () => {
     const good = wrapper.findAll('button').find(button => button.attributes('aria-label') === '不錯')
     expect(good?.attributes('aria-pressed')).toBe('true')
     await good!.trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     expect(wrapper.emitted('clearRating')).toHaveLength(1)
   })

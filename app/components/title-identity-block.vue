@@ -118,7 +118,7 @@ function playTrailer(): void {
             :aria-label="t('detail.playTrailer')"
             @click="playTrailer"
           >
-            <Play :size="16" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
+            <Play :size="18" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
             {{ t('detail.playTrailer') }}
           </button>
           <RatingTrio

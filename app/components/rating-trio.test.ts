@@ -47,8 +47,9 @@ describe('rating trio', () => {
 
     await findButton(wrapper, '評價這部片')!.trigger('click')
 
-    expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['超棒', '不錯', '不行'])
+    expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['不行', '不錯', '超棒'])
     await findButton(wrapper, '超棒')!.trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 650))
     expect(wrapper.emitted('select')).toEqual([['AWESOME']])
     expect(options(wrapper)).toHaveLength(0)
   })
@@ -66,7 +67,7 @@ describe('rating trio', () => {
     const wrapper = await render({ label: null, signedIn: false })
 
     await wrapper.find('div.relative').trigger('mouseenter')
-    expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['超棒', '不錯', '不行'])
+    expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['不行', '不錯', '超棒'])
 
     await findButton(wrapper, '超棒')!.trigger('click')
 
@@ -90,8 +91,9 @@ describe('rating trio', () => {
     expect(trigger).toBeDefined()
     await trigger!.trigger('click')
 
-    expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['超棒', '不錯', '不行'])
+    expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['不行', '不錯', '超棒'])
     await findButton(wrapper, '超棒')!.trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 650))
     expect(wrapper.emitted('select')).toEqual([['AWESOME']])
     expect(wrapper.emitted('clear')).toBeUndefined()
   })
@@ -103,6 +105,7 @@ describe('rating trio', () => {
     const good = findButton(wrapper, '不錯')!
     expect(good.attributes('aria-pressed')).toBe('true')
     await findButton(wrapper, '超棒')!.trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 650))
 
     expect(wrapper.emitted('select')).toEqual([['AWESOME']])
     expect(wrapper.emitted('clear')).toBeUndefined()
@@ -113,6 +116,7 @@ describe('rating trio', () => {
 
     await findButton(wrapper, '已評價：不行')!.trigger('click')
     await findButton(wrapper, '不行')!.trigger('click')
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     expect(wrapper.emitted('clear')).toHaveLength(1)
   })

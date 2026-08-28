@@ -30,6 +30,8 @@ const availability = computed<RegionAvailability | null>(() => {
   return raw ? (raw[region.value] ?? null) : null
 })
 
+const regionLink = computed<string | null>(() => availability.value?.link ?? null)
+
 const visibleGroups = computed(() => {
   const current = availability.value
   if (!current) {
@@ -95,39 +97,58 @@ function onRegionUpdate(value: unknown): void {
         class="grid grid-cols-[72px_1fr] items-start gap-4 border-t border-border py-3.5 first:border-t-0 first:pt-0"
         data-testid="availability-group"
       >
-        <span class="pt-1.5 text-caption-md font-medium text-muted-foreground">
+        <span class="pt-3 text-caption-md font-medium text-muted-foreground">
           {{ t(`availability.groups.${group.key}`) }}
         </span>
-        <div class="flex min-w-0 flex-wrap items-center gap-2">
-          <span
+        <div class="flex min-w-0 flex-wrap items-center gap-3">
+          <template
             v-for="provider in group.providers"
             :key="provider.id"
-            class="inline-flex h-8 items-center gap-2 rounded-full bg-muted px-1.5 pr-3 shadow-[0_4px_12px_rgba(0,0,0,.25)]"
-            :title="provider.name"
-            data-testid="provider-pill"
           >
+            <a
+              v-if="provider.logoPath && regionLink"
+              :href="regionLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              :title="provider.name"
+              :aria-label="provider.name"
+              data-testid="provider-link"
+              class="shrink-0 rounded-[20%] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+            >
+              <img
+                :src="providerLogoUrl(provider.logoPath) ?? undefined"
+                :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
+                sizes="50px"
+                :alt="provider.name"
+                width="50"
+                height="50"
+                loading="lazy"
+                class="h-[50px] w-[50px] rounded-[20%] object-cover"
+              >
+            </a>
             <img
-              v-if="provider.logoPath"
+              v-else-if="provider.logoPath"
               :src="providerLogoUrl(provider.logoPath) ?? undefined"
               :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
-              sizes="24px"
+              sizes="50px"
               :alt="provider.name"
-              width="24"
-              height="24"
+              :title="provider.name"
+              width="50"
+              height="50"
               loading="lazy"
-              class="h-6 w-6 shrink-0 rounded-full bg-muted object-cover"
+              data-testid="provider-image"
+              class="h-[50px] w-[50px] shrink-0 rounded-[20%] object-cover"
             >
             <span
               v-else
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold leading-none text-muted-foreground"
-              aria-hidden="true"
+              :title="provider.name"
+              :aria-label="provider.name"
+              data-testid="provider-fallback"
+              class="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[20%] bg-muted text-caption-sm font-bold leading-none text-muted-foreground"
             >
               {{ provider.name.slice(0, 2).toUpperCase() }}
             </span>
-            <span class="max-w-32 truncate text-caption-md font-medium text-foreground">
-              {{ provider.name }}
-            </span>
-          </span>
+          </template>
         </div>
       </div>
     </template>

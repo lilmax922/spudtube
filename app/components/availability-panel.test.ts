@@ -51,26 +51,20 @@ async function openRegionSelect(wrapper: VueWrapper<InstanceType<typeof Availabi
   const trigger = wrapper.find('[data-slot="select-trigger"]')
   if (trigger.exists()) {
     await trigger.trigger('click')
-    // allow portal to render
     await new Promise(resolve => setTimeout(resolve, 0))
   }
 }
 
 async function setRegionViaSelect(wrapper: VueWrapper<InstanceType<typeof AvailabilityPanel>>, code: string): Promise<void> {
-  // shadcn Select uses update:modelValue emit; directly trigger handler by clicking item if available
   const trigger = wrapper.find('[data-slot="select-trigger"]')
   if (trigger.exists()) {
     await trigger.trigger('click')
     await new Promise(resolve => setTimeout(resolve, 0))
     const items = document.querySelectorAll('[data-slot="select-item"]')
     const target = Array.from(items).find(el => el.textContent?.trim() === wrapper.vm.$t(`region.names.${code}`) || el.getAttribute('value') === code || el.textContent?.includes(code))
-    // fallback: emit directly on component
     if (!target) {
-      // find Select component and emit
       const selectComponents = wrapper.findAllComponents({ name: 'Select' })
       if (selectComponents.length > 0) {
-        // trigger update:modelValue via prop change simulation: set cookie directly and force update
-        // Instead, emit on the Select root
         await selectComponents[0]!.vm.$emit('update:modelValue', code)
         await wrapper.vm.$nextTick()
         return
@@ -82,7 +76,6 @@ async function setRegionViaSelect(wrapper: VueWrapper<InstanceType<typeof Availa
       return
     }
   }
-  // fallback direct emit
   const selects = wrapper.findAllComponents({ name: 'Select' })
   if (selects.length > 0) {
     await selects[0]!.vm.$emit('update:modelValue', code)
@@ -108,7 +101,7 @@ describe('availability panel', () => {
     expect(groupLabels(wrapper)).toEqual(['訂閱', '免費', '租借', '購買'])
   })
 
-  it('renders provider logo chips with names and CDN urls', async () => {
+  it('renders provider logos as image-only 50px with 20% radius and CDN urls', async () => {
     setCatalog(PROVIDER_CATALOG_MULTI_GROUP)
     const wrapper = await renderPanel()
 
@@ -120,34 +113,59 @@ describe('availability panel', () => {
     expect(images.map((image: DOMWrapper<Element>) => image.attributes('src'))).toContain(
       'https://image.tmdb.org/t/p/w92/t2yyOv40HZeVlLjMcCsANnTv9FW.jpg',
     )
-    // srcSet should include w92 ladder
     const srcsets = images.map(i => i.attributes('srcset') ?? '')
     expect(srcsets.some(s => s.includes('/w92/'))).toBe(true)
+
+    // image-only: no visible provider name text outside alt/title
+    expect(wrapper.text()).not.toContain('Google Play Movies')
+    // 50x50 with 20% radius, no pill text
+    for (const img of images) {
+      expect(img.classes().join(' ')).toContain('h-[50px]')
+      expect(img.classes().join(' ')).toContain('w-[50px]')
+      expect(img.classes().join(' ')).toContain('rounded-[20%]')
+    }
   })
 
-  it('renders provider pills with bg-muted pill and aligned icon', async () => {
+  it('aligns provider icons per group in a flex wrap grid without text pills', async () => {
     setCatalog(PROVIDER_CATALOG_MULTI_GROUP)
     const wrapper = await renderPanel()
 
-    const pills = wrapper.findAll('[data-testid="provider-pill"]')
-    expect(pills.length).toBeGreaterThan(0)
-    for (const pill of pills) {
-      expect(pill.classes()).toContain('bg-muted')
-      expect(pill.classes()).toContain('rounded-full')
-      expect(pill.classes()).toContain('h-8')
-      expect(pill.classes().some(c => c.includes('shadow'))).toBe(true)
-    }
-    const imgs = wrapper.findAll('[data-testid="provider-pill"] img')
-    for (const img of imgs) {
-      expect(img.classes()).toContain('rounded-full')
-      expect(img.classes()).toContain('h-6')
-      expect(img.classes()).toContain('w-6')
-    }
-    // verify grid alignment: each group uses grid with label 72px
     const groups = wrapper.findAll('[data-testid="availability-group"]')
+    expect(groups.length).toBeGreaterThan(0)
     for (const g of groups) {
       expect(g.classes().some(c => c.includes('grid'))).toBe(true)
+      const row = g.find('div.flex')
+      expect(row.exists()).toBe(true)
+      expect(row.classes()).toContain('flex-wrap')
+      expect(row.classes()).toContain('items-center')
     }
+    // no provider-pill with name anymore; images are direct children
+    expect(wrapper.findAll('[data-testid="provider-pill"]').length).toBe(0)
+    const imgs = wrapper.findAll('img')
+    expect(imgs.length).toBeGreaterThan(0)
+  })
+
+  it('links each provider image to the TMDB watch link for the region (region-level link, not per-provider)', async () => {
+    setCatalog(PROVIDER_CATALOG_MULTI_GROUP)
+    const wrapper = await renderPanel()
+
+    // PROVIDER_CATALOG_MULTI_GROUP TW link is null -> images without anchor
+    expect(wrapper.findAll('[data-testid="provider-link"]').length).toBe(0)
+
+    setCatalog(PROVIDER_CATALOG)
+    const wrapper2 = await renderPanel()
+    // PROVIDER_CATALOG TW has link https://www.themoviedb.org/movie/419430/watch?locale=TW
+    const links = wrapper2.findAll('[data-testid="provider-link"]')
+    expect(links.length).toBeGreaterThan(0)
+    for (const a of links) {
+      expect(a.attributes('href')).toContain('themoviedb.org')
+      expect(a.attributes('target')).toBe('_blank')
+      expect(a.attributes('rel')).toContain('noopener')
+    }
+    // JustWatch reference: JustWatch detail pages group providers per monetization type (Stream/Rent/Buy) with
+    // each provider icon linking to a provider deep-link via WatchAction urlTemplate (see JSON-LD offers).
+    // TMDB only exposes a single region link (raw.results[region].link), so SpudTube links all icons to that
+    // TMDB watch page which then delegates to JustWatch; per-provider deep-links would require direct JustWatch API (rejected per ADR 0001).
   })
 
   it('shows an explicit unavailable state when the region has zero providers', async () => {
@@ -173,18 +191,14 @@ describe('availability panel', () => {
     setCatalog(PROVIDER_CATALOG_MULTI_GROUP)
     const wrapper = await renderPanel()
 
-    // trigger shows current region
     const trigger = wrapper.find('[data-slot="select-trigger"]')
     expect(trigger.exists()).toBe(true)
     expect(trigger.text()).toContain('台灣')
 
-    // curated regions order TW HK JP KR SG US GB CA AU DE FR IN BR MX
     expect(CURATED_REGIONS).toEqual(['TW', 'HK', 'JP', 'KR', 'SG', 'US', 'GB', 'CA', 'AU', 'DE', 'FR', 'IN', 'BR', 'MX'])
 
-    // open select and verify 14 items rendered in portal
     await openRegionSelect(wrapper)
     const items = document.querySelectorAll('[data-slot="select-item"]')
-    // In happy-dom portal, items should be 14 after opening
     if (items.length > 0) {
       expect(items).toHaveLength(14)
       expect(items[0]!.textContent).toContain('台灣')
@@ -192,7 +206,6 @@ describe('availability panel', () => {
       expect(items[13]!.textContent).toContain('墨西哥')
     }
     else {
-      // fallback: verify trigger content + curatedRegions length
       expect(CURATED_REGIONS).toHaveLength(14)
     }
   })
@@ -245,7 +258,7 @@ describe('availability panel', () => {
     expect(wrapper.text()).toContain('暫時無法取得串流資訊。')
   })
 
-  it('falls back to a text label when a provider has no logo', async () => {
+  it('falls back to initials when a provider has no logo (no image, 50px rounded 20% box)', async () => {
     const logoLess: ProviderCatalog = {
       TW: {
         link: null,
@@ -260,16 +273,16 @@ describe('availability panel', () => {
     setCatalog(logoLess)
     const wrapper = await renderPanel()
 
-    expect(wrapper.text()).toContain('CATCHPLAY+')
     expect(providerAlts(wrapper)).not.toContain('CATCHPLAY+')
-    // pill still rendered with fallback initials
-    const pill = wrapper.find('[data-testid="provider-pill"]')
-    expect(pill.exists()).toBe(true)
-    expect(pill.text()).toContain('CATCHPLAY+')
+    const fallback = wrapper.find('[data-testid="provider-fallback"]')
+    expect(fallback.exists()).toBe(true)
+    expect(fallback.text()).toBe('CA')
+    expect(fallback.classes().join(' ')).toContain('h-[50px]')
+    expect(fallback.classes().join(' ')).toContain('w-[50px]')
+    expect(fallback.classes().join(' ')).toContain('rounded-[20%]')
   })
 
   it('renders English labels when locale is en', async () => {
-    // verify both locales define availability keys; component uses t() which is locale-aware
     const { readFileSync } = await import('node:fs')
     const zhRaw = JSON.parse(readFileSync('i18n/locales/zh-TW.json', 'utf8'))
     const enRaw = JSON.parse(readFileSync('i18n/locales/en.json', 'utf8'))

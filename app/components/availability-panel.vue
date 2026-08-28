@@ -6,6 +6,7 @@ import { isCuratedRegion } from '#shared/region/region'
 import { useAvailability } from '../composables/use-availability'
 import { useRegion } from '../composables/use-region'
 import { providerLogoSrcSet, providerLogoUrl } from '../lib/images'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 interface Props {
   kind: Kind
@@ -41,10 +42,9 @@ const visibleGroups = computed(() => {
 
 const loaded = computed(() => !catalog.pending.value && catalog.error.value == null)
 
-function onRegionChange(event: Event): void {
-  const next = (event.target as HTMLSelectElement).value
-  if (isCuratedRegion(next)) {
-    setRegion(next)
+function onRegionUpdate(value: unknown): void {
+  if (typeof value === 'string' && isCuratedRegion(value)) {
+    setRegion(value)
   }
 }
 </script>
@@ -54,22 +54,32 @@ function onRegionChange(event: Event): void {
     class="border-t border-border py-6 first:border-t-0"
     :aria-label="t('availability.heading')"
   >
-    <div class="mb-3.5 flex flex-wrap items-center justify-between gap-3">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <h2 class="text-heading-lg text-foreground">
         {{ t('availability.heading') }}
       </h2>
-      <label class="flex items-center gap-2">
-        <span class="sr-only">{{ t('region.label') }}</span>
-        <select
-          :value="region"
-          class="h-7 rounded-full border border-border bg-muted px-3 text-caption-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          @change="onRegionChange"
+      <Select :model-value="region" @update:model-value="onRegionUpdate">
+        <SelectTrigger
+          class="h-8 min-w-32 rounded-full border-border bg-muted px-3 text-caption-sm font-medium text-foreground shadow-[0_4px_12px_rgba(0,0,0,.25)] focus-visible:ring-2 focus-visible:ring-ring/20 data-[placeholder]:text-muted-foreground"
+          aria-label="region-select"
         >
-          <option v-for="code in curatedRegions" :key="code" :value="code">
+          <SelectValue :placeholder="t(`region.names.${region}`)">
+            {{ t(`region.names.${region}`) }}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent
+          class="rounded-lg border border-border bg-popover shadow-[0_16px_48px_rgba(0,0,0,.55)]"
+          position="popper"
+        >
+          <SelectItem
+            v-for="code in curatedRegions"
+            :key="code"
+            :value="code"
+          >
             {{ t(`region.names.${code}`) }}
-          </option>
-        </select>
-      </label>
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
     <p v-if="catalog.pending.value" class="text-body-md text-muted-foreground">
@@ -82,34 +92,46 @@ function onRegionChange(event: Event): void {
       <div
         v-for="group in visibleGroups"
         :key="group.key"
-        class="flex items-start gap-4 border-t border-border py-3 first:border-t-0 first:pt-0"
+        class="grid grid-cols-[72px_1fr] items-start gap-4 border-t border-border py-3.5 first:border-t-0 first:pt-0"
+        data-testid="availability-group"
       >
-        <span class="shrink-0 whitespace-nowrap pt-1.5 text-caption-md font-medium text-muted-foreground">
+        <span class="pt-1.5 text-caption-md font-medium text-muted-foreground">
           {{ t(`availability.groups.${group.key}`) }}
         </span>
-        <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-          <template v-for="provider in group.providers" :key="provider.id">
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <span
+            v-for="provider in group.providers"
+            :key="provider.id"
+            class="inline-flex h-8 items-center gap-2 rounded-full bg-muted px-1.5 pr-3 shadow-[0_4px_12px_rgba(0,0,0,.25)]"
+            :title="provider.name"
+            data-testid="provider-pill"
+          >
             <img
               v-if="provider.logoPath"
               :src="providerLogoUrl(provider.logoPath) ?? undefined"
               :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
-              sizes="96px"
+              sizes="24px"
               :alt="provider.name"
-              :title="provider.name"
-              class="h-10 w-auto max-w-48 rounded-[20%] object-contain"
+              width="24"
+              height="24"
+              loading="lazy"
+              class="h-6 w-6 shrink-0 rounded-full bg-muted object-cover"
             >
             <span
               v-else
-              :title="provider.name"
-              class="text-button-md text-foreground/90"
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold leading-none text-muted-foreground"
+              aria-hidden="true"
             >
+              {{ provider.name.slice(0, 2).toUpperCase() }}
+            </span>
+            <span class="max-w-32 truncate text-caption-md font-medium text-foreground">
               {{ provider.name }}
             </span>
-          </template>
+          </span>
         </div>
       </div>
     </template>
-    <div v-else-if="loaded" class="border-t border-border pt-3">
+    <div v-else-if="loaded" class="border-t border-border pt-3" data-testid="availability-empty">
       <p class="text-body-md text-foreground/90">
         {{ t('availability.unavailable') }}
       </p>

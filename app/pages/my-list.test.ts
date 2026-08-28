@@ -1,6 +1,7 @@
 import type { VueWrapper } from '@vue/test-utils'
 import type { Ref } from 'vue'
 import type { MyList } from '#server/api/my-list.get'
+import type { DiscoveryBadges, ProviderCatalog } from '#server/tmdb/types'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
@@ -15,6 +16,29 @@ vi.mock('../lib/auth-client', () => ({
   signIn: {
     social: vi.fn(),
   },
+}))
+
+const badgesMock = vi.hoisted(() => ({
+  badges: {
+    data: { value: null as DiscoveryBadges | null | undefined },
+  },
+}))
+
+vi.mock('../composables/use-discovery-badges', () => ({
+  useDiscoveryBadges: () => ({ badges: badgesMock.badges }),
+}))
+
+const availabilityMock = vi.hoisted(() => ({
+  catalog: {
+    data: { value: null as ProviderCatalog | null | undefined },
+    pending: { value: false },
+    error: { value: null as Error | null },
+  },
+  loadCatalog: vi.fn(),
+}))
+
+vi.mock('../composables/use-availability', () => ({
+  useAvailability: () => availabilityMock,
 }))
 
 const EMPTY_LIST: MyList = { watchlist: [], watched: [], rated: [] }

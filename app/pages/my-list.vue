@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import type { MyList, MyListEntry } from '#server/api/my-list.get'
+import type { MyList } from '#server/api/my-list.get'
 import { Clapperboard } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definePageMeta, useFetch } from '#imports'
+import TitleCard from '../components/title-card.vue'
 import { authClient } from '../lib/auth-client'
-import { posterSrcSet, posterUrl } from '../lib/images'
-import { toMediaSegment } from '../lib/kind'
 
 // Only signed-in Users may browse the list; the my-list middleware bounces everyone else home.
 definePageMeta({ middleware: 'my-list' })
@@ -34,10 +33,6 @@ const TABS: Array<{ key: MyListTab, label: string }> = [
 ]
 
 const activeEntries = computed(() => list.value?.[activeTab.value] ?? [])
-
-function entryPath(entry: MyListEntry): string {
-  return `/${toMediaSegment(entry.kind)}/${entry.tmdbId}`
-}
 </script>
 
 <template>
@@ -73,54 +68,30 @@ function entryPath(entry: MyListEntry): string {
     <div v-else-if="error" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.error') }}
     </div>
-    <p
+    <div
       v-else-if="activeEntries.length === 0"
-      class="py-12 text-center text-body-md text-muted-foreground"
+      class="flex flex-col items-center gap-2 py-12 text-center"
     >
-      {{ t(`myList.empty.${activeTab}`) }}
-    </p>
-    <ul v-else role="tabpanel" class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-      <li v-for="entry in activeEntries" :key="`${entry.kind}:${entry.tmdbId}`">
-        <NuxtLink
-          v-if="entry.title"
-          :to="entryPath(entry)"
-          class="group flex items-center gap-4 rounded-lg bg-card p-3 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-        >
-          <div class="h-20 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-            <NuxtImg
-              v-if="entry.title.posterPath"
-              :src="posterUrl(entry.title.posterPath) ?? undefined"
-              :srcset="posterSrcSet(entry.title.posterPath) ?? undefined"
-              sizes="56px"
-              :alt="entry.title.name"
-              loading="lazy"
-              decoding="async"
-              class="h-full w-full object-cover"
-            />
-            <div
-              v-else
-              class="flex h-full w-full items-center justify-center"
-            >
-              <Clapperboard :size="20" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
-            </div>
-          </div>
-          <div class="min-w-0">
-            <p class="truncate text-button-md text-foreground">
-              {{ entry.title.name }}
-            </p>
-            <p class="mt-0.5 text-caption-sm text-muted-foreground">
-              {{ entry.title.releaseDate?.slice(0, 4) ?? t(`detail.kind.${toMediaSegment(entry.kind)}`) }}
-            </p>
-          </div>
-        </NuxtLink>
+      <p class="text-body-md font-semibold text-foreground">
+        {{ t('myList.heading') }}
+      </p>
+      <p class="text-body-md text-muted-foreground">
+        {{ t(`myList.empty.${activeTab}`) }}
+      </p>
+    </div>
+    <ul
+      v-else
+      role="tabpanel"
+      class="mt-4 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
+    >
+      <li v-for="entry in activeEntries" :key="`${entry.kind}:${entry.tmdbId}`" class="contents">
+        <TitleCard v-if="entry.title" :title="entry.title" />
         <div
           v-else
-          class="flex items-center gap-4 rounded-lg border border-dashed border-border bg-card p-3 opacity-70 shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+          class="flex aspect-[2/3] flex-col items-center justify-center gap-2 rounded-xl bg-muted p-3 text-center text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
         >
-          <div class="flex h-20 w-14 shrink-0 items-center justify-center rounded-md bg-muted">
-            <Clapperboard :size="20" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
-          </div>
-          <p class="text-body-md text-muted-foreground">
+          <Clapperboard :size="24" :stroke-width="1.75" aria-hidden="true" />
+          <p class="line-clamp-2 text-caption-sm leading-snug">
             {{ t('myList.removed') }}
           </p>
         </div>

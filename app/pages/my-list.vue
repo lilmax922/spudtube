@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import type { MyList } from '#server/api/my-list.get'
+import type { MonetizationTag, MyList, MyListEntry } from '#server/api/my-list.get'
+import type { Provider } from '#server/tmdb/types'
+import type { Filters, KindFilter, MonetizationFilter } from '../components/my-list-filter.vue'
 import { Clapperboard } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definePageMeta, useFetch } from '#imports'
+import MyListFilter from '../components/my-list-filter.vue'
 import TitleCard from '../components/title-card.vue'
 import { authClient } from '../lib/auth-client'
 
@@ -33,6 +36,80 @@ const TABS: Array<{ key: MyListTab, label: string }> = [
 ]
 
 const activeEntries = computed(() => list.value?.[activeTab.value] ?? [])
+
+const filters = ref<Filters>({
+  kind: 'all',
+  monetization: 'all',
+  providerIds: [],
+  sort: 'recent',
+})
+
+const availableProviders = computed<Provider[]>(() => {
+  const map = new Map<number, Provider>()
+  for (const entry of activeEntries.value) {
+    for (const provider of entry.providers) {
+      if (!map.has(provider.id))
+        map.set(provider.id, provider)
+    }
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const monetizationCounts = computed(() => {
+  const counts: Record<MonetizationTag, number> = {
+    subscription: 0,
+    buy: 0,
+    rent: 0,
+    free: 0,
+  }
+  for (const entry of activeEntries.value) {
+    for (const tag of entry.monetization)
+      counts[tag] += 1
+  }
+  return counts
+})
+
+function entryMatchesKind(entry: MyListEntry, kind: KindFilter): boolean {
+  return kind === 'all' || entry.kind === kind
+}
+
+function entryMatchesMonetization(entry: MyListEntry, monetization: MonetizationFilter): boolean {
+  if (monetization === 'all')
+    return true
+  return entry.monetization.includes(monetization)
+}
+
+function entryMatchesProviders(entry: MyListEntry, providerIds: number[]): boolean {
+  if (providerIds.length === 0)
+    return true
+  const entryProviderIds = new Set(entry.providers.map(provider => provider.id))
+  return providerIds.some(id => entryProviderIds.has(id))
+}
+
+const filteredEntries = computed<MyListEntry[]>(() => {
+  const base = activeEntries.value.filter(entry =>
+    entryMatchesKind(entry, filters.value.kind)
+    && entryMatchesMonetization(entry, filters.value.monetization)
+    && entryMatchesProviders(entry, filters.value.providerIds),
+  )
+  if (filters.value.sort === 'recent')
+    return base
+  return [...base].sort((a, b) => (a.title?.name ?? '').localeCompare(b.title?.name ?? ''))
+})
+
+const filterCounts = computed(() => ({
+  total: activeEntries.value.length,
+  byMonetization: monetizationCounts.value,
+}))
+
+function onFiltersClear(): void {
+  filters.value = {
+    kind: 'all',
+    monetization: 'all',
+    providerIds: [],
+    sort: filters.value.sort,
+  }
+}
 </script>
 
 <template>
@@ -62,6 +139,14 @@ const activeEntries = computed(() => list.value?.[activeTab.value] ?? [])
       </button>
     </div>
 
+    <MyListFilter
+      v-if="activeEntries.length > 0"
+      v-model="filters"
+      :available-providers="availableProviders"
+      :counts="filterCounts"
+      @clear="onFiltersClear"
+    />
+
     <div v-if="pending" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.loading') }}
     </div>
@@ -79,12 +164,27 @@ const activeEntries = computed(() => list.value?.[activeTab.value] ?? [])
         {{ t(`myList.empty.${activeTab}`) }}
       </p>
     </div>
+    <div
+      v-else-if="filteredEntries.length === 0"
+      class="flex flex-col items-center gap-3 py-12 text-center"
+    >
+      <p class="text-body-md font-semibold text-foreground">
+        {{ t('myList.filterEmpty') }}
+      </p>
+      <button
+        type="button"
+        class="inline-flex h-10 items-center px-4 text-button-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        @click="onFiltersClear"
+      >
+        {{ t('myList.filter.clear') }}
+      </button>
+    </div>
     <ul
       v-else
       role="tabpanel"
       class="mt-4 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
     >
-      <li v-for="entry in activeEntries" :key="`${entry.kind}:${entry.tmdbId}`" class="contents">
+      <li v-for="entry in filteredEntries" :key="`${entry.kind}:${entry.tmdbId}`" class="contents">
         <TitleCard v-if="entry.title" :title="entry.title" />
         <div
           v-else

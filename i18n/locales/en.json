@@ -157,6 +157,24 @@
       "watched": "Nothing watched yet.",
       "rated": "Nothing rated yet."
     },
-    "removed": "No longer in catalog"
+    "filterEmpty": "No titles match these filters.",
+    "removed": "No longer in catalog",
+    "filter": {
+      "label": "Filter and sort",
+      "trigger": "Filters",
+      "count": "{count} titles",
+      "clear": "Clear filters",
+      "kindLabel": "Type",
+      "monetizationLabel": "Watch on",
+      "providersLabel": "Providers",
+      "sortLabel": "Sort by",
+      "recent": "Recent",
+      "titleAsc": "A–Z",
+      "kindAll": "All",
+      "all": "All",
+      "subscriptions": "Subscriptions",
+      "buyRent": "Buy/Rent",
+      "free": "Free"
+    }
   }
 }

@@ -41,7 +41,7 @@ vi.mock('../composables/use-availability', () => ({
   useAvailability: () => availabilityMock,
 }))
 
-const EMPTY_LIST: MyList = { watchlist: [], watched: [], rated: [] }
+const EMPTY_LIST: MyList = { watchlist: [], watched: [], rated: [], region: 'TW' }
 
 const FILLED_LIST: MyList = {
   watchlist: [
@@ -57,6 +57,8 @@ const FILLED_LIST: MyList = {
         releaseDate: '2021-10-22',
         voteAverage: 7.8,
       },
+      monetization: [],
+      providers: [],
     },
   ],
   watched: [
@@ -64,9 +66,12 @@ const FILLED_LIST: MyList = {
       kind: 'MOVIE',
       tmdbId: 999,
       title: null,
+      monetization: [],
+      providers: [],
     },
   ],
   rated: [],
+  region: 'TW',
 }
 
 // The page's list fetch is mocked at the import site (seam S3); each test controls the

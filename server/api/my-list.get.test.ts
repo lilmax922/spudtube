@@ -13,11 +13,14 @@ import myListHandler from './my-list.get'
 
 const fakeClient = vi.hoisted(() => ({
   title: vi.fn(),
+  watchProviders: vi.fn(),
 }))
 
 vi.mock('../tmdb/client', () => ({
   getTmdbClient: () => fakeClient,
 }))
+
+const EMPTY_CATALOG = { TW: { link: null, groups: { subscription: [], free: [], rent: [], buy: [] } } }
 
 const db = getDb()
 
@@ -31,6 +34,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   fakeClient.title.mockReset()
+  fakeClient.watchProviders.mockReset()
 })
 
 afterAll(async () => {
@@ -78,6 +82,7 @@ describe('gET /api/my-list (seam S2)', () => {
     await upsertRating(db, fixture.userId, { kind: 'MOVIE', tmdbId: 500, label: 'AWESOME' })
     fakeClient.title.mockImplementation(async (kind: 'MOVIE' | 'TV_SHOW', tmdbId: number) =>
       detail(kind, tmdbId, `Title ${tmdbId}`))
+    fakeClient.watchProviders.mockResolvedValue(EMPTY_CATALOG)
 
     const response = await call(new Request('http://localhost/api/my-list', {
       headers: { cookie: fixture.cookie },
@@ -85,15 +90,20 @@ describe('gET /api/my-list (seam S2)', () => {
 
     expect(response.status).toBe(200)
     const body = await response.json()
+    expect(body.region).toBe('TW')
     expect(body.watchlist).toEqual([{
       kind: 'MOVIE',
       tmdbId: 424,
       title: { kind: 'MOVIE', tmdbId: 424, name: 'Title 424', posterPath: '/poster-424.jpg', backdropPath: null, releaseDate: '2021-10-22', voteAverage: 7.8 },
+      monetization: [],
+      providers: [],
     }])
     expect(body.watched).toEqual([{
       kind: 'TV_SHOW',
       tmdbId: 1399,
       title: { kind: 'TV_SHOW', tmdbId: 1399, name: 'Title 1399', posterPath: '/poster-1399.jpg', backdropPath: null, releaseDate: '2021-10-22', voteAverage: 7.8 },
+      monetization: [],
+      providers: [],
     }])
     const ratedKeys = body.rated.map((entry: { kind: string, tmdbId: number }) => `${entry.kind}:${entry.tmdbId}`)
     expect(ratedKeys.sort()).toEqual(['MOVIE:424', 'MOVIE:500'])
@@ -101,6 +111,7 @@ describe('gET /api/my-list (seam S2)', () => {
     expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 424, 'en')
     expect(fakeClient.title).toHaveBeenCalledWith('TV_SHOW', 1399, 'en')
     expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 500, 'en')
+    expect(fakeClient.watchProviders).toHaveBeenCalledTimes(3)
   })
 
   it('renders a removed reference as a degraded null title without breaking the rest', async () => {
@@ -109,6 +120,7 @@ describe('gET /api/my-list (seam S2)', () => {
     await upsertTitleStatus(db, fixture.userId, { kind: 'MOVIE', tmdbId: 999, status: 'WATCHED' })
     fakeClient.title.mockImplementation(async (kind: 'MOVIE' | 'TV_SHOW', tmdbId: number) =>
       tmdbId === 999 ? null : detail(kind, tmdbId, `Title ${tmdbId}`))
+    fakeClient.watchProviders.mockResolvedValue(EMPTY_CATALOG)
 
     const response = await call(new Request('http://localhost/api/my-list', {
       headers: { cookie: fixture.cookie },
@@ -117,7 +129,7 @@ describe('gET /api/my-list (seam S2)', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.watchlist[0].title.name).toBe('Title 424')
-    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null }])
+    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null, monetization: [], providers: [] }])
   })
 
   it('degrades a failing TMDB fetch to null instead of failing the whole list', async () => {
@@ -129,6 +141,7 @@ describe('gET /api/my-list (seam S2)', () => {
         throw new Error('upstream timeout')
       return detail(kind, tmdbId, `Title ${tmdbId}`)
     })
+    fakeClient.watchProviders.mockResolvedValue(EMPTY_CATALOG)
 
     const response = await call(new Request('http://localhost/api/my-list', {
       headers: { cookie: fixture.cookie },
@@ -137,7 +150,7 @@ describe('gET /api/my-list (seam S2)', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.watchlist[0].title.name).toBe('Title 424')
-    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null }])
+    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null, monetization: [], providers: [] }])
   })
 
   it('keeps another user lists empty and invisible', async () => {
@@ -145,13 +158,14 @@ describe('gET /api/my-list (seam S2)', () => {
     const userB = await createSessionFixture(db)
     await upsertTitleStatus(db, userA.userId, { kind: 'MOVIE', tmdbId: 424, status: 'WATCHLISTED' })
     fakeClient.title.mockResolvedValue(detail('MOVIE', 424, 'Title 424'))
+    fakeClient.watchProviders.mockResolvedValue(EMPTY_CATALOG)
 
     const response = await call(new Request('http://localhost/api/my-list', {
       headers: { cookie: userB.cookie },
     }))
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ watchlist: [], watched: [], rated: [] })
+    expect(await response.json()).toEqual({ watchlist: [], watched: [], rated: [], region: 'TW' })
     expect(fakeClient.title).not.toHaveBeenCalled()
   })
 
@@ -160,5 +174,43 @@ describe('gET /api/my-list (seam S2)', () => {
 
     expect(response.status).toBe(401)
     expect(fakeClient.title).not.toHaveBeenCalled()
+  })
+
+  it('derives monetization tags and deduped provider list from the resolved region', async () => {
+    const fixture = await createSessionFixture(db)
+    await upsertTitleStatus(db, fixture.userId, { kind: 'MOVIE', tmdbId: 424, status: 'WATCHLISTED' })
+    fakeClient.title.mockResolvedValue(detail('MOVIE', 424, 'Dune'))
+    fakeClient.watchProviders.mockResolvedValue({
+      TW: {
+        link: null,
+        groups: {
+          subscription: [
+            { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
+            { id: 119, name: 'Amazon Prime Video', logoPath: '/prime.jpg' },
+          ],
+          free: [
+            { id: 73, name: 'Tubi TV', logoPath: '/tubi.jpg' },
+          ],
+          rent: [],
+          buy: [
+            { id: 2, name: 'Apple iTunes', logoPath: '/apple.jpg' },
+          ],
+        },
+      },
+      US: {
+        link: null,
+        groups: { subscription: [], free: [], rent: [], buy: [] },
+      },
+    })
+
+    const response = await call(new Request('http://localhost/api/my-list', {
+      headers: { 'cookie': fixture.cookie, 'cf-ipcountry': 'TW' },
+    }))
+
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.region).toBe('TW')
+    expect(body.watchlist[0].monetization.sort()).toEqual(['buy', 'free', 'subscription'])
+    expect(body.watchlist[0].providers.map((p: { name: string }) => p.name)).toEqual(['Amazon Prime Video', 'Apple iTunes', 'Netflix', 'Tubi TV'])
   })
 })

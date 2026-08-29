@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MonetizationTag } from '#server/api/my-list.get'
 import type { Kind, Provider } from '#server/tmdb/types'
-import { ChevronDown, ListFilter, X } from '@lucide/vue'
+import { ChevronLeft, ChevronRight, X } from '@lucide/vue'
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -22,10 +22,11 @@ interface Props {
   modelValue: Filters
   /** Distinct providers aggregated across the current active entries (deduped). */
   availableProviders: Provider[]
-  /** Count per monetization bucket for the current entries, used to annotate the chips. */
+  /** Count per bucket for the current entries. */
   counts: {
     total: number
     byMonetization: Record<MonetizationTag, number>
+    byKind: Record<Kind, number>
   }
 }
 const props = defineProps<Props>()
@@ -50,11 +51,6 @@ const MONETIZATION_OPTIONS: { value: MonetizationFilter, labelKey: 'myList.filte
   { value: 'subscription', labelKey: 'myList.filter.subscriptions' },
   { value: 'buy', labelKey: 'myList.filter.buyRent' },
   { value: 'free', labelKey: 'myList.filter.free' },
-]
-
-const SORT_OPTIONS: { value: SortOrder, labelKey: 'myList.filter.recent' | 'myList.filter.titleAsc' }[] = [
-  { value: 'recent', labelKey: 'myList.filter.recent' },
-  { value: 'title-asc', labelKey: 'myList.filter.titleAsc' },
 ]
 
 function update<K extends keyof Filters>(key: K, value: Filters[K]): void {
@@ -84,71 +80,97 @@ const isFiltered = computed(() =>
   || props.modelValue.providerIds.length > 0,
 )
 
+const isProviderFiltered = computed(() => props.modelValue.providerIds.length > 0)
+
 const monetizationCount = (bucket: MonetizationTag): number => props.counts.byMonetization[bucket] ?? 0
 
+function kindCount(kind: KindFilter): number {
+  if (kind === 'all')
+    return props.counts.total
+  return props.counts.byKind[kind] ?? 0
+}
+
 const COLLAPSE_TRANSITION = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const
+
+const scrollerRef = ref<HTMLDivElement | null>(null)
+
+function scrollLeft(): void {
+  scrollerRef.value?.scrollBy({ left: -280, behavior: 'smooth' })
+}
+
+function scrollRight(): void {
+  scrollerRef.value?.scrollBy({ left: 280, behavior: 'smooth' })
+}
 </script>
 
 <template>
   <section
-    class="my-list-filter mt-4"
+    class="my-list-filter"
     :aria-label="t('myList.filter.label')"
   >
-    <div class="filter-toolbar flex flex-wrap items-center justify-between gap-3">
-      <span class="text-caption-md text-muted-foreground tabular-nums">
-        {{ t('myList.filter.count', { count: props.counts.total }) }}
-      </span>
-
-      <div class="flex items-center gap-2">
-        <div
-          class="inline-flex rounded-full bg-muted p-1"
-          role="group"
-          :aria-label="t('myList.filter.sortLabel')"
-        >
-          <button
-            v-for="option in SORT_OPTIONS"
-            :key="option.value"
-            type="button"
-            class="inline-flex h-9 min-h-10 items-center rounded-full px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-            :class="props.modelValue.sort === option.value
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground'"
-            :aria-pressed="props.modelValue.sort === option.value"
-            @click="update('sort', option.value)"
-          >
-            {{ t(option.labelKey) }}
-          </button>
-        </div>
-
+    <!-- toolbar: left kind tabs (compact seg, 30px chip height per Contract) | right provider cluster button -->
+    <div class="flex items-center justify-between gap-3">
+      <!-- kind tabs -->
+      <div
+        class="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-card p-1 shadow-[0_2px_8px_rgba(0,0,0,0.18)] max-[560px]:overflow-x-auto max-[560px]:scroll-smooth max-[560px]:[-ms-overflow-style:none] max-[560px]:[scrollbar-width:none] max-[560px]:[&::-webkit-scrollbar]:hidden"
+        role="group"
+        :aria-label="t('myList.filter.kindLabel')"
+      >
         <button
+          v-for="option in KIND_OPTIONS"
+          :key="option.value"
           type="button"
-          class="filter-trigger inline-flex h-10 items-center gap-2 rounded-full px-4 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          :class="open || isFiltered
-            ? 'bg-secondary text-foreground'
-            : 'bg-muted text-foreground hover:bg-secondary'"
-          :aria-expanded="open"
-          aria-controls="my-list-filter-detail"
-          @click="open = !open"
+          class="inline-flex h-7 shrink-0 items-center rounded-full px-3 text-caption-md font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+          :class="props.modelValue.kind === option.value
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+          :aria-pressed="props.modelValue.kind === option.value"
+          @click="update('kind', option.value)"
         >
-          <ListFilter :size="16" :stroke-width="1.75" aria-hidden="true" />
-          <span>{{ t('myList.filter.trigger') }}</span>
-          <span
-            v-if="isFiltered"
-            class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-caption-sm font-bold tabular-nums text-primary-foreground"
-            aria-hidden="true"
-          >
-            ·
-          </span>
-          <motion.span
-            :animate="{ rotate: open ? 180 : 0 }"
-            :transition="{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }"
-            class="flex items-center"
-            aria-hidden="true"
-          >
-            <ChevronDown :size="16" :stroke-width="1.75" />
-          </motion.span>
+          <span>{{ t(option.labelKey) }}</span>
+          <span class="ml-1 text-[11px] opacity-60">({{ kindCount(option.value) }})</span>
         </button>
       </div>
+
+      <!-- provider cluster button (Image 1 style) -->
+      <button
+        type="button"
+        class="group relative inline-flex shrink-0 items-center rounded-full bg-muted p-1 pr-1.5 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        :class="open ? 'bg-secondary' : ''"
+        :aria-expanded="open"
+        aria-controls="my-list-filter-detail"
+        :aria-label="t('myList.filter.providersLabel')"
+        @click="open = !open"
+      >
+        <span v-if="props.availableProviders.length > 0" class="flex items-center -space-x-1.5">
+          <span
+            v-for="provider in props.availableProviders.slice(0, 5)"
+            :key="provider.id"
+            class="flex size-6 items-center justify-center overflow-hidden rounded-[20%] border-2 border-background"
+          >
+            <NuxtImg
+              v-if="provider.logoPath"
+              :src="providerLogoUrl(provider.logoPath) ?? undefined"
+              :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
+              sizes="24px"
+              :alt="provider.name"
+              loading="lazy"
+              decoding="async"
+              class="h-full w-full object-cover"
+            />
+          </span>
+        </span>
+        <span v-else class="mx-2 text-caption-sm text-muted-foreground" aria-hidden="true">{{ t('myList.filter.providersLabel') }}</span>
+        <span
+          class="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-caption-sm font-bold tabular-nums text-foreground ring-1 ring-background"
+          aria-hidden="true"
+        >
+          {{ props.availableProviders.length }}
+        </span>
+        <span class="ml-1 hidden text-caption-sm font-medium text-muted-foreground group-hover:text-foreground sm:inline" aria-hidden="true">
+          <!-- spacer; badge already shows count -->
+        </span>
+      </button>
     </div>
 
     <AnimatePresence>
@@ -161,69 +183,49 @@ const COLLAPSE_TRANSITION = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const
         :transition="COLLAPSE_TRANSITION"
         class="overflow-hidden"
       >
-        <div class="filter-detail mt-4 rounded-xl bg-card p-5 shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
-          <div class="flex flex-col gap-5">
-            <div class="flex flex-col gap-2">
-              <span class="text-heading-xs font-bold uppercase tracking-wide text-muted-foreground">
-                {{ t('myList.filter.kindLabel') }}
+        <div class="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+          <!-- monetization chips: All / subscription / rent/buy / free -->
+          <div
+            class="flex shrink-0 items-center gap-2 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="group"
+            :aria-label="t('myList.filter.monetizationLabel')"
+          >
+            <button
+              v-for="option in MONETIZATION_OPTIONS"
+              :key="option.value"
+              type="button"
+              class="inline-flex h-8 shrink-0 items-center rounded-full px-3 text-button-md tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+              :class="props.modelValue.monetization === option.value
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
+              :aria-pressed="props.modelValue.monetization === option.value"
+              :disabled="option.value !== 'all' && monetizationCount(option.value as MonetizationTag) === 0"
+              @click="update('monetization', option.value)"
+            >
+              <span>{{ t(option.labelKey) }}</span>
+              <span v-if="option.value !== 'all'" class="ml-1 opacity-80">
+                ({{ monetizationCount(option.value as MonetizationTag) }})
               </span>
-              <div
-                class="inline-flex w-fit rounded-full bg-muted p-1"
-                role="group"
-                :aria-label="t('myList.filter.kindLabel')"
+            </button>
+          </div>
+
+          <template v-if="props.availableProviders.length > 0">
+            <div class="hidden h-6 w-px shrink-0 bg-border lg:block" aria-hidden="true" />
+
+            <!-- provider logo scroller (Images 2/3/4) : logo-only, horizontal, muted when not selected -->
+            <div class="relative flex min-w-0 flex-1 items-center">
+              <button
+                type="button"
+                class="absolute left-0 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                aria-label="Scroll providers left"
+                @click="scrollLeft"
               >
-                <button
-                  v-for="option in KIND_OPTIONS"
-                  :key="option.value"
-                  type="button"
-                  class="inline-flex h-9 min-h-10 items-center rounded-full px-4 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-                  :class="props.modelValue.kind === option.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'"
-                  :aria-pressed="props.modelValue.kind === option.value"
-                  @click="update('kind', option.value)"
-                >
-                  {{ t(option.labelKey) }}
-                </button>
-              </div>
-            </div>
+                <ChevronLeft :size="16" :stroke-width="1.75" aria-hidden="true" />
+              </button>
 
-            <div class="flex flex-col gap-2">
-              <span class="text-heading-xs font-bold uppercase tracking-wide text-muted-foreground">
-                {{ t('myList.filter.monetizationLabel') }}
-              </span>
-              <div class="flex flex-wrap gap-2" role="group" :aria-label="t('myList.filter.monetizationLabel')">
-                <button
-                  v-for="option in MONETIZATION_OPTIONS"
-                  :key="option.value"
-                  type="button"
-                  class="inline-flex h-9 min-h-10 items-center gap-1 rounded-full border border-transparent px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-                  :class="props.modelValue.monetization === option.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"
-                  :aria-pressed="props.modelValue.monetization === option.value"
-                  :disabled="option.value !== 'all' && monetizationCount(option.value) === 0"
-                  @click="update('monetization', option.value)"
-                >
-                  <span>{{ t(option.labelKey) }}</span>
-                  <span
-                    v-if="option.value === 'all'"
-                    class="tabular-nums opacity-80"
-                  >·</span>
-                  <span
-                    v-else
-                    class="tabular-nums opacity-80"
-                  >{{ monetizationCount(option.value) }}</span>
-                </button>
-              </div>
-            </div>
-
-            <div v-if="props.availableProviders.length > 0" class="flex flex-col gap-2">
-              <span class="text-heading-xs font-bold uppercase tracking-wide text-muted-foreground">
-                {{ t('myList.filter.providersLabel') }}
-              </span>
               <div
-                class="flex flex-wrap gap-2"
+                ref="scrollerRef"
+                class="flex w-full gap-2 overflow-x-auto scroll-smooth px-8 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 role="group"
                 :aria-label="t('myList.filter.providersLabel')"
               >
@@ -231,45 +233,53 @@ const COLLAPSE_TRANSITION = { duration: 0.22, ease: [0.16, 1, 0.3, 1] } as const
                   v-for="provider in props.availableProviders"
                   :key="provider.id"
                   type="button"
-                  class="inline-flex h-9 min-h-10 items-center gap-2 rounded-full border px-2.5 pr-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-                  :class="props.modelValue.providerIds.includes(provider.id)
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-input bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"
+                  class="shrink-0 rounded-[20%] p-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                  :class="isProviderFiltered && !props.modelValue.providerIds.includes(provider.id)
+                    ? 'opacity-40 grayscale hover:opacity-60'
+                    : 'opacity-100'"
                   :aria-pressed="props.modelValue.providerIds.includes(provider.id)"
                   :title="provider.name"
                   @click="toggleProvider(provider.id)"
                 >
-                  <span
-                    class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-background/30 p-0.5"
-                    :class="props.modelValue.providerIds.includes(provider.id) ? 'bg-primary-foreground/20' : 'bg-muted'"
-                  >
+                  <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-[20%] bg-card">
                     <NuxtImg
                       v-if="provider.logoPath"
                       :src="providerLogoUrl(provider.logoPath) ?? undefined"
                       :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
-                      sizes="20px"
+                      sizes="32px"
                       :alt="provider.name"
                       loading="lazy"
                       decoding="async"
-                      class="h-full w-full object-contain"
+                      class="h-full w-full object-cover"
                     />
                   </span>
-                  <span class="max-w-[8rem] truncate">{{ provider.name }}</span>
                 </button>
               </div>
-            </div>
 
-            <div v-if="isFiltered" class="flex justify-end">
               <button
                 type="button"
-                class="inline-flex h-9 min-h-10 items-center gap-1.5 rounded-full px-3 text-button-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-                @click="clearAll"
+                class="absolute right-0 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                aria-label="Scroll providers right"
+                @click="scrollRight"
               >
-                <X :size="14" :stroke-width="1.75" aria-hidden="true" />
-                {{ t('myList.filter.clear') }}
+                <ChevronRight :size="16" :stroke-width="1.75" aria-hidden="true" />
               </button>
             </div>
-          </div>
+          </template>
+        </div>
+
+        <div class="mt-3 flex h-8 items-center justify-end">
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+            :class="isFiltered ? 'text-muted-foreground hover:bg-muted hover:text-foreground opacity-100' : 'pointer-events-none opacity-0'"
+            :aria-hidden="!isFiltered"
+            :tabindex="isFiltered ? 0 : -1"
+            @click="clearAll"
+          >
+            <X :size="14" :stroke-width="1.75" aria-hidden="true" />
+            {{ t('myList.filter.clear') }}
+          </button>
         </div>
       </motion.div>
     </AnimatePresence>

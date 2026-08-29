@@ -1,4 +1,6 @@
 import type { H3Event } from 'h3'
+import type { RatingLabel } from '../db/schema/rating'
+import type { WatchStatus } from '../db/schema/title-status'
 import type { Kind, Provider, ProviderCatalog, TitleDetail, TitleSummary } from '../tmdb/types'
 import { defineEventHandler, getCookie, getHeader, getQuery } from 'h3'
 import { z } from 'zod'
@@ -27,6 +29,12 @@ export interface MyListEntry {
   // Distinct providers available in the resolved Region, deduplicated and sorted
   // by name; drives the provider-chip strip in the filter bar.
   providers: Provider[]
+  // Direct link to the TMDB watch page for the resolved Region (JustWatch attribution).
+  watchLink: string | null
+  // Current watch status for this title (if any) — used by my-list-card to render active state.
+  status: WatchStatus | null
+  // Current rating label for this title (if any).
+  ratingLabel: RatingLabel | null
 }
 
 export interface MyList {
@@ -45,6 +53,7 @@ function toTitleSummary(detail: TitleDetail): TitleSummary {
     backdropPath: detail.backdropPath,
     releaseDate: detail.releaseDate,
     voteAverage: detail.voteAverage,
+    overview: detail.overview,
   }
 }
 
@@ -64,13 +73,13 @@ function resolveRequestRegion(event: H3Event): string {
   }
 }
 
-function deriveMonetization(catalog: ProviderCatalog | null, region: string): { monetization: MonetizationTag[], providers: Provider[] } {
+function deriveMonetization(catalog: ProviderCatalog | null, region: string): { monetization: MonetizationTag[], providers: Provider[], watchLink: string | null } {
   if (!catalog)
-    return { monetization: [], providers: [] }
+    return { monetization: [], providers: [], watchLink: null }
   const regionEntry = catalog[region]
   if (!regionEntry)
-    return { monetization: [], providers: [] }
-  const { groups } = regionEntry
+    return { monetization: [], providers: [], watchLink: null }
+  const { groups, link } = regionEntry
   const monetization: MonetizationTag[] = []
   if (groups.subscription.length > 0)
     monetization.push('subscription')
@@ -88,7 +97,7 @@ function deriveMonetization(catalog: ProviderCatalog | null, region: string): { 
     }
   }
   const providers = [...providerMap.values()].sort((a, b) => a.name.localeCompare(b.name))
-  return { monetization, providers }
+  return { monetization, providers, watchLink: link ?? null }
 }
 
 export default defineEventHandler(async (event) => {
@@ -106,6 +115,15 @@ export default defineEventHandler(async (event) => {
   const watchlist = statuses.filter(row => row.status === 'WATCHLISTED')
   const watched = statuses.filter(row => row.status === 'WATCHED')
   const rated = ratings.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+
+  const statusByKey = new Map<string, WatchStatus | null>()
+  for (const row of statuses) {
+    if (row.status)
+      statusByKey.set(`${row.kind}:${row.tmdbId}`, row.status)
+  }
+  const ratingByKey = new Map<string, RatingLabel>()
+  for (const row of ratings)
+    ratingByKey.set(`${row.kind}:${row.tmdbId}`, row.label)
 
   // One batched fetch per unique reference across all three tabs, then each tab joins
   // its stored references with the live detail. A missing OR failing title degrades to
@@ -133,7 +151,7 @@ export default defineEventHandler(async (event) => {
     }
   }))
 
-  function entries(rows: Array<{ kind: Kind, tmdbId: number }>): MyListEntry[] {
+  function entries(rows: Array<{ kind: Kind, tmdbId: number, label?: RatingLabel }>): MyListEntry[] {
     return rows.map((row) => {
       const key = `${row.kind}:${row.tmdbId}`
       const derived = deriveMonetization(catalogs.get(key) ?? null, region)
@@ -143,6 +161,9 @@ export default defineEventHandler(async (event) => {
         title: details.get(key) ?? null,
         monetization: derived.monetization,
         providers: derived.providers,
+        watchLink: derived.watchLink,
+        status: statusByKey.get(key) ?? null,
+        ratingLabel: (row as { label?: RatingLabel }).label ?? ratingByKey.get(key) ?? null,
       }
     })
   }
@@ -150,7 +171,7 @@ export default defineEventHandler(async (event) => {
   return {
     watchlist: entries(watchlist),
     watched: entries(watched),
-    rated: entries(rated),
+    rated: entries(rated as Array<{ kind: Kind, tmdbId: number, label: RatingLabel }>),
     region,
   }
 })

@@ -94,19 +94,27 @@ describe('gET /api/my-list (seam S2)', () => {
     expect(body.watchlist).toEqual([{
       kind: 'MOVIE',
       tmdbId: 424,
-      title: { kind: 'MOVIE', tmdbId: 424, name: 'Title 424', posterPath: '/poster-424.jpg', backdropPath: null, releaseDate: '2021-10-22', voteAverage: 7.8 },
+      title: { kind: 'MOVIE', tmdbId: 424, name: 'Title 424', posterPath: '/poster-424.jpg', backdropPath: null, releaseDate: '2021-10-22', voteAverage: 7.8, overview: 'Overview of Title 424' },
       monetization: [],
       providers: [],
+      watchLink: null,
+      status: 'WATCHLISTED',
+      ratingLabel: 'GOOD',
     }])
     expect(body.watched).toEqual([{
       kind: 'TV_SHOW',
       tmdbId: 1399,
-      title: { kind: 'TV_SHOW', tmdbId: 1399, name: 'Title 1399', posterPath: '/poster-1399.jpg', backdropPath: null, releaseDate: '2021-10-22', voteAverage: 7.8 },
+      title: { kind: 'TV_SHOW', tmdbId: 1399, name: 'Title 1399', posterPath: '/poster-1399.jpg', backdropPath: null, releaseDate: '2021-10-22', voteAverage: 7.8, overview: 'Overview of Title 1399' },
       monetization: [],
       providers: [],
+      watchLink: null,
+      status: 'WATCHED',
+      ratingLabel: null,
     }])
     const ratedKeys = body.rated.map((entry: { kind: string, tmdbId: number }) => `${entry.kind}:${entry.tmdbId}`)
     expect(ratedKeys.sort()).toEqual(['MOVIE:424', 'MOVIE:500'])
+    expect(body.rated.find((e: { tmdbId: number }) => e.tmdbId === 424).ratingLabel).toBe('GOOD')
+    expect(body.rated.find((e: { tmdbId: number }) => e.tmdbId === 500).ratingLabel).toBe('AWESOME')
     expect(fakeClient.title).toHaveBeenCalledTimes(3)
     expect(fakeClient.title).toHaveBeenCalledWith('MOVIE', 424, 'en')
     expect(fakeClient.title).toHaveBeenCalledWith('TV_SHOW', 1399, 'en')
@@ -129,7 +137,7 @@ describe('gET /api/my-list (seam S2)', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.watchlist[0].title.name).toBe('Title 424')
-    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null, monetization: [], providers: [] }])
+    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null, monetization: [], providers: [], watchLink: null, status: 'WATCHED', ratingLabel: null }])
   })
 
   it('degrades a failing TMDB fetch to null instead of failing the whole list', async () => {
@@ -150,7 +158,7 @@ describe('gET /api/my-list (seam S2)', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.watchlist[0].title.name).toBe('Title 424')
-    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null, monetization: [], providers: [] }])
+    expect(body.watched).toEqual([{ kind: 'MOVIE', tmdbId: 999, title: null, monetization: [], providers: [], watchLink: null, status: 'WATCHED', ratingLabel: null }])
   })
 
   it('keeps another user lists empty and invisible', async () => {
@@ -212,5 +220,8 @@ describe('gET /api/my-list (seam S2)', () => {
     expect(body.region).toBe('TW')
     expect(body.watchlist[0].monetization.sort()).toEqual(['buy', 'free', 'subscription'])
     expect(body.watchlist[0].providers.map((p: { name: string }) => p.name)).toEqual(['Amazon Prime Video', 'Apple iTunes', 'Netflix', 'Tubi TV'])
+    expect(body.watchlist[0].watchLink).toBeNull()
+    expect(body.watchlist[0].status).toBe('WATCHLISTED')
+    expect(body.watchlist[0].ratingLabel).toBeNull()
   })
 })

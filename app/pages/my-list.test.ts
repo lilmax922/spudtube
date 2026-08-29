@@ -59,6 +59,9 @@ const FILLED_LIST: MyList = {
       },
       monetization: [],
       providers: [],
+      watchLink: null,
+      status: 'WATCHLISTED',
+      ratingLabel: null,
     },
   ],
   watched: [
@@ -68,6 +71,9 @@ const FILLED_LIST: MyList = {
       title: null,
       monetization: [],
       providers: [],
+      watchLink: null,
+      status: 'WATCHED',
+      ratingLabel: null,
     },
   ],
   rated: [],
@@ -153,8 +159,9 @@ describe('my list route', () => {
 
     const watchedTab = wrapper.findAll('button[role="tab"]').find(button => button.text() === '已看過')
     await watchedTab!.trigger('click')
-
-    expect(wrapper.text()).toContain('已從目錄移除')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('已從目錄移除')
+    })
     expect(wrapper.findAll('a').some(anchor => anchor.text().includes('沙丘'))).toBe(false)
   })
 })

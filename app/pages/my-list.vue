@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { MonetizationTag, MyList, MyListEntry } from '#server/api/my-list.get'
-import type { Provider } from '#server/tmdb/types'
+import type { Kind, Provider } from '#server/tmdb/types'
 import type { Filters, KindFilter, MonetizationFilter } from '../components/my-list-filter.vue'
-import { Clapperboard } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { AnimatePresence, motion } from 'motion-v'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definePageMeta, useFetch } from '#imports'
+import MyListCard from '../components/my-list-card.vue'
 import MyListFilter from '../components/my-list-filter.vue'
-import TitleCard from '../components/title-card.vue'
 import { authClient } from '../lib/auth-client'
 
 // Only signed-in Users may browse the list; the my-list middleware bounces everyone else home.
@@ -22,11 +22,31 @@ const signedIn = computed(() => session.value?.user != null)
 
 const activeTab = ref<MyListTab>('watchlist')
 
-const { data: list, pending, error } = useFetch<MyList>('/api/my-list', {
+const { data: list, pending, error, refresh: refreshList } = useFetch<MyList>('/api/my-list', {
   query: { language: locale },
   // Only fetch once signed in; the session flipping true re-triggers the fetch.
   immediate: signedIn.value,
   watch: [signedIn, locale],
+})
+
+let refreshTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleRefresh(): void {
+  if (refreshTimer)
+    clearTimeout(refreshTimer)
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null
+    void refreshList()
+  }, 3800)
+}
+
+function onCardUpdated(): void {
+  scheduleRefresh()
+}
+
+onBeforeUnmount(() => {
+  if (refreshTimer)
+    clearTimeout(refreshTimer)
 })
 
 const TABS: Array<{ key: MyListTab, label: string }> = [
@@ -69,6 +89,18 @@ const monetizationCounts = computed(() => {
   return counts
 })
 
+const kindCounts = computed(() => {
+  const counts: Record<Kind, number> = {
+    MOVIE: 0,
+    TV_SHOW: 0,
+  }
+  for (const entry of activeEntries.value) {
+    if (entry.kind === 'MOVIE' || entry.kind === 'TV_SHOW')
+      counts[entry.kind] += 1
+  }
+  return counts
+})
+
 function entryMatchesKind(entry: MyListEntry, kind: KindFilter): boolean {
   return kind === 'all' || entry.kind === kind
 }
@@ -100,6 +132,7 @@ const filteredEntries = computed<MyListEntry[]>(() => {
 const filterCounts = computed(() => ({
   total: activeEntries.value.length,
   byMonetization: monetizationCounts.value,
+  byKind: kindCounts.value,
 }))
 
 function onFiltersClear(): void {
@@ -114,7 +147,7 @@ function onFiltersClear(): void {
 
 <template>
   <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] py-8">
-    <h1 class="text-heading-xl font-bold tracking-tight text-foreground">
+    <h1 class="text-heading-xl text-foreground">
       {{ t('myList.heading') }}
     </h1>
 
@@ -139,25 +172,29 @@ function onFiltersClear(): void {
       </button>
     </div>
 
-    <MyListFilter
+    <div
       v-if="activeEntries.length > 0"
-      v-model="filters"
-      :available-providers="availableProviders"
-      :counts="filterCounts"
-      @clear="onFiltersClear"
-    />
+      class="-mx-[var(--content-gutter)] bg-card px-[var(--content-gutter)] py-3"
+    >
+      <MyListFilter
+        v-model="filters"
+        :available-providers="availableProviders"
+        :counts="filterCounts"
+        @clear="onFiltersClear"
+      />
+    </div>
 
-    <div v-if="pending" class="py-12 text-center text-body-md text-muted-foreground">
+    <div v-if="pending && !list" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.loading') }}
     </div>
-    <div v-else-if="error" class="py-12 text-center text-body-md text-muted-foreground">
+    <div v-else-if="error && !list" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.error') }}
     </div>
     <div
       v-else-if="activeEntries.length === 0"
       class="flex flex-col items-center gap-2 py-12 text-center"
     >
-      <p class="text-body-md font-semibold text-foreground">
+      <p class="text-heading-sm text-foreground">
         {{ t('myList.heading') }}
       </p>
       <p class="text-body-md text-muted-foreground">
@@ -168,7 +205,7 @@ function onFiltersClear(): void {
       v-else-if="filteredEntries.length === 0"
       class="flex flex-col items-center gap-3 py-12 text-center"
     >
-      <p class="text-body-md font-semibold text-foreground">
+      <p class="text-body-sm-strong text-foreground">
         {{ t('myList.filterEmpty') }}
       </p>
       <button
@@ -179,23 +216,26 @@ function onFiltersClear(): void {
         {{ t('myList.filter.clear') }}
       </button>
     </div>
-    <ul
-      v-else
-      role="tabpanel"
-      class="mt-4 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
-    >
-      <li v-for="entry in filteredEntries" :key="`${entry.kind}:${entry.tmdbId}`" class="contents">
-        <TitleCard v-if="entry.title" :title="entry.title" />
-        <div
-          v-else
-          class="flex aspect-[2/3] flex-col items-center justify-center gap-2 rounded-xl bg-muted p-3 text-center text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
-        >
-          <Clapperboard :size="24" :stroke-width="1.75" aria-hidden="true" />
-          <p class="line-clamp-2 text-caption-sm leading-snug">
-            {{ t('myList.removed') }}
-          </p>
-        </div>
-      </li>
-    </ul>
+    <template v-else>
+      <ul
+        role="tabpanel"
+        class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
+      >
+        <AnimatePresence mode="popLayout">
+          <motion.li
+            v-for="entry in filteredEntries"
+            :key="`${entry.kind}:${entry.tmdbId}`"
+            :initial="{ opacity: 0, y: 12, scale: 0.98 }"
+            :animate="{ opacity: 1, y: 0, scale: 1 }"
+            :exit="{ opacity: 0, y: -8, scale: 0.98 }"
+            :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
+            layout
+            class="list-none"
+          >
+            <MyListCard :entry="entry" @updated="onCardUpdated" />
+          </motion.li>
+        </AnimatePresence>
+      </ul>
+    </template>
   </div>
 </template>

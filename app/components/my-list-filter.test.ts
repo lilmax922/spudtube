@@ -16,7 +16,11 @@ async function render(initial?: Partial<Filters>, providers: Array<{ id: number,
     props: {
       'modelValue': model.value,
       'availableProviders': providers,
-      'counts': { total: 24, byMonetization: { subscription: 10, buy: 4, rent: 3, free: 7 } },
+      'counts': {
+        total: 24,
+        byMonetization: { subscription: 10, buy: 4, rent: 3, free: 7 },
+        byKind: { MOVIE: 14, TV_SHOW: 10 },
+      },
       'onUpdate:modelValue': (next: Filters) => {
         model.value = next
       },
@@ -33,8 +37,10 @@ afterEach(() => {
 })
 
 describe('myListFilter', () => {
-  it('renders collapsed by default and toggles detail on filter button click', async () => {
-    const wrapper = await render()
+  it('renders collapsed by default and toggles detail on provider cluster click', async () => {
+    const wrapper = await render(undefined, [
+      { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
+    ])
     expect(wrapper.find('#my-list-filter-detail').exists()).toBe(false)
 
     const trigger = wrapper.find('button[aria-controls="my-list-filter-detail"]')
@@ -46,12 +52,16 @@ describe('myListFilter', () => {
     expect(trigger.attributes('aria-expanded')).toBe('true')
   })
 
-  it('emits the expected v-model shape when the kind segment changes', async () => {
-    const wrapper = await render()
-    await wrapper.find('button[aria-controls="my-list-filter-detail"]').trigger('click')
-
+  it('renders kind tabs with counts and emits the expected v-model shape when the kind segment changes', async () => {
+    const wrapper = await render(undefined, [
+      { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
+    ])
+    // kind tab is on toolbar, not inside detail – no need to open
     const movieButton = wrapper.findAll('button[aria-pressed]').find(b => b.text().includes('電影'))
     expect(movieButton).toBeTruthy()
+    // count should be visible e.g. 電影(14)
+    expect(movieButton!.text()).toMatch(/電影/)
+    expect(movieButton!.text()).toContain('(14)')
     await movieButton!.trigger('click')
 
     const events = wrapper.emitted('update:modelValue')
@@ -66,7 +76,11 @@ describe('myListFilter', () => {
       props: {
         'modelValue': model.value,
         'availableProviders': [],
-        'counts': { total: 10, byMonetization: { subscription: 10, buy: 0, rent: 0, free: 0 } },
+        'counts': {
+          total: 10,
+          byMonetization: { subscription: 10, buy: 0, rent: 0, free: 0 },
+          byKind: { MOVIE: 10, TV_SHOW: 0 },
+        },
         'onUpdate:modelValue': (next: Filters) => {
           model.value = next
         },
@@ -80,19 +94,45 @@ describe('myListFilter', () => {
     expect(buyRentButton!.attributes('disabled')).toBeDefined()
   })
 
-  it('renders the provider chip strip when providers are supplied', async () => {
+  it('renders the provider logo strip when providers are supplied', async () => {
     const wrapper = await render(undefined, [
       { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
       { id: 119, name: 'Amazon Prime Video', logoPath: '/prime.jpg' },
     ])
     await wrapper.find('button[aria-controls="my-list-filter-detail"]').trigger('click')
 
-    expect(wrapper.text()).toContain('Netflix')
-    expect(wrapper.text()).toContain('Amazon Prime Video')
+    // logo-only scroller: check via title attribute and img alt
+    expect(wrapper.find('[title="Netflix"]').exists()).toBe(true)
+    expect(wrapper.find('[title="Amazon Prime Video"]').exists()).toBe(true)
+    // also img alt
+    expect(wrapper.find('img[alt="Netflix"]').exists()).toBe(true)
+    expect(wrapper.find('img[alt="Amazon Prime Video"]').exists()).toBe(true)
+    // scroller provides horizontal scroll buttons
+    expect(wrapper.find('[aria-label="Scroll providers left"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Scroll providers right"]').exists()).toBe(true)
+  })
+
+  it('applies muted state to unselected provider logos when a provider is active', async () => {
+    const wrapper = await render({ providerIds: [8] }, [
+      { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
+      { id: 119, name: 'Amazon Prime Video', logoPath: '/prime.jpg' },
+    ])
+    await wrapper.find('button[aria-controls="my-list-filter-detail"]').trigger('click')
+
+    const netflixBtn = wrapper.find('[title="Netflix"]')
+    const primeBtn = wrapper.find('[title="Amazon Prime Video"]')
+    expect(netflixBtn.exists()).toBe(true)
+    expect(primeBtn.exists()).toBe(true)
+    // selected should be opaque, unselected muted with grayscale
+    expect(netflixBtn.classes().join(' ')).not.toContain('grayscale')
+    expect(primeBtn.classes().join(' ')).toContain('grayscale')
+    expect(primeBtn.classes().join(' ')).toContain('opacity-40')
   })
 
   it('shows the clear affordance when any filter is active and emits a reset', async () => {
-    const wrapper = await render({ kind: 'MOVIE' })
+    const wrapper = await render({ kind: 'MOVIE' }, [
+      { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
+    ])
     await wrapper.find('button[aria-controls="my-list-filter-detail"]').trigger('click')
 
     expect(wrapper.text()).toContain('清除篩選')

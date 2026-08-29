@@ -12,10 +12,12 @@ interface Props {
   signedIn: boolean
   pending?: boolean
   voteAverage?: number | null
+  compact?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
   pending: false,
   voteAverage: null,
+  compact: false,
 })
 
 const emit = defineEmits<{
@@ -129,7 +131,8 @@ function onOptionClick(option: RatingLabel): void {
           <TooltipTrigger as-child>
             <button
               type="button"
-              class="flex size-[38px] items-center justify-center rounded-full border border-input bg-muted text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+              class="flex items-center justify-center rounded-full border border-input bg-muted text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+              :class="compact ? 'size-8' : 'size-[38px]'"
               :aria-label="triggerLabel"
               :disabled="pending"
               @click="onTriggerClick"
@@ -145,7 +148,7 @@ function onOptionClick(option: RatingLabel): void {
                 >
                   <component
                     :is="selectedIcon"
-                    :size="18"
+                    :size="compact ? 14 : 18"
                     :stroke-width="1.75"
                     :fill="label || hovered ? 'currentColor' : 'none'"
                     aria-hidden="true"
@@ -178,7 +181,8 @@ function onOptionClick(option: RatingLabel): void {
                   <button
                     type="button"
                     data-option
-                    class="flex size-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                    class="flex items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+                    :class="compact ? 'size-8' : 'size-10'"
                     :aria-label="optionLabel(option.label)"
                     :aria-pressed="label === option.label"
                     :disabled="pending || bouncing !== null"
@@ -193,7 +197,7 @@ function onOptionClick(option: RatingLabel): void {
                     >
                       <component
                         :is="option.icon"
-                        :size="18"
+                        :size="compact ? 14 : 18"
                         :stroke-width="1.75"
                         :fill="label === option.label || hoveredOption === option.label ? 'currentColor' : 'none'"
                         aria-hidden="true"

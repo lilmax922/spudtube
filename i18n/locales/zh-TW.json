@@ -86,7 +86,14 @@
     "watchlistAdd": "加入待看清單",
     "watchlistRemove": "已在待看清單 — 點擊移除",
     "watchedMark": "標記為已看過",
-    "watchedClear": "已看過 — 點擊清除"
+    "watchedClear": "已看過 — 點擊清除",
+    "toast": {
+      "watchlistAdded": "已加入待看清單",
+      "watchlistRemoved": "已從待看清單移除",
+      "watchedAdded": "已標記為已看過",
+      "watchedRemoved": "已取消已看",
+      "undo": "復原"
+    }
   },
   "rating": {
     "group": "你的評價",

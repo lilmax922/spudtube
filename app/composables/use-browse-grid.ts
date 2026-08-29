@@ -12,7 +12,10 @@ const KIND_SEGMENT: Record<Kind, 'movie' | 'tv'> = {
 
 export interface BrowseFetcher {
   fetchGenres: (kind: Kind, language?: TmdbLanguage) => Promise<Genre[]>
-  fetchDiscover: (kind: Kind, genreIds: number[], page: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  fetchDiscover: (
+    kind: Kind,
+    options: { genreIds: number[], minRating: number | null, page: number, language?: TmdbLanguage },
+  ) => Promise<Page<TitleSummary>>
 }
 
 export function createApiBrowseFetcher(): BrowseFetcher {
@@ -25,11 +28,12 @@ export function createApiBrowseFetcher(): BrowseFetcher {
         },
       })
     },
-    fetchDiscover(kind, genreIds, page, language) {
+    fetchDiscover(kind, { genreIds, minRating, page, language }) {
       return $fetch<Page<TitleSummary>>('/api/catalog/discover', {
         query: {
           kind: KIND_SEGMENT[kind],
           ...(genreIds.length > 0 ? { genres: genreIds.join(',') } : {}),
+          ...(minRating != null ? { minRating: String(minRating) } : {}),
           page,
           ...(language ? { language } : {}),
         },
@@ -41,6 +45,7 @@ export function createApiBrowseFetcher(): BrowseFetcher {
 export interface BrowseGridState {
   kind: Ref<Kind>
   selectedGenreIds: Ref<number[]>
+  minRating: Ref<number | null>
   genres: Ref<Genre[]>
   items: Ref<TitleSummary[]>
   page: Ref<number>
@@ -54,6 +59,7 @@ export interface BrowseGridState {
   setKind: (kind: Kind) => void
   toggleGenre: (genreId: number) => void
   clearGenres: () => void
+  setMinRating: (rating: number | null) => void
 }
 
 let browseGridInstance: BrowseGridState | undefined
@@ -65,6 +71,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const actualFetcher = fetcher ?? createApiBrowseFetcher()
   const kind = ref<Kind>('MOVIE')
   const selectedGenreIds = ref<number[]>([])
+  const minRating = ref<number | null>(null)
   const genres = ref<Genre[]>([])
   let localeRef: Ref<string>
   try {
@@ -77,7 +84,12 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
   )
   const { loadFirstPage, loadNextPage, ...paged } = usePagedResults<TitleSummary>(page =>
-    actualFetcher.fetchDiscover(kind.value, selectedGenreIds.value, page, tmdbLanguage.value),
+    actualFetcher.fetchDiscover(kind.value, {
+      genreIds: selectedGenreIds.value,
+      minRating: minRating.value,
+      page,
+      language: tmdbLanguage.value,
+    }),
   )
 
   async function refresh(): Promise<void> {
@@ -120,16 +132,25 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     void refresh()
   }
 
+  function setMinRating(rating: number | null): void {
+    if (rating === minRating.value)
+      return
+    minRating.value = rating
+    void refresh()
+  }
+
   const state: BrowseGridState = {
     ...paged,
     kind,
     selectedGenreIds,
+    minRating,
     genres,
     refresh,
     loadMore: loadNextPage,
     setKind,
     toggleGenre,
     clearGenres,
+    setMinRating,
   }
   if (isDefault)
     browseGridInstance = state

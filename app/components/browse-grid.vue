@@ -14,6 +14,7 @@ const { t } = useI18n()
 const {
   kind,
   selectedGenreIds,
+  minRating,
   genres,
   items,
   loading,
@@ -24,6 +25,7 @@ const {
   setKind,
   toggleGenre,
   clearGenres,
+  setMinRating,
 } = useBrowseGrid()
 const {
   mode,
@@ -50,6 +52,27 @@ const emptyMessage = computed(() =>
 const loadingMessage = computed(() =>
   mode.value === 'search' ? t('search.loading') : t('browse.loading'),
 )
+
+interface RatingOption {
+  value: number | null
+  label: string
+}
+
+const ratingOptions = computed<RatingOption[]>(() => [
+  { value: null, label: t('browse.ratingAll') },
+  { value: 7, label: t('browse.ratingHigh') },
+  { value: 8, label: t('browse.ratingTop') },
+])
+
+function onRatingClick(rating: number | null): void {
+  const next = minRating.value === rating ? null : rating
+  setMinRating(next)
+}
+
+function clearFilters(): void {
+  clearGenres()
+  setMinRating(null)
+}
 
 const isRowsMode = computed(() =>
   mode.value === 'browse'
@@ -154,6 +177,23 @@ void refresh()
   <section class="flex flex-col gap-8" :aria-label="mode === 'search' ? t('search.sectionLabel') : t('browse.sectionLabel')">
     <div v-if="mode === 'browse'" class="mx-auto flex w-full max-w-[var(--max-content-width)] flex-wrap items-center gap-x-8 gap-y-4 px-[var(--content-gutter)]">
       <KindToggle :model-value="kind" @update:model-value="setKind" />
+      <div class="flex flex-wrap items-center gap-2" role="group" :aria-label="t('browse.ratingLabel')">
+        <button
+          v-for="option in ratingOptions"
+          :key="option.value ?? 'all'"
+          type="button"
+          :data-min-rating="option.value ?? ''"
+          class="inline-flex min-h-10 h-[30px] items-center rounded-full border border-transparent px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+          :class="minRating === option.value
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"
+          :aria-pressed="minRating === option.value"
+          @click="onRatingClick(option.value)"
+        >
+          <span v-if="option.value != null" aria-hidden="true" class="mr-1">★</span>
+          {{ option.label }}
+        </button>
+      </div>
       <div v-if="genres.length > 0" class="flex flex-wrap items-center gap-2">
         <GenreChips
           :genres="genres"
@@ -162,10 +202,10 @@ void refresh()
         />
       </div>
       <button
-        v-if="selectedGenreIds.length > 0"
+        v-if="selectedGenreIds.length > 0 || minRating != null"
         type="button"
         class="inline-flex min-h-10 items-center rounded-full px-3 text-button-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-        @click="clearGenres"
+        @click="clearFilters"
       >
         {{ t('browse.clearAll') }}
       </button>

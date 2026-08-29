@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Search } from '@lucide/vue'
 import { onKeyStroke } from '@vueuse/core'
-import { onBeforeUnmount, onMounted, shallowRef } from 'vue'
+import { onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { navigateTo, useFetch, useHead } from '#imports'
+import { navigateTo, useFetch, useHead, useRoute } from '#imports'
 import AccountMenu from './components/account-menu.vue'
 import AttributionFooter from './components/attribution-footer.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
@@ -13,6 +13,7 @@ import { useBrowseGrid } from './composables/use-browse-grid'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
 const { locale, t } = useI18n()
+const route = useRoute()
 const { kind: browseKind, setKind } = useBrowseGrid()
 
 const { data: session } = await authClient.useSession(useFetch)
@@ -37,8 +38,18 @@ function onClearSearch(): void {
   overlayQuery.value = ''
 }
 
+const isHome = shallowRef(route.path === '/')
+watch(() => route.path, (path) => {
+  isHome.value = path === '/'
+})
+
+// Off-home routes (movie/TV detail, search, my-list) treat the kind button as a global switch
+// that returns to the home catalog; the browse-grid singleton carries the chosen kind.
 function handlePrimeNav(kind: 'MOVIE' | 'TV_SHOW'): void {
   setKind(kind)
+  if (!isHome.value) {
+    void navigateTo('/')
+  }
 }
 
 function goHome(): void {

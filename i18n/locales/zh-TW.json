@@ -8,7 +8,17 @@
     "clearAll": "清除全部",
     "loading": "載入中…",
     "empty": "沒有符合條件的片單",
-    "error": "載入片單時發生錯誤"
+    "error": "載入片單時發生錯誤",
+    "ratingLabel": "最低評分",
+    "ratingAll": "全部",
+    "ratingHigh": "7+",
+    "ratingTop": "8+"
+  },
+  "hero": {
+    "viewDetails": "查看詳情",
+    "previous": "上一部",
+    "next": "下一部",
+    "slide": "第 {index} 張"
   },
   "card": {
     "badges": {

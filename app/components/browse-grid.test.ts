@@ -8,6 +8,7 @@ import BrowseGrid from './browse-grid.vue'
 interface MockState {
   kind: { value: 'MOVIE' | 'TV_SHOW' }
   selectedGenreIds: { value: number[] }
+  minRating: { value: number | null }
   genres: { value: Genre[] }
   items: { value: TitleSummary[] }
   loading: { value: boolean }
@@ -31,6 +32,7 @@ const mock = vi.hoisted(() => ({
     setKind: vi.fn(),
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
+    setMinRating: vi.fn(),
   },
   search: {
     loadMore: vi.fn(),
@@ -42,6 +44,7 @@ const mock = vi.hoisted(() => ({
 const browseState = {
   kind: shallowRef<'MOVIE' | 'TV_SHOW'>('MOVIE'),
   selectedGenreIds: shallowRef<number[]>([]),
+  minRating: shallowRef<number | null>(null),
   genres: shallowRef<Genre[]>([]),
   items: shallowRef<TitleSummary[]>([]),
   loading: shallowRef(false),
@@ -66,6 +69,7 @@ vi.mock('../composables/use-browse-grid', () => ({
     setKind: mock.browse.setKind,
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
+    setMinRating: mock.browse.setMinRating,
   }),
 }))
 
@@ -148,6 +152,7 @@ beforeEach(() => {
   const state = browseState as unknown as MockState
   state.kind.value = 'MOVIE'
   state.selectedGenreIds.value = []
+  state.minRating.value = null
   state.genres.value = genres
   state.items.value = titles
   state.loading.value = false
@@ -173,6 +178,7 @@ afterEach(() => {
   mock.browse.setKind.mockReset()
   mock.browse.toggleGenre.mockReset()
   mock.browse.clearGenres.mockReset()
+  mock.browse.setMinRating.mockReset()
   mock.search.loadMore.mockReset()
   FakeIntersectionObserver.instances = []
   vi.unstubAllGlobals()
@@ -325,5 +331,52 @@ describe('browse-grid', () => {
 
     expect(mock.search.loadMore).toHaveBeenCalledTimes(1)
     expect(mock.browse.loadMore).not.toHaveBeenCalled()
+  })
+
+  it('renders the rating chip group with All / 7+ / 8+ options', async () => {
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+
+    const root = wrapper.element as HTMLElement
+    const ratingChips = [...root.querySelectorAll('[data-min-rating]')]
+    const labels = ratingChips.map(chip => chip.textContent?.replace(/\s+/g, ' ').trim() ?? '')
+    expect(labels).toEqual(['All', '★ 7+', '★ 8+'])
+  })
+
+  it('applies the 7+ rating filter when its chip is clicked', async () => {
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+
+    const root = wrapper.element as HTMLElement
+    const sevenPlus = root.querySelector('[data-min-rating="7"]') as HTMLButtonElement | null
+    expect(sevenPlus).toBeTruthy()
+    sevenPlus!.click()
+
+    expect(mock.browse.setMinRating).toHaveBeenCalledWith(7)
+  })
+
+  it('clears the rating filter when the active chip is clicked again', async () => {
+    const state = browseState as unknown as MockState
+    state.minRating.value = 7
+
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+
+    const root = wrapper.element as HTMLElement
+    const sevenPlus = root.querySelector('[data-min-rating="7"]') as HTMLButtonElement | null
+    sevenPlus!.click()
+
+    expect(mock.browse.setMinRating).toHaveBeenCalledWith(null)
+  })
+
+  it('shows clear-all once a rating filter is active even without a genre selected', async () => {
+    const state = browseState as unknown as MockState
+    state.minRating.value = 7
+
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+
+    const clearAll = wrapper.findAll('button').find(button => button.text() === 'Clear all')
+    expect(clearAll).toBeTruthy()
   })
 })

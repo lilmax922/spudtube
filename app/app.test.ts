@@ -267,4 +267,58 @@ describe('app shell', () => {
     await wrapper.vm.$nextTick()
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
   })
+
+  it('updates the kind in place when the Movies button is clicked from the home route', async () => {
+    browseState.items.value = titles
+    browseState.genres.value = genres
+    const wrapper = await mountSuspended(App, { route: '/' })
+
+    const moviesBtn = wrapper.findAll('button').find(btn => btn.text().includes('Movies') && btn.attributes('data-kind') === 'movie')
+    expect(moviesBtn).toBeTruthy()
+    await moviesBtn!.trigger('click')
+
+    expect(mock.browse.setKind).toHaveBeenCalledWith('MOVIE')
+    // No navigation away from home
+    expect(mock.navigateTo).not.toHaveBeenCalledWith(expect.objectContaining({ path: '/' }))
+  })
+
+  it('switches kind to TV and stays on home when TV shows is clicked from /', async () => {
+    browseState.kind.value = 'MOVIE'
+    browseState.items.value = titles
+    browseState.genres.value = genres
+    const wrapper = await mountSuspended(App, { route: '/' })
+
+    const tvBtn = wrapper.findAll('button').find(btn => btn.text().includes('TV Shows') && btn.attributes('data-kind') === 'tv')
+    expect(tvBtn).toBeTruthy()
+    await tvBtn!.trigger('click')
+
+    expect(mock.browse.setKind).toHaveBeenCalledWith('TV_SHOW')
+    expect(mock.navigateTo).not.toHaveBeenCalled()
+  })
+
+  it('navigates back to the home route and updates kind when Movies is clicked off-home', async () => {
+    browseState.items.value = titles
+    browseState.genres.value = genres
+    const wrapper = await mountSuspended(App, { route: '/movie/419430' })
+
+    const moviesBtn = wrapper.findAll('button').find(btn => btn.text().includes('Movies') && btn.attributes('data-kind') === 'movie')
+    expect(moviesBtn).toBeTruthy()
+    await moviesBtn!.trigger('click')
+
+    expect(mock.browse.setKind).toHaveBeenCalledWith('MOVIE')
+    expect(mock.navigateTo).toHaveBeenCalledWith('/')
+  })
+
+  it('navigates back to the home route and updates kind to TV when TV shows is clicked off-home', async () => {
+    browseState.items.value = titles
+    browseState.genres.value = genres
+    const wrapper = await mountSuspended(App, { route: '/movie/419430' })
+
+    const tvBtn = wrapper.findAll('button').find(btn => btn.text().includes('TV Shows') && btn.attributes('data-kind') === 'tv')
+    expect(tvBtn).toBeTruthy()
+    await tvBtn!.trigger('click')
+
+    expect(mock.browse.setKind).toHaveBeenCalledWith('TV_SHOW')
+    expect(mock.navigateTo).toHaveBeenCalledWith('/')
+  })
 })

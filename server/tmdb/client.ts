@@ -52,6 +52,7 @@ export interface TmdbClientDeps {
 
 export interface DiscoverOptions {
   genreIds?: number[]
+  minRating?: number
   page?: number
   language?: TmdbLanguage
 }
@@ -122,7 +123,7 @@ export function createTmdbClient({
     },
 
     discover(kind: Kind, options: DiscoverOptions = {}): Promise<Page<TitleSummary>> {
-      const { genreIds, page = 1, language = DEFAULT_TMDB_LANGUAGE } = options
+      const { genreIds, minRating, page = 1, language = DEFAULT_TMDB_LANGUAGE } = options
       const params: Record<string, string> = {
         sort_by: 'popularity.desc',
         page: String(page),
@@ -130,8 +131,10 @@ export function createTmdbClient({
       }
       if (genreIds && genreIds.length > 0)
         params.with_genres = genreIds.join('|')
+      if (minRating != null)
+        params['vote_average.gte'] = String(minRating)
       const segment = toMediaSegment(kind)
-      return cache.wrap(`discover:${language}:${segment}:${params.with_genres ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
+      return cache.wrap(`discover:${language}:${segment}:${params.with_genres ?? ''}:${params['vote_average.gte'] ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(await request(`/discover/${segment}`, params))
         return mapPage(raw, raw.results.map(item =>
           kind === 'MOVIE'

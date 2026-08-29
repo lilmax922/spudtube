@@ -8,7 +8,17 @@
     "clearAll": "Clear all",
     "loading": "Loading…",
     "empty": "No titles match your filters",
-    "error": "Something went wrong while loading titles"
+    "error": "Something went wrong while loading titles",
+    "ratingLabel": "Minimum rating",
+    "ratingAll": "All",
+    "ratingHigh": "7+",
+    "ratingTop": "8+"
+  },
+  "hero": {
+    "viewDetails": "View details",
+    "previous": "Previous title",
+    "next": "Next title",
+    "slide": "Slide {index}"
   },
   "card": {
     "badges": {

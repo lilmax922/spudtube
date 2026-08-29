@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { MyList, MyListEntry } from '#server/api/my-list.get'
-import { Clapperboard } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import type { MonetizationTag, MyList, MyListEntry } from '#server/api/my-list.get'
+import type { Kind, Provider } from '#server/tmdb/types'
+import type { Filters, KindFilter, MonetizationFilter } from '../components/my-list-filter.vue'
+import { AnimatePresence, motion } from 'motion-v'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { definePageMeta, useFetch } from '#imports'
+import MyListCard from '../components/my-list-card.vue'
+import MyListFilter from '../components/my-list-filter.vue'
 import { authClient } from '../lib/auth-client'
-import { posterSrcSet, posterUrl } from '../lib/images'
-import { toMediaSegment } from '../lib/kind'
 
 // Only signed-in Users may browse the list; the my-list middleware bounces everyone else home.
 definePageMeta({ middleware: 'my-list' })
@@ -20,11 +22,31 @@ const signedIn = computed(() => session.value?.user != null)
 
 const activeTab = ref<MyListTab>('watchlist')
 
-const { data: list, pending, error } = useFetch<MyList>('/api/my-list', {
+const { data: list, pending, error, refresh: refreshList } = useFetch<MyList>('/api/my-list', {
   query: { language: locale },
   // Only fetch once signed in; the session flipping true re-triggers the fetch.
   immediate: signedIn.value,
   watch: [signedIn, locale],
+})
+
+let refreshTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleRefresh(): void {
+  if (refreshTimer)
+    clearTimeout(refreshTimer)
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null
+    void refreshList()
+  }, 3800)
+}
+
+function onCardUpdated(): void {
+  scheduleRefresh()
+}
+
+onBeforeUnmount(() => {
+  if (refreshTimer)
+    clearTimeout(refreshTimer)
 })
 
 const TABS: Array<{ key: MyListTab, label: string }> = [
@@ -35,14 +57,97 @@ const TABS: Array<{ key: MyListTab, label: string }> = [
 
 const activeEntries = computed(() => list.value?.[activeTab.value] ?? [])
 
-function entryPath(entry: MyListEntry): string {
-  return `/${toMediaSegment(entry.kind)}/${entry.tmdbId}`
+const filters = ref<Filters>({
+  kind: 'all',
+  monetization: 'all',
+  providerIds: [],
+  sort: 'recent',
+})
+
+const availableProviders = computed<Provider[]>(() => {
+  const map = new Map<number, Provider>()
+  for (const entry of activeEntries.value) {
+    for (const provider of entry.providers) {
+      if (!map.has(provider.id))
+        map.set(provider.id, provider)
+    }
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const monetizationCounts = computed(() => {
+  const counts: Record<MonetizationTag, number> = {
+    subscription: 0,
+    buy: 0,
+    rent: 0,
+    free: 0,
+  }
+  for (const entry of activeEntries.value) {
+    for (const tag of entry.monetization)
+      counts[tag] += 1
+  }
+  return counts
+})
+
+const kindCounts = computed(() => {
+  const counts: Record<Kind, number> = {
+    MOVIE: 0,
+    TV_SHOW: 0,
+  }
+  for (const entry of activeEntries.value) {
+    if (entry.kind === 'MOVIE' || entry.kind === 'TV_SHOW')
+      counts[entry.kind] += 1
+  }
+  return counts
+})
+
+function entryMatchesKind(entry: MyListEntry, kind: KindFilter): boolean {
+  return kind === 'all' || entry.kind === kind
+}
+
+function entryMatchesMonetization(entry: MyListEntry, monetization: MonetizationFilter): boolean {
+  if (monetization === 'all')
+    return true
+  return entry.monetization.includes(monetization)
+}
+
+function entryMatchesProviders(entry: MyListEntry, providerIds: number[]): boolean {
+  if (providerIds.length === 0)
+    return true
+  const entryProviderIds = new Set(entry.providers.map(provider => provider.id))
+  return providerIds.some(id => entryProviderIds.has(id))
+}
+
+const filteredEntries = computed<MyListEntry[]>(() => {
+  const base = activeEntries.value.filter(entry =>
+    entryMatchesKind(entry, filters.value.kind)
+    && entryMatchesMonetization(entry, filters.value.monetization)
+    && entryMatchesProviders(entry, filters.value.providerIds),
+  )
+  if (filters.value.sort === 'recent')
+    return base
+  return [...base].sort((a, b) => (a.title?.name ?? '').localeCompare(b.title?.name ?? ''))
+})
+
+const filterCounts = computed(() => ({
+  total: activeEntries.value.length,
+  byMonetization: monetizationCounts.value,
+  byKind: kindCounts.value,
+}))
+
+function onFiltersClear(): void {
+  filters.value = {
+    kind: 'all',
+    monetization: 'all',
+    providerIds: [],
+    sort: filters.value.sort,
+  }
 }
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] py-8">
-    <h1 class="text-heading-xl font-bold tracking-tight text-foreground">
+    <h1 class="text-heading-xl text-foreground">
       {{ t('myList.heading') }}
     </h1>
 
@@ -67,64 +172,70 @@ function entryPath(entry: MyListEntry): string {
       </button>
     </div>
 
-    <div v-if="pending" class="py-12 text-center text-body-md text-muted-foreground">
+    <div
+      v-if="activeEntries.length > 0"
+      class="-mx-[var(--content-gutter)] bg-card px-[var(--content-gutter)] py-3"
+    >
+      <MyListFilter
+        v-model="filters"
+        :available-providers="availableProviders"
+        :counts="filterCounts"
+        @clear="onFiltersClear"
+      />
+    </div>
+
+    <div v-if="pending && !list" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.loading') }}
     </div>
-    <div v-else-if="error" class="py-12 text-center text-body-md text-muted-foreground">
+    <div v-else-if="error && !list" class="py-12 text-center text-body-md text-muted-foreground">
       {{ t('myList.error') }}
     </div>
-    <p
+    <div
       v-else-if="activeEntries.length === 0"
-      class="py-12 text-center text-body-md text-muted-foreground"
+      class="flex flex-col items-center gap-2 py-12 text-center"
     >
-      {{ t(`myList.empty.${activeTab}`) }}
-    </p>
-    <ul v-else role="tabpanel" class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-      <li v-for="entry in activeEntries" :key="`${entry.kind}:${entry.tmdbId}`">
-        <NuxtLink
-          v-if="entry.title"
-          :to="entryPath(entry)"
-          class="group flex items-center gap-4 rounded-lg bg-card p-3 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-        >
-          <div class="h-20 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-            <NuxtImg
-              v-if="entry.title.posterPath"
-              :src="posterUrl(entry.title.posterPath) ?? undefined"
-              :srcset="posterSrcSet(entry.title.posterPath) ?? undefined"
-              sizes="56px"
-              :alt="entry.title.name"
-              loading="lazy"
-              decoding="async"
-              class="h-full w-full object-cover"
-            />
-            <div
-              v-else
-              class="flex h-full w-full items-center justify-center"
-            >
-              <Clapperboard :size="20" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
-            </div>
-          </div>
-          <div class="min-w-0">
-            <p class="truncate text-button-md text-foreground">
-              {{ entry.title.name }}
-            </p>
-            <p class="mt-0.5 text-caption-sm text-muted-foreground">
-              {{ entry.title.releaseDate?.slice(0, 4) ?? t(`detail.kind.${toMediaSegment(entry.kind)}`) }}
-            </p>
-          </div>
-        </NuxtLink>
-        <div
-          v-else
-          class="flex items-center gap-4 rounded-lg border border-dashed border-border bg-card p-3 opacity-70 shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
-        >
-          <div class="flex h-20 w-14 shrink-0 items-center justify-center rounded-md bg-muted">
-            <Clapperboard :size="20" :stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" />
-          </div>
-          <p class="text-body-md text-muted-foreground">
-            {{ t('myList.removed') }}
-          </p>
-        </div>
-      </li>
-    </ul>
+      <p class="text-heading-sm text-foreground">
+        {{ t('myList.heading') }}
+      </p>
+      <p class="text-body-md text-muted-foreground">
+        {{ t(`myList.empty.${activeTab}`) }}
+      </p>
+    </div>
+    <div
+      v-else-if="filteredEntries.length === 0"
+      class="flex flex-col items-center gap-3 py-12 text-center"
+    >
+      <p class="text-body-sm-strong text-foreground">
+        {{ t('myList.filterEmpty') }}
+      </p>
+      <button
+        type="button"
+        class="inline-flex h-10 items-center px-4 text-button-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        @click="onFiltersClear"
+      >
+        {{ t('myList.filter.clear') }}
+      </button>
+    </div>
+    <template v-else>
+      <ul
+        role="tabpanel"
+        class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
+      >
+        <AnimatePresence mode="popLayout">
+          <motion.li
+            v-for="entry in filteredEntries"
+            :key="`${entry.kind}:${entry.tmdbId}`"
+            :initial="{ opacity: 0, y: 12, scale: 0.98 }"
+            :animate="{ opacity: 1, y: 0, scale: 1 }"
+            :exit="{ opacity: 0, y: -8, scale: 0.98 }"
+            :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
+            layout
+            class="list-none"
+          >
+            <MyListCard :entry="entry" @updated="onCardUpdated" />
+          </motion.li>
+        </AnimatePresence>
+      </ul>
+    </template>
   </div>
 </template>

@@ -12,3 +12,5 @@ shellEmulator: true
 trustPolicy: no-downgrade
 trustPolicyExclude:
   - semver@6.3.1
+  - fastq
+  - fastq@1.20.2

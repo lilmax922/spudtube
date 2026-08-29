@@ -86,7 +86,14 @@
     "watchlistAdd": "加入待看清單",
     "watchlistRemove": "已在待看清單 — 點擊移除",
     "watchedMark": "標記為已看過",
-    "watchedClear": "已看過 — 點擊清除"
+    "watchedClear": "已看過 — 點擊清除",
+    "toast": {
+      "watchlistAdded": "已加入待看清單",
+      "watchlistRemoved": "已從待看清單移除",
+      "watchedAdded": "已標記為已看過",
+      "watchedRemoved": "已取消已看",
+      "undo": "復原"
+    }
   },
   "rating": {
     "group": "你的評價",
@@ -157,6 +164,24 @@
       "watched": "還沒有看過任何作品。",
       "rated": "還沒有評過任何作品。"
     },
-    "removed": "已從目錄移除"
+    "filterEmpty": "沒有符合篩選條件的作品。",
+    "removed": "已從目錄移除",
+    "filter": {
+      "label": "篩選與排序",
+      "trigger": "篩選",
+      "count": "{count} 部作品",
+      "clear": "清除篩選",
+      "kindLabel": "類型",
+      "monetizationLabel": "觀看方式",
+      "providersLabel": "平台",
+      "sortLabel": "排序",
+      "recent": "最近加入",
+      "titleAsc": "A–Z",
+      "kindAll": "全部",
+      "all": "全部",
+      "subscriptions": "訂閱",
+      "buyRent": "購買／租借",
+      "free": "免費"
+    }
   }
 }

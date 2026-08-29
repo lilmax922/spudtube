@@ -1,6 +1,7 @@
 import type { VueWrapper } from '@vue/test-utils'
 import type { Ref } from 'vue'
 import type { MyList } from '#server/api/my-list.get'
+import type { DiscoveryBadges, ProviderCatalog } from '#server/tmdb/types'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
@@ -17,7 +18,30 @@ vi.mock('../lib/auth-client', () => ({
   },
 }))
 
-const EMPTY_LIST: MyList = { watchlist: [], watched: [], rated: [] }
+const badgesMock = vi.hoisted(() => ({
+  badges: {
+    data: { value: null as DiscoveryBadges | null | undefined },
+  },
+}))
+
+vi.mock('../composables/use-discovery-badges', () => ({
+  useDiscoveryBadges: () => ({ badges: badgesMock.badges }),
+}))
+
+const availabilityMock = vi.hoisted(() => ({
+  catalog: {
+    data: { value: null as ProviderCatalog | null | undefined },
+    pending: { value: false },
+    error: { value: null as Error | null },
+  },
+  loadCatalog: vi.fn(),
+}))
+
+vi.mock('../composables/use-availability', () => ({
+  useAvailability: () => availabilityMock,
+}))
+
+const EMPTY_LIST: MyList = { watchlist: [], watched: [], rated: [], region: 'TW' }
 
 const FILLED_LIST: MyList = {
   watchlist: [
@@ -33,6 +57,11 @@ const FILLED_LIST: MyList = {
         releaseDate: '2021-10-22',
         voteAverage: 7.8,
       },
+      monetization: [],
+      providers: [],
+      watchLink: null,
+      status: 'WATCHLISTED',
+      ratingLabel: null,
     },
   ],
   watched: [
@@ -40,9 +69,15 @@ const FILLED_LIST: MyList = {
       kind: 'MOVIE',
       tmdbId: 999,
       title: null,
+      monetization: [],
+      providers: [],
+      watchLink: null,
+      status: 'WATCHED',
+      ratingLabel: null,
     },
   ],
   rated: [],
+  region: 'TW',
 }
 
 // The page's list fetch is mocked at the import site (seam S3); each test controls the
@@ -124,8 +159,9 @@ describe('my list route', () => {
 
     const watchedTab = wrapper.findAll('button[role="tab"]').find(button => button.text() === '已看過')
     await watchedTab!.trigger('click')
-
-    expect(wrapper.text()).toContain('已從目錄移除')
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('已從目錄移除')
+    })
     expect(wrapper.findAll('a').some(anchor => anchor.text().includes('沙丘'))).toBe(false)
   })
 })

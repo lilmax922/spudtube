@@ -8,6 +8,7 @@ import AccountMenu from './components/account-menu.vue'
 import AttributionFooter from './components/attribution-footer.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import SearchOverlay from './components/search-overlay.vue'
+import { Toaster } from './components/ui/sonner'
 import { useBrowseGrid } from './composables/use-browse-grid'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
@@ -169,6 +170,13 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
     <main class="flex-1 pt-[var(--header-h)]">
       <NuxtPage />
     </main>
+    <Toaster
+      position="bottom-right"
+      theme="dark"
+      rich-colors
+      close-button
+      close-button-position="top-right"
+    />
     <AttributionFooter />
   </div>
 </template>

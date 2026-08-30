@@ -3,12 +3,13 @@ import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
 import { useTitleDetail } from '../composables/use-title-detail'
 import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
+import { useTrailerState } from '../composables/use-trailer'
 import { authClient, signIn } from '../lib/auth-client'
 import AvailabilityPanel from './availability-panel.vue'
 import CastList from './cast-list.vue'
@@ -38,6 +39,13 @@ const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(pr
 const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(props.kind, titleId, signedIn)
 
 const trailerOpen = ref(false)
+const { open: openTrailerGlobal, close: closeTrailerGlobal } = useTrailerState()
+
+watch(trailerOpen, (value) => {
+  if (value)
+    openTrailerGlobal()
+  else closeTrailerGlobal()
+})
 
 function onPlayTrailer(): void {
   trailerOpen.value = true

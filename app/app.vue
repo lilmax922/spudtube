@@ -10,6 +10,7 @@ import LanguageSwitcher from './components/language-switcher.vue'
 import SearchOverlay from './components/search-overlay.vue'
 import { Toaster } from './components/ui/sonner'
 import { useBrowseGrid } from './composables/use-browse-grid'
+import { useTrailerState } from './composables/use-trailer'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
 const { locale, t } = useI18n()
@@ -21,6 +22,7 @@ const { data: session } = await authClient.useSession(useFetch)
 const isSearchOpen = shallowRef(false)
 const isScrolled = shallowRef(false)
 const overlayQuery = shallowRef('')
+const { isOpen: isTrailerOpen } = useTrailerState()
 
 function openSearch(): void {
   isSearchOpen.value = true
@@ -104,6 +106,9 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
     <header
       id="siteHeader"
       :class="{ scrolled: isScrolled }"
+      :data-hidden="isTrailerOpen ? 'true' : undefined"
+      :aria-hidden="isTrailerOpen ? 'true' : undefined"
+      :style="isTrailerOpen ? 'display:none' : undefined"
     >
       <div class="header-inner">
         <span

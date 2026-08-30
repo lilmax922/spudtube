@@ -80,4 +80,40 @@ describe('gET /api/catalog/discover', () => {
     expect(await response.json()).toMatchObject({ statusCode: 400 })
     expect(fakeClient.discover).not.toHaveBeenCalled()
   })
+
+  it('forwards provider ids to discover with resolved watchRegion', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    const response = await call(
+      new Request('http://localhost/api/catalog/discover?kind=movie&providers=8,119', {
+        headers: { 'cf-ipcountry': 'TW' },
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({
+      providerIds: [8, 119],
+      watchRegion: 'TW',
+    }))
+  })
+
+  it('rejects malformed providers param', async () => {
+    const response = await call(new Request('http://localhost/api/catalog/discover?kind=movie&providers=abc'))
+
+    expect(response.status).toBe(400)
+    expect(fakeClient.discover).not.toHaveBeenCalled()
+  })
+
+  it('forwards providers together with genres and rating', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&minRating=7&providers=8'))
+
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({
+      genreIds: [28],
+      minRating: 7,
+      providerIds: [8],
+      watchRegion: expect.any(String),
+    }))
+  })
 })

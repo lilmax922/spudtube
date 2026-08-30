@@ -1,5 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils'
 import type { Genre, TitleSummary } from '#server/tmdb/types'
+import type { HeroTitle } from '../composables/use-hero-titles'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { shallowRef } from 'vue'
@@ -9,6 +10,8 @@ interface BrowseMockState {
   kind: { value: 'MOVIE' | 'TV_SHOW' }
   selectedGenreIds: { value: number[] }
   minRating: { value: number | null }
+  selectedProviderIds: { value: number[] }
+  availableProviders: { value: { id: number, name: string, logoPath: string | null }[] }
   genres: { value: Genre[] }
   items: { value: TitleSummary[] }
   loading: { value: boolean }
@@ -26,7 +29,7 @@ interface SearchMockState {
 }
 
 const heroState = {
-  titles: shallowRef<TitleSummary[]>([]),
+  titles: shallowRef<HeroTitle[]>([]),
   loading: shallowRef(false),
   error: shallowRef(false),
 }
@@ -39,6 +42,9 @@ const mock = vi.hoisted(() => ({
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
     setMinRating: vi.fn(),
+    toggleProvider: vi.fn(),
+    clearProviders: vi.fn(),
+    clearFilters: vi.fn(),
   },
   search: {
     loadMore: vi.fn(),
@@ -49,6 +55,8 @@ const browseState: BrowseMockState = {
   kind: shallowRef('MOVIE'),
   selectedGenreIds: shallowRef([]),
   minRating: shallowRef<number | null>(null),
+  selectedProviderIds: shallowRef([]),
+  availableProviders: shallowRef([]),
   genres: shallowRef([]),
   items: shallowRef([]),
   loading: shallowRef(false),
@@ -74,6 +82,9 @@ vi.mock('../composables/use-browse-grid', () => ({
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
     setMinRating: mock.browse.setMinRating,
+    toggleProvider: mock.browse.toggleProvider,
+    clearProviders: mock.browse.clearProviders,
+    clearFilters: mock.browse.clearFilters,
   }),
 }))
 
@@ -88,7 +99,7 @@ vi.mock('../composables/use-search-state', () => ({
   }),
 }))
 
-const heroTitles: TitleSummary[] = [
+const heroTitles: HeroTitle[] = [
   {
     kind: 'MOVIE',
     tmdbId: 419430,
@@ -97,7 +108,11 @@ const heroTitles: TitleSummary[] = [
     backdropPath: '/iopYFB1b6Bh7FWZhjzonDEfMvZB.jpg',
     releaseDate: '2021-10-22',
     voteAverage: 7.8,
-    genreIds: [878],
+    overview: null,
+    runtimeMinutes: null,
+    contentRating: null,
+    genres: [],
+    providers: [],
   },
   {
     kind: 'MOVIE',
@@ -107,7 +122,11 @@ const heroTitles: TitleSummary[] = [
     backdropPath: '/87FQUboshqcztBkz5wXRPlbMmyM.jpg',
     releaseDate: '2024-02-27',
     voteAverage: 8.3,
-    genreIds: [878],
+    overview: null,
+    runtimeMinutes: null,
+    contentRating: null,
+    genres: [],
+    providers: [],
   },
 ]
 
@@ -140,6 +159,8 @@ beforeEach(() => {
   browseState.kind.value = 'MOVIE'
   browseState.selectedGenreIds.value = []
   browseState.minRating.value = null
+  browseState.selectedProviderIds.value = []
+  browseState.availableProviders.value = []
   browseState.genres.value = []
   browseState.items.value = []
   browseState.loading.value = false
@@ -162,6 +183,10 @@ beforeEach(() => {
   mock.browse.setKind.mockReset()
   mock.browse.toggleGenre.mockReset()
   mock.browse.clearGenres.mockReset()
+  mock.browse.setMinRating.mockReset()
+  mock.browse.toggleProvider.mockReset()
+  mock.browse.clearProviders.mockReset()
+  mock.browse.clearFilters.mockReset()
   mock.search.loadMore.mockReset()
 })
 
@@ -234,5 +259,7 @@ describe('home page', () => {
     const root = wrapper.element as HTMLElement
     expect(root.querySelectorAll('.aspect-\\[2\\/3\\]').length).toBeGreaterThan(0)
     expect(root.querySelector('.rows')).toBeTruthy()
+    // The carousel is suppressed while loading.
+    expect(root.querySelector('[aria-roledescription="carousel"]')).toBeNull()
   })
 })

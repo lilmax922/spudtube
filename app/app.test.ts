@@ -11,6 +11,10 @@ const mock = vi.hoisted(() => ({
     setKind: vi.fn(),
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
+    setMinRating: vi.fn(),
+    toggleProvider: vi.fn(),
+    clearProviders: vi.fn(),
+    clearFilters: vi.fn(),
   },
   search: {
     search: vi.fn(),
@@ -29,6 +33,9 @@ mockNuxtImport('navigateTo', () => mock.navigateTo)
 const browseState = {
   kind: shallowRef<'MOVIE' | 'TV_SHOW'>('MOVIE'),
   selectedGenreIds: shallowRef<number[]>([]),
+  minRating: shallowRef<number | null>(null),
+  selectedProviderIds: shallowRef<number[]>([]),
+  availableProviders: shallowRef<{ id: number, name: string, logoPath: string | null }[]>([]),
   genres: shallowRef<Genre[]>([]),
   items: shallowRef<TitleSummary[]>([]),
   loading: shallowRef(false),
@@ -57,6 +64,10 @@ vi.mock('./composables/use-browse-grid', () => ({
     setKind: mock.browse.setKind,
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
+    setMinRating: mock.browse.setMinRating,
+    toggleProvider: mock.browse.toggleProvider,
+    clearProviders: mock.browse.clearProviders,
+    clearFilters: mock.browse.clearFilters,
   }),
 }))
 

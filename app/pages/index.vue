@@ -11,6 +11,6 @@ const { titles: heroTitles, loading: heroLoading } = useHeroTitles(kind)
 <template>
   <div class="flex w-full flex-1 flex-col">
     <HeroCarousel v-if="!heroLoading && heroTitles.length > 0" :titles="heroTitles" />
-    <BrowseGrid class="py-8" />
+    <BrowseGrid />
   </div>
 </template>

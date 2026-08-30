@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { TitleSummary } from '#server/tmdb/types'
+import type { HeroTitle } from '../composables/use-hero-titles'
+import { Bookmark, Check, Play, Star } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { backdropUrl } from '../lib/images'
-import { kindLabelKey, titleDetailPath } from '../lib/kind'
+import { backdropSrcSet, backdropUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
 
 interface Props {
-  titles: TitleSummary[]
+  titles: HeroTitle[]
 }
 
 const props = defineProps<Props>()
@@ -17,7 +17,7 @@ const TRENDING_LIMIT = 5
 const heroIdx = shallowRef(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
-const trending = computed<TitleSummary[]>(() => {
+const trending = computed<HeroTitle[]>(() => {
   const list = [...props.titles]
   list.sort((a, b) => (b.voteAverage ?? 0) - (a.voteAverage ?? 0))
   return list.slice(0, TRENDING_LIMIT)
@@ -50,22 +50,35 @@ function stopTimer(): void {
   }
 }
 
-function toneFor(title: TitleSummary): string {
-  const hues = ['#991b1b', '#b45309', '#7f1d1d', '#4d7c0f', '#7c3aed', '#0e7490', '#334155']
-  const idx = Math.abs(title.tmdbId) % hues.length
-  return hues[idx] ?? '#1a1a2e'
-}
-
-function yearOf(title: TitleSummary): string {
+function yearOf(title: HeroTitle): string {
   return title.releaseDate?.slice(0, 4) ?? '—'
 }
 
-function backdropFor(title: TitleSummary): string | null {
+function backdropFor(title: HeroTitle): string | null {
   return backdropUrl(title.backdropPath)
 }
 
-function kindLabel(title: TitleSummary): string {
-  return t(kindLabelKey(title.kind))
+function kindLabel(title: HeroTitle): string {
+  return title.kind === 'MOVIE' ? t('browse.kindMovies') : t('browse.kindTvShows')
+}
+
+function detailPath(title: HeroTitle): string {
+  return title.kind === 'MOVIE' ? `/movie/${title.tmdbId}` : `/tv/${title.tmdbId}`
+}
+
+function hasTrailer(_title: HeroTitle): boolean {
+  // The hero endpoint doesn't currently fetch the trailer key; presence on the
+  // detail payload (translations append) is the source of truth. The hero disables
+  // the button rather than calling for missing data — the detail page owns playback.
+  return false
+}
+
+function firstProviderLogo(title: HeroTitle): string | null {
+  return providerLogoUrl(title.providers[0]?.logoPath ?? null)
+}
+
+function firstProviderLogoSrcSet(title: HeroTitle): string | null {
+  return providerLogoSrcSet(title.providers[0]?.logoPath ?? null)
 }
 
 function handleMouseEnter(): void {
@@ -104,12 +117,12 @@ onBeforeUnmount(() => {
       class="heroSlide"
       :class="{ active: i === heroIdx }"
       :data-index="i"
-      :style="{ '--hero-tone': toneFor(feat) } as Record<string, string>"
       :aria-hidden="i === heroIdx ? 'false' : 'true'"
     >
       <NuxtImg
         v-if="backdropFor(feat)"
         :src="backdropFor(feat) ?? undefined"
+        :srcset="backdropSrcSet(feat.backdropPath) ?? undefined"
         class="heroBackdrop"
         sizes="100vw"
         alt=""
@@ -119,22 +132,83 @@ onBeforeUnmount(() => {
       />
       <div class="heroInner">
         <div class="heroInfo">
-          <div class="heroTitle">
+          <div class="heroRow heroTitle">
             {{ feat.name }}
           </div>
-          <div class="heroSub">
-            <span class="score">★ {{ feat.voteAverage?.toFixed(1) ?? '—' }}</span>
-            <span aria-hidden="true" class="dot">·</span>
-            <span>{{ kindLabel(feat) }}</span>
-            <span aria-hidden="true" class="dot">·</span>
-            <span>{{ yearOf(feat) }}</span>
+          <div class="heroRow heroMeta">
+            <span v-if="feat.voteAverage != null" class="heroMetaScore">
+              <span aria-hidden="true">★</span>
+              {{ feat.voteAverage.toFixed(1) }}
+            </span>
+            <span v-if="feat.voteAverage != null" aria-hidden="true" class="heroMetaDot">·</span>
+            <span class="heroMetaKind">{{ kindLabel(feat) }}</span>
+            <span v-if="feat.genres.length > 0" aria-hidden="true" class="heroMetaDot">·</span>
+            <span v-if="feat.genres.length > 0" class="heroMetaGenres">
+              {{ feat.genres.slice(0, 3).map(g => g.name).join(' · ') }}
+            </span>
+            <span v-if="feat.contentRating" class="heroMetaBadge">
+              {{ feat.contentRating }}
+            </span>
           </div>
-          <div class="heroActionsApple">
+          <div v-if="feat.overview" class="heroRow heroOverview">
+            {{ feat.overview }}
+          </div>
+          <div class="heroRow heroStrip">
+            <span v-if="feat.providers[0]" class="heroStripProvider">
+              <NuxtImg
+                v-if="firstProviderLogo(feat)"
+                :src="firstProviderLogo(feat) ?? undefined"
+                :srcset="firstProviderLogoSrcSet(feat) ?? undefined"
+                sizes="32px"
+                :alt="feat.providers[0].name"
+                loading="lazy"
+                decoding="async"
+                class="heroStripProviderLogo"
+              />
+            </span>
+            <span class="heroStripText">{{ yearOf(feat) }}</span>
+            <span v-if="feat.runtimeMinutes" aria-hidden="true" class="heroStripDot">·</span>
+            <span v-if="feat.runtimeMinutes" class="heroStripText">{{ t('browse.minutesShort', { minutes: feat.runtimeMinutes }) }}</span>
+          </div>
+          <div class="heroRow heroActions">
             <NuxtLink
-              :to="titleDetailPath(feat.kind, feat.tmdbId)"
-              class="btnApplePrimary"
+              :to="detailPath(feat)"
+              class="heroBtn heroBtnPrimary"
             >
               {{ t('hero.viewDetails') }}
+            </NuxtLink>
+            <NuxtLink
+              v-if="hasTrailer(feat)"
+              :to="`${detailPath(feat)}#trailer`"
+              class="heroBtn heroBtnGhost"
+              :aria-label="t('hero.playTrailer')"
+            >
+              <Play :size="16" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
+              {{ t('hero.playTrailer') }}
+            </NuxtLink>
+            <NuxtLink
+              :to="`${detailPath(feat)}#rate`"
+              class="heroBtn heroBtnGhost"
+              :aria-label="t('hero.rate')"
+            >
+              <Star :size="16" :stroke-width="1.75" aria-hidden="true" />
+              {{ t('hero.rate') }}
+            </NuxtLink>
+            <NuxtLink
+              :to="`${detailPath(feat)}#watchlist`"
+              class="heroBtn heroBtnGhost"
+              :aria-label="t('hero.addToWatchlist')"
+            >
+              <Bookmark :size="16" :stroke-width="1.75" aria-hidden="true" />
+              {{ t('hero.addToWatchlist') }}
+            </NuxtLink>
+            <NuxtLink
+              :to="`${detailPath(feat)}#watched`"
+              class="heroBtn heroBtnGhost"
+              :aria-label="t('hero.markWatched')"
+            >
+              <Check :size="16" :stroke-width="1.75" aria-hidden="true" />
+              {{ t('hero.markWatched') }}
             </NuxtLink>
           </div>
         </div>
@@ -165,7 +239,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .heroCarousel {
   position: relative;
-  min-height: 560px;
+  min-height: 600px;
   overflow: hidden;
   isolation: isolate;
   width: 100vw;
@@ -179,7 +253,7 @@ onBeforeUnmount(() => {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  padding: calc(var(--header-h) + 28px) 64px 64px;
+  padding: calc(var(--header-h) + 28px) 64px 80px;
   opacity: 0;
   transition: opacity 0.55s ease;
   isolation: isolate;
@@ -194,16 +268,16 @@ onBeforeUnmount(() => {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--hero-tone, #1a1a2e);
-  z-index: -2;
+  background: #0a0a0a;
+  z-index: -3;
 }
 .heroSlide::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to right, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.55) 42%, rgba(0, 0, 0, 0.18) 68%, transparent 88%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.22) 36%, transparent 58%);
+    linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.55) 38%, rgba(0, 0, 0, 0.18) 64%, transparent 90%),
+    linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 40%, transparent 70%);
   z-index: -1;
 }
 .heroBackdrop {
@@ -212,7 +286,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: -3;
+  z-index: -2;
 }
 .heroInner {
   max-width: var(--max-content-width);
@@ -222,60 +296,141 @@ onBeforeUnmount(() => {
   align-items: flex-end;
 }
 .heroInfo {
-  max-width: 560px;
-  padding-bottom: 8px;
+  max-width: 640px;
+  padding-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.heroRow {
+  color: #fff;
 }
 .heroTitle {
   font-size: var(--text-display);
   line-height: var(--leading-display);
-  font-weight: var(--weight-display);
   letter-spacing: var(--tracking-display);
-  color: #fff;
+  font-weight: var(--weight-display);
   text-wrap: balance;
+  max-width: 14ch;
 }
-.heroSub {
+.heroMeta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
   font-size: var(--text-caption-md);
   line-height: var(--leading-caption-md);
   letter-spacing: var(--tracking-caption-md);
-  font-weight: 600;
+  font-weight: 500;
   color: rgba(255, 255, 255, 0.92);
-  flex-wrap: wrap;
 }
-.heroSub .score {
+.heroMetaScore {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: #fbbf24;
+  font-weight: 700;
+  font-size: var(--text-body-sm-strong);
 }
-.heroSub .dot {
-  color: rgba(255, 255, 255, 0.4);
+.heroMetaDot {
+  color: rgba(255, 255, 255, 0.32);
 }
-.heroActionsApple {
+.heroMetaGenres {
+  text-transform: none;
+}
+.heroMetaKind {
+  color: rgba(255, 255, 255, 0.92);
+}
+.heroMetaBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: var(--text-caption-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.heroOverview {
+  font-size: var(--text-body-lg);
+  line-height: var(--leading-body-lg);
+  color: rgba(255, 255, 255, 0.86);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 60ch;
+}
+.heroStrip {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: var(--text-caption-md);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
 }
-.btnApplePrimary {
-  height: 44px;
-  padding: 0 28px;
-  border-radius: 9999px;
-  background: #fff;
-  color: #111;
-  font-weight: var(--weight-display);
-  font-size: var(--text-button-md);
-  line-height: var(--leading-button-md);
-  letter-spacing: var(--tracking-button-md);
-  border: none;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+.heroStripProvider {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none;
+  height: 22px;
+  width: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
-.btnApplePrimary:hover {
+.heroStripProviderLogo {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.heroStripDot {
+  color: rgba(255, 255, 255, 0.32);
+}
+.heroStripText {
+  color: rgba(255, 255, 255, 0.88);
+}
+.heroActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+.heroBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  font-size: var(--text-button-md);
+  line-height: var(--leading-button-md);
+  letter-spacing: var(--tracking-button-md);
+  font-weight: var(--weight-button-md);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.heroBtnPrimary {
+  background: #fff;
+  color: #111;
+}
+.heroBtnPrimary:hover {
   filter: brightness(1.04);
+}
+.heroBtnGhost {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(4px);
+}
+.heroBtnGhost:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 .heroArrow {
   position: absolute;
@@ -306,7 +461,7 @@ onBeforeUnmount(() => {
 }
 .heroDots {
   position: absolute;
-  bottom: 18px;
+  bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -330,12 +485,24 @@ onBeforeUnmount(() => {
 }
 @media (max-width: 880px) {
   .heroCarousel {
-    min-height: 480px;
+    min-height: 540px;
+  }
+  .heroInfo {
+    max-width: 100%;
+  }
+  .heroTitle {
+    max-width: 18ch;
   }
 }
 @media (max-width: 560px) {
   .heroSlide {
-    padding: calc(var(--header-h) + 20px) 20px 32px;
+    padding: calc(var(--header-h) + 20px) 20px 56px;
+  }
+  .heroTitle {
+    max-width: 100%;
+  }
+  .heroOverview {
+    -webkit-line-clamp: 2;
   }
 }
 </style>

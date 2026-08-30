@@ -56,6 +56,10 @@ export const rawGenreListSchema = z.object({
   genres: z.array(rawGenreSchema),
 })
 
+export const rawWatchProviderListSchema = z.object({
+  results: z.array(rawProviderEntrySchema),
+})
+
 const rawVideoSchema = z.object({
   key: z.string(),
   site: z.string(),

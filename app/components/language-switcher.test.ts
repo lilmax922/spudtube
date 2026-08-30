@@ -29,6 +29,9 @@ const mock = vi.hoisted(() => {
     state: {
       kind: ref('MOVIE'),
       selectedGenreIds: ref([]),
+      minRating: ref<number | null>(null),
+      selectedProviderIds: ref([]),
+      availableProviders: ref([]),
       genres: ref(genres),
       items: ref(titles),
       loading: ref(false),
@@ -40,6 +43,10 @@ const mock = vi.hoisted(() => {
     setKind: vi.fn(),
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
+    setMinRating: vi.fn(),
+    toggleProvider: vi.fn(),
+    clearProviders: vi.fn(),
+    clearFilters: vi.fn(),
   }
 })
 
@@ -51,6 +58,10 @@ vi.mock('../composables/use-browse-grid', () => ({
     setKind: mock.setKind,
     toggleGenre: mock.toggleGenre,
     clearGenres: mock.clearGenres,
+    setMinRating: mock.setMinRating,
+    toggleProvider: mock.toggleProvider,
+    clearProviders: mock.clearProviders,
+    clearFilters: mock.clearFilters,
   }),
 }))
 

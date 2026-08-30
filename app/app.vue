@@ -124,9 +124,9 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
           <button
             type="button"
             class="primeNavBtn"
-            :class="{ on: browseKind === 'MOVIE' }"
+            :class="{ on: isHome && browseKind === 'MOVIE' }"
             data-kind="movie"
-            :aria-pressed="browseKind === 'MOVIE'"
+            :aria-pressed="isHome && browseKind === 'MOVIE'"
             @click="handlePrimeNav('MOVIE')"
           >
             {{ t('browse.kindMovies') }}
@@ -134,9 +134,9 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
           <button
             type="button"
             class="primeNavBtn"
-            :class="{ on: browseKind === 'TV_SHOW' }"
+            :class="{ on: isHome && browseKind === 'TV_SHOW' }"
             data-kind="tv"
-            :aria-pressed="browseKind === 'TV_SHOW'"
+            :aria-pressed="isHome && browseKind === 'TV_SHOW'"
             @click="handlePrimeNav('TV_SHOW')"
           >
             {{ t('browse.kindTvShows') }}

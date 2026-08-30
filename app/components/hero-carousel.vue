@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { HeroTitle } from '../composables/use-hero-titles'
-import { Bookmark, Check, Play, Star } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropSrcSet, backdropUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
+import HeroSlideActions from './hero-slide-actions.vue'
 
 interface Props {
   titles: HeroTitle[]
@@ -64,13 +64,6 @@ function kindLabel(title: HeroTitle): string {
 
 function detailPath(title: HeroTitle): string {
   return title.kind === 'MOVIE' ? `/movie/${title.tmdbId}` : `/tv/${title.tmdbId}`
-}
-
-function hasTrailer(_title: HeroTitle): boolean {
-  // The hero endpoint doesn't currently fetch the trailer key; presence on the
-  // detail payload (translations append) is the source of truth. The hero disables
-  // the button rather than calling for missing data — the detail page owns playback.
-  return false
 }
 
 function firstProviderLogo(title: HeroTitle): string | null {
@@ -177,39 +170,7 @@ onBeforeUnmount(() => {
             >
               {{ t('hero.viewDetails') }}
             </NuxtLink>
-            <NuxtLink
-              v-if="hasTrailer(feat)"
-              :to="`${detailPath(feat)}#trailer`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.playTrailer')"
-            >
-              <Play :size="16" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
-              {{ t('hero.playTrailer') }}
-            </NuxtLink>
-            <NuxtLink
-              :to="`${detailPath(feat)}#rate`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.rate')"
-            >
-              <Star :size="16" :stroke-width="1.75" aria-hidden="true" />
-              {{ t('hero.rate') }}
-            </NuxtLink>
-            <NuxtLink
-              :to="`${detailPath(feat)}#watchlist`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.addToWatchlist')"
-            >
-              <Bookmark :size="16" :stroke-width="1.75" aria-hidden="true" />
-              {{ t('hero.addToWatchlist') }}
-            </NuxtLink>
-            <NuxtLink
-              :to="`${detailPath(feat)}#watched`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.markWatched')"
-            >
-              <Check :size="16" :stroke-width="1.75" aria-hidden="true" />
-              {{ t('hero.markWatched') }}
-            </NuxtLink>
+            <HeroSlideActions :kind="feat.kind" :tmdb-id="feat.tmdbId" />
           </div>
         </div>
       </div>
@@ -399,6 +360,24 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 4px;
+}
+.heroActions :deep(.bg-muted) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+.heroActions :deep(.bg-muted:hover) {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+}
+.heroActions :deep(.border-input) {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+.heroActions :deep(.text-muted-foreground) {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+.heroActions :deep(.text-foreground) {
+  color: rgba(255, 255, 255, 0.92) !important;
 }
 .heroBtn {
   display: inline-flex;

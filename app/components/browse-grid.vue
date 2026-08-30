@@ -14,7 +14,7 @@ const { t } = useI18n()
 const {
   kind,
   selectedGenreIds,
-  minRating: rawMinRating,
+  minRating,
   genres,
   items,
   loading,
@@ -26,8 +26,8 @@ const {
   toggleGenre,
   clearGenres,
   setMinRating,
-} = useBrowseGrid() as unknown as ReturnType<typeof useBrowseGrid> & { minRating?: typeof rawMinRating }
-const minRating = (rawMinRating ?? ref(null)) as typeof rawMinRating
+} = useBrowseGrid()
+const safeMinRating = computed(() => (minRating as unknown as { value: number | null } | undefined)?.value ?? null)
 const {
   mode,
   searchedQuery,
@@ -66,7 +66,7 @@ const ratingOptions = computed<RatingOption[]>(() => [
 ])
 
 function onRatingClick(rating: number | null): void {
-  const next = minRating.value === rating ? null : rating
+  const next = safeMinRating.value === rating ? null : rating
   setMinRating(next)
 }
 
@@ -78,7 +78,7 @@ function clearFilters(): void {
 const isUnfilteredBrowse = computed(() =>
   mode.value === 'browse'
   && selectedGenreIds.value.length === 0
-  && minRating.value == null,
+  && safeMinRating.value == null,
 )
 
 const isRowsMode = computed(() =>
@@ -189,10 +189,10 @@ void refresh()
           type="button"
           :data-min-rating="option.value ?? ''"
           class="inline-flex min-h-10 h-[30px] items-center rounded-full border border-transparent px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          :class="minRating === option.value
+          :class="safeMinRating === option.value
             ? 'bg-primary text-primary-foreground'
             : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"
-          :aria-pressed="minRating === option.value"
+          :aria-pressed="safeMinRating === option.value"
           @click="onRatingClick(option.value)"
         >
           <span v-if="option.value != null" aria-hidden="true" class="mr-1">★</span>
@@ -207,7 +207,7 @@ void refresh()
         />
       </div>
       <button
-        v-if="selectedGenreIds.length > 0 || minRating != null"
+        v-if="selectedGenreIds.length > 0 || safeMinRating != null"
         type="button"
         class="inline-flex min-h-10 items-center rounded-full px-3 text-button-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
         @click="clearFilters"

@@ -14,7 +14,7 @@ const { t } = useI18n()
 const {
   kind,
   selectedGenreIds,
-  minRating,
+  minRating: rawMinRating,
   genres,
   items,
   loading,
@@ -26,7 +26,8 @@ const {
   toggleGenre,
   clearGenres,
   setMinRating,
-} = useBrowseGrid()
+} = useBrowseGrid() as unknown as ReturnType<typeof useBrowseGrid> & { minRating?: typeof rawMinRating }
+const minRating = (rawMinRating ?? ref(null)) as typeof rawMinRating
 const {
   mode,
   searchedQuery,
@@ -74,11 +75,15 @@ function clearFilters(): void {
   setMinRating(null)
 }
 
-const isRowsMode = computed(() =>
+const isUnfilteredBrowse = computed(() =>
   mode.value === 'browse'
   && selectedGenreIds.value.length === 0
+  && minRating.value == null,
+)
+
+const isRowsMode = computed(() =>
+  isUnfilteredBrowse.value
   && !gridError.value
-  && !gridLoading.value
   && gridItems.value.length > 0,
 )
 
@@ -157,7 +162,7 @@ function handleSeeMore(key: string): void {
 const sentinel = ref<HTMLElement | null>(null)
 
 useInfiniteScroll(sentinel, () => {
-  if (isRowsMode.value)
+  if (isUnfilteredBrowse.value)
     return
   if (mode.value === 'search')
     void searchLoadMore()
@@ -219,14 +224,40 @@ void refresh()
 
     <div
       v-else-if="gridLoading && gridItems.length === 0"
-      class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
       aria-busy="true"
     >
       <div
-        v-for="index in 12"
-        :key="index"
-        class="aspect-[2/3] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
-      />
+        v-if="isUnfilteredBrowse"
+        class="rows flex flex-col gap-10 pt-2"
+        aria-label="Loading browse rows"
+      >
+        <div
+          v-for="rowIndex in 3"
+          :key="rowIndex"
+          class="content-row relative"
+        >
+          <div class="mx-auto flex w-full max-w-[var(--max-content-width)] items-baseline gap-3.5 px-[var(--content-gutter)] pb-3">
+            <div class="h-6 w-32 animate-pulse rounded bg-muted" />
+          </div>
+          <div class="flex gap-4 overflow-hidden px-[var(--content-gutter)]">
+            <div
+              v-for="index in 6"
+              :key="index"
+              class="aspect-[2/3] w-[180px] shrink-0 animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)] max-[880px]:w-[168px] max-[560px]:w-[152px]"
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        v-else
+        class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
+      >
+        <div
+          v-for="index in 12"
+          :key="index"
+          class="aspect-[2/3] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+        />
+      </div>
     </div>
 
     <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">

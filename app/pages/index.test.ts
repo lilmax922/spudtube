@@ -8,6 +8,7 @@ import IndexPage from './index.vue'
 interface BrowseMockState {
   kind: { value: 'MOVIE' | 'TV_SHOW' }
   selectedGenreIds: { value: number[] }
+  minRating: { value: number | null }
   genres: { value: Genre[] }
   items: { value: TitleSummary[] }
   loading: { value: boolean }
@@ -37,6 +38,7 @@ const mock = vi.hoisted(() => ({
     setKind: vi.fn(),
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
+    setMinRating: vi.fn(),
   },
   search: {
     loadMore: vi.fn(),
@@ -46,6 +48,7 @@ const mock = vi.hoisted(() => ({
 const browseState: BrowseMockState = {
   kind: shallowRef('MOVIE'),
   selectedGenreIds: shallowRef([]),
+  minRating: shallowRef<number | null>(null),
   genres: shallowRef([]),
   items: shallowRef([]),
   loading: shallowRef(false),
@@ -70,6 +73,7 @@ vi.mock('../composables/use-browse-grid', () => ({
     setKind: mock.browse.setKind,
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
+    setMinRating: mock.browse.setMinRating,
   }),
 }))
 
@@ -135,6 +139,7 @@ const mountedWrappers: VueWrapper[] = []
 beforeEach(() => {
   browseState.kind.value = 'MOVIE'
   browseState.selectedGenreIds.value = []
+  browseState.minRating.value = null
   browseState.genres.value = []
   browseState.items.value = []
   browseState.loading.value = false
@@ -225,9 +230,9 @@ describe('home page', () => {
     const wrapper = await mountSuspended(IndexPage)
     mountedWrappers.push(wrapper)
 
-    // The grid renders skeleton cards while loading; the carousel is suppressed.
+    // Unfiltered browse renders rows skeleton while loading, not grid.
     const root = wrapper.element as HTMLElement
     expect(root.querySelectorAll('.aspect-\\[2\\/3\\]').length).toBeGreaterThan(0)
-    expect(root.querySelector('[aria-roledescription="carousel"]')).toBeNull()
+    expect(root.querySelector('.rows')).toBeTruthy()
   })
 })

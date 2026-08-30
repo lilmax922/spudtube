@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Search } from '@lucide/vue'
 import { onKeyStroke } from '@vueuse/core'
-import { onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo, useFetch, useHead, useRoute } from '#imports'
 import AccountMenu from './components/account-menu.vue'
@@ -10,6 +10,7 @@ import LanguageSwitcher from './components/language-switcher.vue'
 import SearchOverlay from './components/search-overlay.vue'
 import { Toaster } from './components/ui/sonner'
 import { useBrowseGrid } from './composables/use-browse-grid'
+import { useMediaLightboxState } from './composables/use-media-lightbox'
 import { useTrailerState } from './composables/use-trailer'
 import { authClient, signIn, signOut } from './lib/auth-client'
 
@@ -23,6 +24,8 @@ const isSearchOpen = shallowRef(false)
 const isScrolled = shallowRef(false)
 const overlayQuery = shallowRef('')
 const { isOpen: isTrailerOpen } = useTrailerState()
+const { isOpen: isMediaLightboxOpen } = useMediaLightboxState()
+const isOverlayOpen = computed(() => isTrailerOpen.value || isMediaLightboxOpen.value)
 
 function openSearch(): void {
   isSearchOpen.value = true
@@ -106,9 +109,9 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
     <header
       id="siteHeader"
       :class="{ scrolled: isScrolled }"
-      :data-hidden="isTrailerOpen ? 'true' : undefined"
-      :aria-hidden="isTrailerOpen ? 'true' : undefined"
-      :style="isTrailerOpen ? 'display:none' : undefined"
+      :data-hidden="isOverlayOpen ? 'true' : undefined"
+      :aria-hidden="isOverlayOpen ? 'true' : undefined"
+      :style="isOverlayOpen ? 'display:none' : undefined"
     >
       <div class="header-inner">
         <span

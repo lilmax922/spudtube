@@ -15,7 +15,6 @@ import AvailabilityPanel from './availability-panel.vue'
 import CastList from './cast-list.vue'
 import MediaStrip from './media-strip.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
-import TitleFactsPanel from './title-facts-panel.vue'
 import TitleIdentityBlock from './title-identity-block.vue'
 import TitleNotFound from './title-not-found.vue'
 import TitleTrailer from './title-trailer.vue'
@@ -126,7 +125,6 @@ const failed = computed(() => {
       />
 
       <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
-        <TitleFactsPanel :detail="detail.data.value" />
         <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
         <CastList :cast="detail.data.value.cast" :crew="detail.data.value.crew" />
         <MediaStrip :paths="detail.data.value.backdrops" />

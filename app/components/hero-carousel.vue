@@ -2,7 +2,8 @@
 import type { TitleSummary } from '#server/tmdb/types'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { titleDetailPath } from '../lib/kind'
+import { backdropUrl } from '../lib/images'
+import { kindLabelKey, titleDetailPath } from '../lib/kind'
 
 interface Props {
   titles: TitleSummary[]
@@ -11,14 +12,15 @@ interface Props {
 const props = defineProps<Props>()
 const { t } = useI18n()
 
+const TRENDING_LIMIT = 5
+
 const heroIdx = shallowRef(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
-const trending = computed(() => {
+const trending = computed<TitleSummary[]>(() => {
   const list = [...props.titles]
-  // sort by voteAverage desc as proxy for popularity
   list.sort((a, b) => (b.voteAverage ?? 0) - (a.voteAverage ?? 0))
-  return list.slice(0, 5)
+  return list.slice(0, TRENDING_LIMIT)
 })
 
 function go(idx: number): void {
@@ -56,6 +58,14 @@ function toneFor(title: TitleSummary): string {
 
 function yearOf(title: TitleSummary): string {
   return title.releaseDate?.slice(0, 4) ?? '—'
+}
+
+function backdropFor(title: TitleSummary): string | null {
+  return backdropUrl(title.backdropPath)
+}
+
+function kindLabel(title: TitleSummary): string {
+  return t(kindLabelKey(title.kind))
 }
 
 function handleMouseEnter(): void {
@@ -97,6 +107,16 @@ onBeforeUnmount(() => {
       :style="{ '--hero-tone': toneFor(feat) } as Record<string, string>"
       :aria-hidden="i === heroIdx ? 'false' : 'true'"
     >
+      <NuxtImg
+        v-if="backdropFor(feat)"
+        :src="backdropFor(feat) ?? undefined"
+        class="heroBackdrop"
+        sizes="100vw"
+        alt=""
+        loading="eager"
+        decoding="async"
+        aria-hidden="true"
+      />
       <div class="heroInner">
         <div class="heroInfo">
           <div class="heroTitle">
@@ -104,29 +124,26 @@ onBeforeUnmount(() => {
           </div>
           <div class="heroSub">
             <span class="score">★ {{ feat.voteAverage?.toFixed(1) ?? '—' }}</span>
-            <span>{{ feat.kind === 'MOVIE' ? t('detail.kind.movie') : t('detail.kind.tv') }} · {{ yearOf(feat) }}</span>
-          </div>
-          <div class="heroMetaLine">
-            <span class="providerDot">{{ feat.name.charAt(0) }}</span>
+            <span aria-hidden="true" class="dot">·</span>
+            <span>{{ kindLabel(feat) }}</span>
+            <span aria-hidden="true" class="dot">·</span>
             <span>{{ yearOf(feat) }}</span>
-            <span>·</span>
-            <span>{{ feat.kind === 'MOVIE' ? t('browse.kindMovies') : t('browse.kindTvShows') }}</span>
           </div>
           <div class="heroActionsApple">
             <NuxtLink
               :to="titleDetailPath(feat.kind, feat.tmdbId)"
               class="btnApplePrimary"
             >
-              查看詳情
+              {{ t('hero.viewDetails') }}
             </NuxtLink>
           </div>
         </div>
       </div>
     </div>
-    <button class="heroArrow prev" aria-label="上一部" @click="prev">
+    <button class="heroArrow prev" :aria-label="t('hero.previous')" @click="prev">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M15 18L9 12l6-6" /></svg>
     </button>
-    <button class="heroArrow next" aria-label="下一部" @click="next">
+    <button class="heroArrow next" :aria-label="t('hero.next')" @click="next">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6" /></svg>
     </button>
     <div class="heroDots" role="tablist">
@@ -136,7 +153,7 @@ onBeforeUnmount(() => {
         class="heroDot"
         :class="{ active: i === heroIdx }"
         :data-dot="i"
-        :aria-label="`第 ${i + 1} 張`"
+        :aria-label="t('hero.slide', { index: i + 1 })"
         role="tab"
         :aria-selected="i === heroIdx"
         @click="go(i)"
@@ -166,10 +183,12 @@ onBeforeUnmount(() => {
   opacity: 0;
   transition: opacity 0.55s ease;
   isolation: isolate;
+  pointer-events: none;
 }
 .heroSlide.active {
   opacity: 1;
   z-index: 1;
+  pointer-events: auto;
 }
 .heroSlide::before {
   content: "";
@@ -183,9 +202,17 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to right, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.45) 18%, transparent 32%, transparent 68%, rgba(0, 0, 0, 0.45) 82%, rgba(0, 0, 0, 0.72) 100%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.55) 42%, rgba(0, 0, 0, 0.18) 68%, transparent 88%),
     linear-gradient(to top, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.22) 36%, transparent 58%);
   z-index: -1;
+}
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -3;
 }
 .heroInner {
   max-width: var(--max-content-width);
@@ -221,32 +248,8 @@ onBeforeUnmount(() => {
 .heroSub .score {
   color: #fbbf24;
 }
-.heroMetaLine {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  font-size: var(--text-caption-md);
-  line-height: var(--leading-caption-md);
-  letter-spacing: var(--tracking-caption-md);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.88);
-  flex-wrap: wrap;
-}
-.heroMetaLine .providerDot {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #111;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-caption-sm);
-  line-height: var(--leading-caption-sm);
-  font-weight: 800;
-  color: #fff;
-  flex-shrink: 0;
+.heroSub .dot {
+  color: rgba(255, 255, 255, 0.4);
 }
 .heroActionsApple {
   display: flex;

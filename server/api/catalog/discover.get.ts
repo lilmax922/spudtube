@@ -9,12 +9,13 @@ import { parseOrThrow } from '../../utils/validation'
 const discoverQuerySchema = z.object({
   kind: mediaSegmentParam,
   genres: genreIdsParam.optional(),
+  minRating: z.coerce.number().min(0).max(10).optional(),
   page: pageParam,
   language: languageParam,
 })
 
 export default defineEventHandler((event) => {
-  const { kind, genres, page, language } = parseOrThrow(discoverQuerySchema, getQuery(event))
+  const { kind, genres, minRating, page, language } = parseOrThrow(discoverQuerySchema, getQuery(event))
   const locale = language ?? getRequestLocale(event)
-  return getTmdbClient().discover(kindFromSegment(kind), { genreIds: genres, page, language: locale })
+  return getTmdbClient().discover(kindFromSegment(kind), { genreIds: genres, minRating, page, language: locale })
 })

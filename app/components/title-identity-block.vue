@@ -58,7 +58,7 @@ function playTrailer(): void {
 </script>
 
 <template>
-  <section class="relative isolate flex min-h-[56vh] items-center overflow-hidden px-6 py-10 md:min-h-[72vh] md:py-14">
+  <section class="relative isolate -mt-[var(--header-h)] flex w-screen min-h-[56vh] -mx-[calc((100vw-100%)/2)] items-center overflow-hidden px-6 pb-10 pt-[calc(var(--header-h)+2.5rem)] md:min-h-[72vh] md:pb-14 md:pt-[calc(var(--header-h)+3.5rem)]">
     <img
       v-if="backdrop"
       :src="backdrop"

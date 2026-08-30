@@ -39,6 +39,8 @@ const genres: Genre[] = [
 ]
 
 describe('use-browse-grid', () => {
+  const baseOptions = { genreIds: [] as number[], minRating: null as number | null, page: 1, language: 'en' }
+
   it('loads genres and the first page for the default kind', async () => {
     const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()
     fetchGenres.mockResolvedValue(genres)
@@ -49,7 +51,7 @@ describe('use-browse-grid', () => {
 
     expect(grid.kind.value).toBe('MOVIE')
     expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
-    expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [], 1, 'en')
+    expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', baseOptions)
     expect(grid.genres.value).toEqual(genres)
     expect(grid.items.value).toEqual([dune])
     expect(grid.hasMore.value).toBe(true)
@@ -68,7 +70,7 @@ describe('use-browse-grid', () => {
     expect(grid.selectedGenreIds.value).toEqual([28])
     grid.setKind('TV_SHOW')
 
-    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('TV_SHOW', [], 1, 'en'))
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('TV_SHOW', baseOptions))
     expect(grid.selectedGenreIds.value).toEqual([])
     expect(fetchGenres).toHaveBeenCalledWith('TV_SHOW', 'en')
   })
@@ -83,13 +85,13 @@ describe('use-browse-grid', () => {
     grid.toggleGenre(878)
 
     await vi.waitFor(() =>
-      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [28, 878], 1, 'en'),
+      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', { ...baseOptions, genreIds: [28, 878] }),
     )
     expect(grid.selectedGenreIds.value).toEqual([28, 878])
 
     grid.toggleGenre(28)
     await vi.waitFor(() =>
-      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [878], 1, 'en'),
+      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', { ...baseOptions, genreIds: [878] }),
     )
   })
 
@@ -102,8 +104,33 @@ describe('use-browse-grid', () => {
     grid.toggleGenre(28)
     grid.clearGenres()
 
-    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', [], 1, 'en'))
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', baseOptions))
     expect(grid.selectedGenreIds.value).toEqual([])
+  })
+
+  it('passes minRating to the discover fetcher when set', async () => {
+    const { fetcher, fetchDiscover } = createFakeFetcher()
+    fetchDiscover.mockResolvedValue(page([dune], 5))
+
+    const grid = useBrowseGrid(fetcher)
+    await grid.refresh()
+    grid.setMinRating(7)
+
+    await vi.waitFor(() =>
+      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', { ...baseOptions, minRating: 7 }),
+    )
+  })
+
+  it('does not refetch when setMinRating is called with the same value', async () => {
+    const { fetcher, fetchDiscover } = createFakeFetcher()
+    fetchDiscover.mockResolvedValue(page([dune], 5))
+
+    const grid = useBrowseGrid(fetcher)
+    await grid.refresh()
+    const callsAfterRefresh = fetchDiscover.mock.calls.length
+
+    grid.setMinRating(null)
+    expect(fetchDiscover.mock.calls.length).toBe(callsAfterRefresh)
   })
 
   it('appends the next page on loadMore and stops at the last page', async () => {
@@ -115,7 +142,7 @@ describe('use-browse-grid', () => {
     await grid.refresh()
     await grid.loadMore()
 
-    expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', [], 2, 'en')
+    expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', { ...baseOptions, page: 2 })
     expect(grid.items.value).toEqual([dune, duneTwo])
     expect(grid.page.value).toBe(2)
     expect(grid.hasMore.value).toBe(false)

@@ -14,6 +14,7 @@ const { t } = useI18n()
 const {
   kind,
   selectedGenreIds,
+  minRating,
   genres,
   items,
   loading,
@@ -24,7 +25,9 @@ const {
   setKind,
   toggleGenre,
   clearGenres,
+  setMinRating,
 } = useBrowseGrid()
+const safeMinRating = computed(() => (minRating as unknown as { value: number | null } | undefined)?.value ?? null)
 const {
   mode,
   searchedQuery,
@@ -51,11 +54,36 @@ const loadingMessage = computed(() =>
   mode.value === 'search' ? t('search.loading') : t('browse.loading'),
 )
 
-const isRowsMode = computed(() =>
+interface RatingOption {
+  value: number | null
+  label: string
+}
+
+const ratingOptions = computed<RatingOption[]>(() => [
+  { value: null, label: t('browse.ratingAll') },
+  { value: 7, label: t('browse.ratingHigh') },
+  { value: 8, label: t('browse.ratingTop') },
+])
+
+function onRatingClick(rating: number | null): void {
+  const next = safeMinRating.value === rating ? null : rating
+  setMinRating(next)
+}
+
+function clearFilters(): void {
+  clearGenres()
+  setMinRating(null)
+}
+
+const isUnfilteredBrowse = computed(() =>
   mode.value === 'browse'
   && selectedGenreIds.value.length === 0
+  && safeMinRating.value == null,
+)
+
+const isRowsMode = computed(() =>
+  isUnfilteredBrowse.value
   && !gridError.value
-  && !gridLoading.value
   && gridItems.value.length > 0,
 )
 
@@ -134,7 +162,7 @@ function handleSeeMore(key: string): void {
 const sentinel = ref<HTMLElement | null>(null)
 
 useInfiniteScroll(sentinel, () => {
-  if (isRowsMode.value)
+  if (isUnfilteredBrowse.value)
     return
   if (mode.value === 'search')
     void searchLoadMore()
@@ -154,6 +182,23 @@ void refresh()
   <section class="flex flex-col gap-8" :aria-label="mode === 'search' ? t('search.sectionLabel') : t('browse.sectionLabel')">
     <div v-if="mode === 'browse'" class="mx-auto flex w-full max-w-[var(--max-content-width)] flex-wrap items-center gap-x-8 gap-y-4 px-[var(--content-gutter)]">
       <KindToggle :model-value="kind" @update:model-value="setKind" />
+      <div class="flex flex-wrap items-center gap-2" role="group" :aria-label="t('browse.ratingLabel')">
+        <button
+          v-for="option in ratingOptions"
+          :key="option.value ?? 'all'"
+          type="button"
+          :data-min-rating="option.value ?? ''"
+          class="inline-flex min-h-10 h-[30px] items-center rounded-full border border-transparent px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+          :class="safeMinRating === option.value
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'"
+          :aria-pressed="safeMinRating === option.value"
+          @click="onRatingClick(option.value)"
+        >
+          <span v-if="option.value != null" aria-hidden="true" class="mr-1">★</span>
+          {{ option.label }}
+        </button>
+      </div>
       <div v-if="genres.length > 0" class="flex flex-wrap items-center gap-2">
         <GenreChips
           :genres="genres"
@@ -162,10 +207,10 @@ void refresh()
         />
       </div>
       <button
-        v-if="selectedGenreIds.length > 0"
+        v-if="selectedGenreIds.length > 0 || safeMinRating != null"
         type="button"
         class="inline-flex min-h-10 items-center rounded-full px-3 text-button-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-        @click="clearGenres"
+        @click="clearFilters"
       >
         {{ t('browse.clearAll') }}
       </button>
@@ -179,14 +224,40 @@ void refresh()
 
     <div
       v-else-if="gridLoading && gridItems.length === 0"
-      class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
       aria-busy="true"
     >
       <div
-        v-for="index in 12"
-        :key="index"
-        class="aspect-[2/3] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
-      />
+        v-if="isUnfilteredBrowse"
+        class="rows flex flex-col gap-10 pt-2"
+        aria-label="Loading browse rows"
+      >
+        <div
+          v-for="rowIndex in 3"
+          :key="rowIndex"
+          class="content-row relative"
+        >
+          <div class="mx-auto flex w-full max-w-[var(--max-content-width)] items-baseline gap-3.5 px-[var(--content-gutter)] pb-3">
+            <div class="h-6 w-32 animate-pulse rounded bg-muted" />
+          </div>
+          <div class="flex gap-4 overflow-hidden px-[var(--content-gutter)]">
+            <div
+              v-for="index in 6"
+              :key="index"
+              class="aspect-[2/3] w-[180px] shrink-0 animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)] max-[880px]:w-[168px] max-[560px]:w-[152px]"
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        v-else
+        class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
+      >
+        <div
+          v-for="index in 12"
+          :key="index"
+          class="aspect-[2/3] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+        />
+      </div>
     </div>
 
     <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">

@@ -33,7 +33,7 @@ describe('gET /api/catalog/discover', () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: [878, 35], page: 2, language: 'zh-TW' })
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: [878, 35], minRating: undefined, page: 2, language: 'zh-TW' })
     expect(body).toEqual({ page: 2, results: [], totalPages: 4, totalResults: 40 })
   })
 
@@ -42,20 +42,35 @@ describe('gET /api/catalog/discover', () => {
 
     await call(new Request('http://localhost/api/catalog/discover?kind=movie&language=en'))
 
-    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: undefined, page: 1, language: 'en' })
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: undefined, minRating: undefined, page: 1, language: 'en' })
+  })
+
+  it('forwards minRating when provided', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&minRating=7'))
+
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', { genreIds: undefined, minRating: 7, page: 1, language: 'en' })
+  })
+
+  it('rejects an out-of-range minRating', async () => {
+    const response = await call(new Request('http://localhost/api/catalog/discover?kind=movie&minRating=99'))
+
+    expect(response.status).toBe(400)
+    expect(fakeClient.discover).not.toHaveBeenCalled()
   })
 
   it('auto-detects en without geo and cookie overrides', async () => {
     fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
 
     await call(new Request('http://localhost/api/catalog/discover?kind=movie'))
-    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, page: 1, language: 'en' })
+    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, minRating: undefined, page: 1, language: 'en' })
 
     fakeClient.discover.mockClear()
     await call(new Request('http://localhost/api/catalog/discover?kind=movie', {
       headers: { 'cf-ipcountry': 'TW', 'cookie': 'spudtube-locale=en' },
     }))
-    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, page: 1, language: 'en' })
+    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, minRating: undefined, page: 1, language: 'en' })
   })
 
   it('rejects an unknown kind', async () => {

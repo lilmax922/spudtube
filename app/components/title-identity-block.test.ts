@@ -220,4 +220,18 @@ describe('title identity block', () => {
     expect(wrapper.text()).not.toContain('Denis Villeneuve')
     expect(wrapper.text()).not.toContain('Jon Spaihts')
   })
+
+  it('pulls the hero up behind the fixed header so backdrop fills header + hero as one region', async () => {
+    const wrapper = await render(MOVIE_DETAIL, '/?probe=26')
+    const section = wrapper.find('section')
+    expect(section.exists()).toBe(true)
+
+    const className = section.classes().join(' ')
+    // Negative top margin escapes the parent's `--header-h` top padding so the hero sits behind the header.
+    expect(className).toContain('-mt-[var(--header-h)]')
+    // Padding-top still reserves the header band for the title text.
+    expect(className).toContain('pt-[calc(var(--header-h)')
+    // Negative side margins escape the parent's max-width container for a true full-bleed backdrop.
+    expect(className).toContain('-mx-[calc((100vw-100%)/2)]')
+  })
 })

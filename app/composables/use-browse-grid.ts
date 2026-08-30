@@ -10,6 +10,11 @@ const KIND_SEGMENT: Record<Kind, 'movie' | 'tv'> = {
   TV_SHOW: 'tv',
 }
 
+export interface FetchProviderListOptions {
+  q?: string
+  popular?: boolean
+}
+
 export interface BrowseFetcher {
   fetchGenres: (kind: Kind, language?: TmdbLanguage) => Promise<Genre[]>
   fetchDiscover: (
@@ -17,7 +22,7 @@ export interface BrowseFetcher {
     options: { genreIds: number[], minRating: number | null, providerIds: number[], page: number, language?: TmdbLanguage },
   ) => Promise<Page<TitleSummary>>
   fetchProviders: (kind: Kind, tmdbIds: number[], language?: TmdbLanguage) => Promise<Map<string, Provider[]>>
-  fetchProviderList: (kind: Kind, language?: TmdbLanguage) => Promise<Provider[]>
+  fetchProviderList: (kind: Kind, language?: TmdbLanguage, options?: FetchProviderListOptions) => Promise<Provider[]>
 }
 
 export function createApiBrowseFetcher(): BrowseFetcher {
@@ -53,11 +58,13 @@ export function createApiBrowseFetcher(): BrowseFetcher {
         },
       }).then((record: Record<string, Provider[]>) => new Map(Object.entries(record)))
     },
-    fetchProviderList(kind, language) {
+    fetchProviderList(kind, language, options) {
       return $fetch<Provider[]>('/api/catalog/provider-list', {
         query: {
           kind: KIND_SEGMENT[kind],
           ...(language ? { language } : {}),
+          ...(options?.q ? { q: options.q } : {}),
+          ...(options?.popular ? { popular: '1' } : {}),
         },
       })
     },
@@ -70,6 +77,10 @@ export interface BrowseGridState {
   minRating: Ref<number | null>
   selectedProviderIds: Ref<number[]>
   availableProviders: ComputedRef<Provider[]>
+  popularProviders: Ref<Provider[]>
+  providerSearchResults: Ref<Provider[]>
+  providerSearchQuery: Ref<string>
+  providerSearchLoading: Ref<boolean>
   genres: Ref<Genre[]>
   items: Ref<TitleSummary[]>
   page: Ref<number>
@@ -87,6 +98,8 @@ export interface BrowseGridState {
   toggleProvider: (providerId: number) => void
   clearProviders: () => void
   clearFilters: () => void
+  searchProviders: (query: string) => void
+  clearProviderSearch: () => void
 }
 
 let browseGridInstance: BrowseGridState | undefined
@@ -101,6 +114,10 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const minRating = ref<number | null>(null)
   const selectedProviderIds = ref<number[]>([])
   const providerListRaw = ref<Provider[]>([])
+  const popularProviders = ref<Provider[]>([])
+  const providerSearchResults = ref<Provider[]>([])
+  const providerSearchQuery = ref('')
+  const providerSearchLoading = ref(false)
   const genres = ref<Genre[]>([])
   let localeRef: Ref<string>
   try {
@@ -129,21 +146,23 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
 
   async function refresh(): Promise<void> {
     try {
-      const fetchList = actualFetcher.fetchProviderList
-        ? actualFetcher.fetchProviderList(kind.value, tmdbLanguage.value).catch(() => [] as Provider[])
+      // Popular-only by default: small curated set instead of 805 providers
+      const fetchPopular = actualFetcher.fetchProviderList
+        ? actualFetcher.fetchProviderList(kind.value, tmdbLanguage.value, { popular: true }).catch(() => [] as Provider[])
         : Promise.resolve([] as Provider[])
-      const [genreList, providerList, applied] = await Promise.all([
+      const [genreList, popularList, applied] = await Promise.all([
         actualFetcher.fetchGenres(kind.value, tmdbLanguage.value),
-        fetchList,
+        fetchPopular,
         loadFirstPage(),
       ])
       if (applied) {
         genres.value = genreList
-        providerListRaw.value = providerList
+        popularProviders.value = popularList
+        providerListRaw.value = popularList
       }
       else {
-        // Still update filter chrome even if page failed, so providers/genres stay fresh
-        providerListRaw.value = providerList
+        popularProviders.value = popularList
+        providerListRaw.value = popularList
         genres.value = genreList
       }
     }
@@ -152,7 +171,48 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     }
   }
 
+  let providerSearchToken = 0
+  let providerSearchTimer: ReturnType<typeof setTimeout> | undefined
+
+  function searchProviders(query: string): void {
+    const trimmed = query.trim()
+    providerSearchQuery.value = trimmed
+    if (providerSearchTimer)
+      clearTimeout(providerSearchTimer)
+    if (trimmed.length === 0) {
+      providerSearchResults.value = []
+      providerSearchLoading.value = false
+      return
+    }
+    providerSearchLoading.value = true
+    const token = ++providerSearchToken
+    providerSearchTimer = setTimeout(async () => {
+      try {
+        const fetched = actualFetcher.fetchProviderList
+          ? await actualFetcher.fetchProviderList(kind.value, tmdbLanguage.value, { q: trimmed }).catch(() => [] as Provider[])
+          : [] as Provider[]
+        if (token !== providerSearchToken)
+          return
+        providerSearchResults.value = fetched
+      }
+      finally {
+        if (token === providerSearchToken)
+          providerSearchLoading.value = false
+      }
+    }, 180)
+  }
+
+  function clearProviderSearch(): void {
+    if (providerSearchTimer)
+      clearTimeout(providerSearchTimer)
+    ++providerSearchToken
+    providerSearchQuery.value = ''
+    providerSearchResults.value = []
+    providerSearchLoading.value = false
+  }
+
   watch(tmdbLanguage, () => {
+    clearProviderSearch()
     void refresh()
   })
 
@@ -162,6 +222,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     kind.value = next
     selectedGenreIds.value = []
     selectedProviderIds.value = []
+    clearProviderSearch()
     void refresh()
   }
 
@@ -218,6 +279,10 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     minRating,
     selectedProviderIds,
     availableProviders,
+    popularProviders,
+    providerSearchResults,
+    providerSearchQuery,
+    providerSearchLoading,
     genres,
     refresh,
     loadMore: async () => {
@@ -230,6 +295,8 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     toggleProvider,
     clearProviders,
     clearFilters,
+    searchProviders,
+    clearProviderSearch,
   }
   if (isDefault)
     browseGridInstance = state

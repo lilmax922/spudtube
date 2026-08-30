@@ -16,6 +16,10 @@ const {
   minRating,
   selectedProviderIds,
   availableProviders,
+  popularProviders,
+  providerSearchResults,
+  providerSearchQuery,
+  providerSearchLoading,
   genres,
   items,
   loading,
@@ -27,6 +31,8 @@ const {
   setMinRating,
   toggleProvider,
   clearFilters,
+  searchProviders,
+  clearProviderSearch,
 } = useBrowseGrid()
 const safeMinRating = computed(() => (minRating as unknown as { value: number | null } | undefined)?.value ?? null)
 const {
@@ -167,10 +173,16 @@ void refresh()
       :selected-provider-ids="selectedProviderIds"
       :genres="genres"
       :available-providers="availableProviders"
+      :popular-providers="popularProviders"
+      :provider-search-results="providerSearchResults"
+      :provider-search-query="providerSearchQuery"
+      :provider-search-loading="providerSearchLoading"
       @toggle-genre="toggleGenre"
       @set-min-rating="setMinRating"
       @toggle-provider="toggleProvider"
       @clear-filters="clearFilters"
+      @search-providers="searchProviders"
+      @clear-provider-search="clearProviderSearch"
     />
 
     <div class="browseGridBody">

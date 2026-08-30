@@ -232,7 +232,8 @@ export function createTmdbClient({
           id: entry.provider_id,
           name: entry.provider_name,
           logoPath: entry.logo_path,
-        })).sort((a, b) => a.name.localeCompare(b.name))
+          displayPriority: entry.display_priority,
+        }))
       })
     },
 

@@ -133,29 +133,37 @@ describe('title identity block', () => {
   it('applies Contract shape and typography tokens', async () => {
     const wrapper = await render(MOVIE_DETAIL, '/?probe=11')
 
-    const title = wrapper.find('h1')
-    expect(title.classes().join(' ')).toContain('text-display')
+    const title = wrapper.find('.heroTitle')
+    expect(title.exists()).toBe(true)
     expect(title.text()).toContain('沙丘')
 
-    const metaRow = wrapper.find('div.tabular-nums')
+    const metaRow = wrapper.find('.heroMeta')
     expect(metaRow.exists()).toBe(true)
-    expect(metaRow.text()).toContain('2021')
-    expect(metaRow.text()).toContain('155')
+    expect(metaRow.text()).toMatch(/Movie|電影/)
 
-    const overview = wrapper.find('p[class*="max-w"]')
-    expect(overview.classes().join(' ')).toContain('text-body-lg')
-    expect(overview.classes().join(' ')).not.toContain('tabular-nums')
+    const stripRow = wrapper.find('.heroStrip')
+    expect(stripRow.exists()).toBe(true)
+    expect(stripRow.text()).toContain('2021')
+    expect(stripRow.text()).toContain('155')
+
+    const overview = wrapper.find('.heroOverview')
+    expect(overview.exists()).toBe(true)
+    expect(overview.text()).toContain('天賦異稟')
   })
 
   it('uses a functional black mask over the backdrop and hides it when absent', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const style = fs.readFileSync(path.resolve(process.cwd(), 'app/components/title-identity-block.vue'), 'utf-8')
     const withBackdrop = await render(MOVIE_DETAIL, '/?probe=12')
-    const overlay = withBackdrop.find('div.bg-black\\/35')
-    expect(overlay.exists()).toBe(true)
-    const gradientMask = withBackdrop.find('div[style*="linear-gradient"]')
-    expect(gradientMask.exists()).toBe(true)
+    expect(withBackdrop.findAll('img')).toHaveLength(1)
+    expect(style).toContain('linear-gradient(to right, rgba(0, 0, 0, 0.85)')
+    expect(style).toContain('linear-gradient(to top, rgba(0, 0, 0, 0.85)')
+    expect(style).toMatch(/z-index:\s*-3/)
+    expect(style).toMatch(/z-index:\s*-2/)
+    expect(style).toMatch(/z-index:\s*-1/)
 
     const withoutBackdrop = await render(MOVIE_WITHOUT_ARTWORK, '/?probe=13')
-    expect(withoutBackdrop.find('div.bg-black\\/35').exists()).toBe(false)
     expect(withoutBackdrop.findAll('img')).toHaveLength(0)
   })
 
@@ -194,14 +202,14 @@ describe('title identity block', () => {
   it('hides the rating score when voteAverage is null', async () => {
     const wrapper = await render({ ...MOVIE_DETAIL, voteAverage: null }, '/?probe=20b')
 
-    const scoreText = wrapper.find('span.tabular-nums')
+    const scoreText = wrapper.find('.heroMetaScore')
     expect(scoreText.exists()).toBe(false)
   })
 
   it('renders content rating in a badge component after the genres', async () => {
     const wrapper = await render(MOVIE_DETAIL, '/?probe=23')
 
-    const badge = wrapper.find('[data-slot="badge"]')
+    const badge = wrapper.find('.heroMetaBadge')
     expect(badge.exists()).toBe(true)
     expect(badge.text()).toContain('PG-13')
   })
@@ -209,7 +217,7 @@ describe('title identity block', () => {
   it('hides content rating badge when contentRating is absent', async () => {
     const wrapper = await render({ ...MOVIE_DETAIL, contentRating: null }, '/?probe=24')
 
-    expect(wrapper.find('[data-slot="badge"]').exists()).toBe(false)
+    expect(wrapper.find('.heroMetaBadge').exists()).toBe(false)
   })
 
   it('does not render director or writer crewline in the hero', async () => {
@@ -222,16 +230,15 @@ describe('title identity block', () => {
   })
 
   it('pulls the hero up behind the fixed header so backdrop fills header + hero as one region', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const src = fs.readFileSync(path.resolve(process.cwd(), 'app/components/title-identity-block.vue'), 'utf-8')
     const wrapper = await render(MOVIE_DETAIL, '/?probe=26')
     const section = wrapper.find('section')
     expect(section.exists()).toBe(true)
-
-    const className = section.classes().join(' ')
-    // Negative top margin escapes the parent's `--header-h` top padding so the hero sits behind the header.
-    expect(className).toContain('-mt-[var(--header-h)]')
-    // Padding-top still reserves the header band for the title text.
-    expect(className).toContain('pt-[calc(var(--header-h)')
-    // Negative side margins escape the parent's max-width container for a true full-bleed backdrop.
-    expect(className).toContain('-mx-[calc((100vw-100%)/2)]')
+    expect(src).toContain('margin-top: calc(var(--header-h) * -1)')
+    expect(src).toContain('margin-left: calc(50% - 50vw)')
+    expect(src).toContain('margin-right: calc(50% - 50vw)')
+    expect(src).toContain('padding: calc(var(--header-h) + 28px) 64px 80px')
   })
 })

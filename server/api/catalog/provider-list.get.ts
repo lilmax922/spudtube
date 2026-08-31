@@ -1,5 +1,7 @@
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getCookie, getHeader, getQuery } from 'h3'
 import { z } from 'zod'
+import { COUNTRY_HEADER } from '../../../shared/i18n/locale'
+import { DEFAULT_REGION, REGION_COOKIE, resolveSelectedRegion } from '../../../shared/region/region'
 import { getTmdbClient } from '../../tmdb/client'
 import { kindFromSegment } from '../../tmdb/mappers'
 import { getRequestLocale } from '../../utils/locale'
@@ -29,6 +31,17 @@ function sortByPriority(providers: { id: number, name: string, logoPath: string 
   })
 }
 
+function resolveRegion(event: Parameters<Parameters<typeof defineEventHandler>[0]>[0]): string {
+  const cookieRegion = getCookie(event, REGION_COOKIE)
+  const detectedCountry = getHeader(event, COUNTRY_HEADER) ?? getHeader(event, 'cf-ipcountry')
+  try {
+    return resolveSelectedRegion(cookieRegion, detectedCountry ?? undefined)
+  }
+  catch {
+    return DEFAULT_REGION
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const { kind, language, q, popular } = parseOrThrow(providerListQuerySchema, {
@@ -38,7 +51,8 @@ export default defineEventHandler(async (event) => {
     popular: Array.isArray(query.popular) ? query.popular[0] : query.popular,
   })
   const locale = language ?? getRequestLocale(event)
-  const all = await getTmdbClient().watchProviderList(kindFromSegment(kind), locale)
+  const watchRegion = resolveRegion(event)
+  const all = await getTmdbClient().watchProviderList(kindFromSegment(kind), locale, watchRegion)
 
   if (q) {
     const normalize = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]/g, '')

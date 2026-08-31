@@ -317,6 +317,19 @@ void refresh()
         </AnimatePresence>
       </template>
 
+      <div
+        v-if="gridLoading && gridItems.length > 0"
+        data-testid="filter-loading"
+        class="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center bg-background/55 pt-24 backdrop-blur-[2px]"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <div class="pointer-events-auto flex items-center gap-2 rounded-full bg-card px-4 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+          <LoaderCircle :size="16" :stroke-width="1.75" class="animate-spin text-foreground" aria-hidden="true" />
+          <span class="text-body-md text-foreground">{{ loadingMessage }}</span>
+        </div>
+      </div>
+
       <div ref="sentinel" aria-hidden="true" />
 
       <p
@@ -328,7 +341,7 @@ void refresh()
 
       <p
         v-if="!isRowsMode && (gridLoadingMore || (gridLoading && gridItems.length > 0))"
-        class="mx-auto flex w-full max-w-[var(--max-content-width)] items-center justify-center gap-2 px-[var(--content-gutter)] text-body-md text-muted-foreground"
+        class="mx-auto flex w-full max-w-[var(--max-content-width)] items-center justify-center gap-2 px-[var(--content-gutter)] pt-8 text-body-md text-muted-foreground"
       >
         <LoaderCircle :size="16" :stroke-width="1.75" class="animate-spin" aria-hidden="true" />
         {{ loadingMessage }}
@@ -339,6 +352,8 @@ void refresh()
 
 <style scoped>
 .browseGridBody {
+  position: relative;
   padding-bottom: 64px;
+  min-height: 240px;
 }
 </style>

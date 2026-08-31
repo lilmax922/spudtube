@@ -179,6 +179,17 @@
       "backHome": "Back to home"
     }
   },
+  "footer": {
+    "description": "Discover movies and TV shows. Find where to stream in your region and keep track of what to watch next.",
+    "attribution": "Provider data licensed from JustWatch.",
+    "tmdbNotice": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+    "copyright": "© {year} SpudTube · Made with ❤️ for movie and TV spuds.",
+    "nav": {
+      "browse": "Browse",
+      "library": "Library",
+      "data": "Data & Attribution"
+    }
+  },
   "myList": {
     "heading": "My List",
     "loading": "Loading…",

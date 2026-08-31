@@ -77,6 +77,24 @@ function focusSearchInput(): void {
   })
 }
 
+function scrollToCoverHero(): void {
+  if (typeof window === 'undefined')
+    return
+  requestAnimationFrame(() => {
+    const bar = document.querySelector('.homeFilterBar') as HTMLElement | null
+    if (!bar)
+      return
+    const headerH = Number.parseInt(
+      getComputedStyle(document.documentElement).getPropertyValue('--header-h'),
+      10,
+    ) || 64
+    const barTop = bar.getBoundingClientRect().top + window.scrollY
+    const heroHideY = Math.max(0, barTop - headerH)
+    if (window.scrollY < heroHideY - 2)
+      window.scrollTo({ top: heroHideY, behavior: 'smooth' })
+  })
+}
+
 function ensurePopoverVisible(): void {
   if (typeof window === 'undefined')
     return
@@ -139,6 +157,7 @@ function clearProviderSearchInput(): void {
 
 watch(open, (value) => {
   if (value) {
+    scrollToCoverHero()
     focusSearchInput()
     ensurePopoverVisible()
   }
@@ -275,7 +294,7 @@ watch(() => props.providerSearchQuery, (value) => {
             </button>
           </label>
           <div
-            class="grid max-h-[min(42vh,280px)] grid-cols-6 gap-2 overflow-y-auto py-1 pr-1 [scrollbar-width:thin] max-[880px]:grid-cols-5"
+            class="grid max-h-[min(44vh,300px)] grid-cols-6 gap-2 overflow-y-auto py-1 pr-1 [scrollbar-width:thin] max-[880px]:grid-cols-5"
             role="group"
             :aria-label="t('browse.providersLabel')"
             :aria-busy="providerSearchLoading"
@@ -284,10 +303,12 @@ watch(() => props.providerSearchQuery, (value) => {
               v-for="provider in displayedProviders"
               :key="provider.id"
               type="button"
-              class="shrink-0 rounded-[20%] p-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+              class="flex size-10 shrink-0 items-center justify-center rounded-[20%] p-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
               :class="selectedProviderIds.includes(provider.id)
-                ? 'ring-2 ring-ring/30 ring-offset-2 ring-offset-popover'
-                : 'opacity-90 hover:opacity-100'"
+                ? 'ring-2 ring-ring/30 grayscale-0 opacity-100'
+                : selectedProviderIds.length > 0
+                  ? 'grayscale opacity-55 hover:grayscale-0 hover:opacity-100'
+                  : 'grayscale-0 opacity-100 hover:opacity-90'"
               :aria-pressed="selectedProviderIds.includes(provider.id)"
               :title="provider.name"
               :aria-label="provider.name"
@@ -339,7 +360,7 @@ watch(() => props.providerSearchQuery, (value) => {
 .homeFilterBar {
   position: sticky;
   top: var(--header-h);
-  z-index: 40;
+  z-index: 45;
   background: rgba(20, 20, 22, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -368,17 +389,6 @@ watch(() => props.providerSearchQuery, (value) => {
 .homeFilterBarGenres::-webkit-scrollbar {
   display: none;
 }
-.homeFilterBarPopover {
-  width: min(420px, calc(100vw - 32px));
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  background: var(--popover);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
-}
 .bg-popover {
   background: var(--popover);
 }
@@ -387,8 +397,24 @@ watch(() => props.providerSearchQuery, (value) => {
     gap: 8px;
     padding: 8px var(--content-gutter);
   }
+}
+</style>
+
+<style>
+.homeFilterBarPopover {
+  width: min(380px, calc(100vw - 32px)) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px !important;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+@media (max-width: 880px) {
   .homeFilterBarPopover {
-    width: min(360px, calc(100vw - 24px));
+    width: min(340px, calc(100vw - 24px)) !important;
   }
 }
 </style>

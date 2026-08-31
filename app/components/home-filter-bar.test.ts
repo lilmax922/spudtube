@@ -1,6 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import HomeFilterBar from './home-filter-bar.vue'
 
 const sampleGenres = [
@@ -369,5 +369,165 @@ describe('homeFilterBar', () => {
       ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
     expect(detailEl).toBeTruthy()
     expect(detailEl!.textContent).toMatch(/No providers found|找不到相符平台/)
+  })
+
+  it('scrolls smoothly to cover hero when provider filter button is clicked', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    expect(vueFile).toMatch(/window\.scrollTo/)
+    expect(vueFile).toMatch(/behavior:\s*['"]smooth['"]/)
+    // must scroll to barTop - headerH to hide hero (smooth cover)
+    expect(vueFile).toMatch(/barTop\s*-\s*headerH|heroHideY/)
+    // also behavioral: trigger should cause scrollTo
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+    const scrollSpy = vi.fn()
+    const originalScrollTo = window.scrollTo
+    window.scrollTo = scrollSpy as unknown as typeof window.scrollTo
+    // mock bar and header to simulate hero visible
+    const barEl = document.createElement('div')
+    barEl.className = 'homeFilterBar'
+    barEl.getBoundingClientRect = () => ({ top: 600, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON() {} } as DOMRect)
+    document.body.appendChild(barEl)
+    const getComputedSpy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({ getPropertyValue: () => '64' } as unknown as CSSStyleDeclaration)
+    Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true })
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await new Promise(r => setTimeout(r, 30))
+    // allow requestAnimationFrame
+    await new Promise(r => requestAnimationFrame(() => r(undefined)))
+    await new Promise(r => setTimeout(r, 30))
+    expect(scrollSpy).toHaveBeenCalled()
+    const callArg = scrollSpy.mock.calls[0]?.[0] as { behavior?: string } | undefined
+    expect(callArg?.behavior).toBe('smooth')
+    window.scrollTo = originalScrollTo
+    getComputedSpy.mockRestore()
+    barEl.remove()
+  })
+
+  it('makes provider popover compact with tight spacing between provider icons', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    // popover should be compact — not 520px wide; expect <= 420px desktop
+    const widthMatch = vueFile.match(/\.homeFilterBarPopover\s*\{[^}]*width:\s*min\((\d+)px/)
+    expect(widthMatch).toBeTruthy()
+    const width = widthMatch ? Number(widthMatch[1]) : 999
+    expect(width).toBeLessThanOrEqual(420)
+    expect(width).toBeGreaterThanOrEqual(340)
+    // compact popover: padding 12-14px, not 16px; gap between icons should be tight (gap-2)
+    expect(vueFile).toMatch(/grid-cols-6 gap-2(\s|")/)
+    expect(vueFile).not.toMatch(/grid-cols-6 gap-3/)
+    expect(vueFile).not.toMatch(/grid-cols-6 gap-4/)
+    // also verify teleported content has compact gap class
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const gridEl = detailEl?.querySelector('[role="group"]') as HTMLElement | null
+    expect(gridEl?.className).toMatch(/gap-2(\s|$)/)
+    expect(gridEl?.className).not.toMatch(/gap-3/)
+  })
+
+  it('dims unselected providers only when some provider is selected', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    // unselected should be dimmed via grayscale + reduced opacity, but only when selection exists
+    expect(vueFile).toMatch(/grayscale/)
+    expect(vueFile).toMatch(/opacity-(40|50|55|60)/)
+    // selected should have ring and not grayscale
+    const selectedBranch = vueFile.slice(vueFile.indexOf('selectedProviderIds.includes'))
+    expect(selectedBranch).toMatch(/ring-2/)
+    expect(selectedBranch).toMatch(/grayscale|opacity/)
+    // must conditionally dim: file should check selectedProviderIds.length to avoid dimming when none selected
+    expect(vueFile).toMatch(/selectedProviderIds\.length/)
+  })
+
+  it('does not dim providers when none are selected — all stay in color', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ selectedProviderIds: [] }) })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const providerBtns = [...(detailEl!.querySelectorAll('[title="Netflix"],[title="Amazon Prime Video"]') as NodeListOf<HTMLElement>)]
+    // when nothing selected, buttons should NOT have dimming classes (grayscale without -0, opacity-55)
+    for (const btn of providerBtns) {
+      expect(btn.classList.contains('grayscale')).toBe(false)
+      expect(btn.className).not.toMatch(/opacity-55/)
+      expect(btn.className).not.toMatch(/opacity-50/)
+    }
+  })
+
+  it('dims unselected providers when at least one is selected', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ selectedProviderIds: [8] }) })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const unselectedBtn = detailEl!.querySelector('[title="Amazon Prime Video"]') as HTMLElement | null
+    const selectedBtn = detailEl!.querySelector('[title="Netflix"]') as HTMLElement | null
+    expect(unselectedBtn).toBeTruthy()
+    expect(selectedBtn).toBeTruthy()
+    expect(unselectedBtn!.className).toMatch(/grayscale/)
+    expect(unselectedBtn!.className).toMatch(/opacity-55|opacity-50/)
+    expect(selectedBtn!.className).toMatch(/ring-2/)
+    expect(selectedBtn!.className).not.toMatch(/grayscale opacity-55/)
+  })
+
+  it('keeps selected provider button from looking squeezed (no ring-offset)', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    const selectedBranch = vueFile.slice(vueFile.indexOf('selectedProviderIds.includes'))
+    expect(selectedBranch).toMatch(/ring-2/)
+    expect(selectedBranch).not.toMatch(/ring-offset-2/)
+    expect(selectedBranch).not.toMatch(/ring-offset-popover/)
+    // behavioral: selected vs unselected inner size stays 40px
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ selectedProviderIds: [8] }) })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const selectedSpan = detailEl!.querySelector('[title="Netflix"] span') as HTMLElement | null
+    const unselectedSpan = detailEl!.querySelector('[title="Amazon Prime Video"] span') as HTMLElement | null
+    expect(selectedSpan).toBeTruthy()
+    expect(unselectedSpan).toBeTruthy()
+    expect(selectedSpan!.className).toMatch(/size-10/)
+    expect(unselectedSpan!.className).toMatch(/size-10/)
+    expect(selectedSpan!.className).toBe(unselectedSpan!.className)
+  })
+
+  it('ensures home-filter-bar stays above title-card on hover (z-index fix)', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const barFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    const cardFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/title-card.vue'), 'utf-8')
+    const barMatch = barFile.match(/\.homeFilterBar\s*\{[^}]*z-index:\s*(\d+)/)
+    const cardHoverMatch = cardFile.match(/\.title-card-root:hover\s*\{[^}]*z-index:\s*(\d+)/)
+    expect(barMatch).toBeTruthy()
+    expect(cardHoverMatch).toBeTruthy()
+    const barZ = barMatch ? Number(barMatch[1]) : 0
+    const cardZ = cardHoverMatch ? Number(cardHoverMatch[1]) : 999
+    expect(barZ).toBeGreaterThan(cardZ)
+    expect(barZ).toBeGreaterThanOrEqual(45)
+    // header must remain highest
+    const appFile = fs.readFileSync(path.resolve(process.cwd(), 'app/app.vue'), 'utf-8')
+    const headerMatch = appFile.match(/#siteHeader\s*\{[^}]*z-index:\s*(\d+)/)
+    const headerZ = headerMatch ? Number(headerMatch[1]) : 0
+    expect(headerZ).toBeGreaterThan(barZ)
   })
 })

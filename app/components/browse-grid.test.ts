@@ -407,4 +407,61 @@ describe('browse-grid', () => {
     const clearAll = wrapper.findAll('button').find(button => button.text()?.includes('Clear all'))
     expect(clearAll).toBeTruthy()
   })
+
+  it('shows loading indicator until filtering results are ready', async () => {
+    const state = browseState as unknown as MockState
+    state.selectedGenreIds.value = [28]
+    state.items.value = titles
+    state.loading.value = true
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+    // should show loading overlay / spinner while filtering (gridLoading true with existing items)
+    const html = wrapper.html()
+    expect(html).toMatch(/filter-loading|aria-busy="true"|Loading/)
+    // also file content check for overlay
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/browse-grid.vue'), 'utf-8')
+    expect(vueFile).toMatch(/gridLoading/)
+    expect(vueFile).toMatch(/LoaderCircle|animate-spin/)
+    expect(vueFile).toMatch(/filter-loading|aria-busy/)
+    // aria-busy should be true while loading
+    const busyEl = wrapper.element.querySelector('[aria-busy="true"]')
+    expect(busyEl).toBeTruthy()
+  })
+
+  it('keeps loading indicator visible with items present during filter refresh', async () => {
+    const state = browseState as unknown as MockState
+    state.items.value = titles
+    state.loading.value = true
+    state.error.value = false
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+    // should not show empty state while loading
+    expect(wrapper.text()).not.toContain('No titles found')
+    expect(wrapper.text()).toMatch(/Loading/)
+  })
+
+  it('has generous spacing between title cards and infinite-scroll loading indicator', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/browse-grid.vue'), 'utf-8')
+    // infinite-scroll loading <p> should have pt-8 (32px) not pt-4 (16px) for breathing room
+    // look for the gridLoadingMore loading indicator paragraph
+    const loadingIndicatorMatch = vueFile.match(/v-if="!isRowsMode && \(gridLoadingMore[\s\S]*?class="([^"]+)"/)
+    expect(loadingIndicatorMatch).toBeTruthy()
+    const classes = loadingIndicatorMatch ? loadingIndicatorMatch[1] : ''
+    expect(classes).toMatch(/pt-8/)
+    expect(classes).not.toMatch(/pt-4(?!-)/)
+    // also behavioral: when loadingMore, the indicator should have pt-8 spacing
+    const state = browseState as unknown as MockState
+    state.selectedGenreIds.value = [28]
+    state.items.value = titles
+    state.loadingMore.value = true
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+    const indicator = wrapper.element.querySelector('p.mx-auto.flex.w-full') as HTMLElement | null
+    expect(indicator).toBeTruthy()
+    expect(indicator!.className).toMatch(/pt-8/)
+  })
 })

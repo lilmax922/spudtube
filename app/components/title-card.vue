@@ -164,7 +164,7 @@ const hoverProviders = computed(() => {
   transition: box-shadow 0.22s;
 }
 .title-card-root:hover {
-  z-index: 40;
+  z-index: 5;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
 }
 

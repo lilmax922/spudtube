@@ -3,7 +3,9 @@ import type { Genre, Kind, Page, Provider, TitleSummary, TmdbLanguage } from '#s
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
+import { DEFAULT_REGION } from '#shared/region/region'
 import { usePagedResults } from './use-paged-results'
+import { useRegion } from './use-region'
 
 const KIND_SEGMENT: Record<Kind, 'movie' | 'tv'> = {
   MOVIE: 'movie',
@@ -130,6 +132,14 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
   )
 
+  let regionRef: Ref<string>
+  try {
+    regionRef = (useRegion().region as unknown) as Ref<string>
+  }
+  catch {
+    regionRef = ref(DEFAULT_REGION) as Ref<string>
+  }
+
   const availableProviders = computed<Provider[]>(() => {
     return [...providerListRaw.value].sort((a, b) => a.name.localeCompare(b.name))
   })
@@ -211,7 +221,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     providerSearchLoading.value = false
   }
 
-  watch(tmdbLanguage, () => {
+  watch([tmdbLanguage, regionRef], () => {
     clearProviderSearch()
     void refresh()
   })

@@ -81,6 +81,36 @@ function handleMouseLeave(): void {
   startTimer()
 }
 
+let wheelCooldown = false
+
+function handleWheel(event: WheelEvent): void {
+  const absX = Math.abs(event.deltaX)
+  const absY = Math.abs(event.deltaY)
+  if (absX < 10 && absY < 10)
+    return
+  const isHorizontal = absX > absY
+  if (!isHorizontal)
+    return
+  if (wheelCooldown)
+    return
+  if (event.deltaX > 0) {
+    event.preventDefault()
+    wheelCooldown = true
+    next()
+    setTimeout(() => {
+      wheelCooldown = false
+    }, 400)
+  }
+  else if (event.deltaX < 0) {
+    event.preventDefault()
+    wheelCooldown = true
+    prev()
+    setTimeout(() => {
+      wheelCooldown = false
+    }, 400)
+  }
+}
+
 watch(trending, () => {
   heroIdx.value = 0
   startTimer()
@@ -103,6 +133,7 @@ onBeforeUnmount(() => {
     :aria-label="t('browse.sectionLabel')"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
+    @wheel="handleWheel"
   >
     <div
       v-for="(feat, i) in trending"
@@ -201,6 +232,8 @@ onBeforeUnmount(() => {
 .heroCarousel {
   position: relative;
   min-height: 600px;
+  height: min(100dvh, 56.25vw);
+  max-height: 100dvh;
   overflow: hidden;
   isolation: isolate;
   width: 100vw;
@@ -208,6 +241,12 @@ onBeforeUnmount(() => {
   margin-right: calc(50% - 50vw);
   margin-top: calc(var(--header-h) * -1);
   background: #0a0a0a;
+}
+@supports not (height: 1dvh) {
+  .heroCarousel {
+    height: min(100vh, 56.25vw);
+    max-height: 100vh;
+  }
 }
 .heroSlide {
   position: absolute;
@@ -425,9 +464,19 @@ onBeforeUnmount(() => {
   color: #fff;
   backdrop-filter: blur(6px);
   z-index: 4;
-  transition: background 0.15s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background 0.15s;
   border: none;
   cursor: pointer;
+}
+.heroCarousel:hover .heroArrow {
+  opacity: 1;
+  pointer-events: auto;
+}
+.heroArrow:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 .heroArrow:hover {
   background: rgba(0, 0, 0, 0.58);
@@ -465,6 +514,7 @@ onBeforeUnmount(() => {
 @media (max-width: 880px) {
   .heroCarousel {
     min-height: 540px;
+    height: min(100dvh, 56.25vw);
   }
   .heroInfo {
     max-width: 100%;

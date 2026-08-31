@@ -8,7 +8,16 @@ import * as schema from './schema'
 export type Db = NodePgDatabase<typeof schema> & { $client: Pool }
 
 export function createDb(databaseUrl: string, options?: { max?: number }): Db {
-  return drizzle(new Pool({ connectionString: databaseUrl, max: options?.max }), { casing: 'snake_case', schema })
+  return drizzle(new Pool({
+    connectionString: databaseUrl,
+    max: options?.max,
+    // Fail fast instead of hanging the request for the platform timeout. A pooler that
+    // accepts a write but silently swallows the reply (the misconfigured transaction-mode
+    // pooler incident) otherwise leaves the Worker awaiting the query forever, Cloudflare
+    // cancels it, and the client gets an empty 500 with no error to root-cause from.
+    connectionTimeoutMillis: 10_000,
+    query_timeout: 15_000,
+  }), { casing: 'snake_case', schema })
 }
 
 let localDb: Db | undefined

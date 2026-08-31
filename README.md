@@ -17,7 +17,7 @@ Decide what to watch. SpudTube helps you discover movies and TV shows, shows you
 | --- | --- |
 | Framework | Nuxt (SSR) on Cloudflare Pages/Workers |
 | Auth | Better Auth, Google OAuth only |
-| Database | PostgreSQL — Docker locally, Supabase in production (via transaction pooler + Cloudflare Hyperdrive) |
+| Database | PostgreSQL — Docker locally, Supabase in production (via session pooler + Cloudflare Hyperdrive) |
 | ORM | Drizzle |
 | Catalog data | [TMDB](https://www.themoviedb.org) — including streaming-provider data licensed from JustWatch |
 | UI | shadcn-vue + Tailwind CSS |
@@ -42,7 +42,7 @@ in Cloudflare Pages → Settings → Variables and Secrets — never committed:
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Local Docker Postgres URL; for prod migrations use the Supabase **transaction pooler** URL temporarily (`DATABASE_URL="…" pnpm db:migrate`); Pages runtime uses a **Hyperdrive** binding `HYPERDRIVE` instead |
+| `DATABASE_URL` | Local Docker Postgres URL; for prod migrations use the Supabase **session pooler** URL temporarily (`DATABASE_URL="…" pnpm db:migrate`, port 5432 — not the 6543 transaction pooler, which hangs pg writes); Pages runtime uses a **Hyperdrive** binding `HYPERDRIVE` instead |
 | `TMDB_TOKEN` | TMDB API v4 read access token (Bearer, starts with `eyJ…`) |
 | `BETTER_AUTH_SECRET` | Better Auth signing secret (`openssl rand -hex 32`) |
 | `BETTER_AUTH_URL` | Public base URL (`http://localhost:3000` locally, `https://YOUR_DOMAIN` in prod) |

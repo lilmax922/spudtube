@@ -22,13 +22,21 @@ repeatable checklist the wizard prints and the code expects.
 
 ## Database: Supabase Postgres via Hyperdrive
 
-ADR 0002/0003: production Postgres is **Supabase**, reached through its **transaction pooler**
-(port 6543, `?pgbouncer=true`) wrapped by a **Cloudflare Hyperdrive** binding. Local dev
+ADR 0002/0003: production Postgres is **Supabase**, reached through its **session pooler**
+(port 5432, `?pgbouncer=true`) wrapped by a **Cloudflare Hyperdrive** binding. Local dev
 still talks straight to Docker Postgres via `DATABASE_URL`.
+
+> **Why the session pooler and not the transaction pooler (6543)?** Hyperdrive already
+> pools connections in transaction mode, and Better Auth writes rows with `pg`'s extended
+> query protocol. Layering those on Supabase's *transaction*-mode pooler (port 6543)
+> silently swallowed a write's reply: the row committed on the server but the Worker's
+> query `await` never resolved, so the request hung until Cloudflare canceled it and the
+> client got an empty 500 (observed on `POST /api/auth/sign-in/social`). The session
+> pooler (port 5432) is the stable origin for a Hyperdrive-wrapped connection.
 
 ```
 Browser → Pages Worker → event.context.cloudflare.env.HYPERDRIVE.connectionString
-                         → Hyperdrive cache/pool → Supabase pooler (6543) → Postgres
+                         → Hyperdrive cache/pool → Supabase session pooler (5432) → Postgres
 ```
 
 - `server/db/index.ts` — `getHyperdriveConnectionString(event)` reads the single canonical
@@ -49,15 +57,16 @@ Browser → Pages Worker → event.context.cloudflare.env.HYPERDRIVE.connectionS
 
 Steps (also printed by the wizard):
 
-1. `npx wrangler hyperdrive create spudtube-db --connection-string="postgresql://…:6543/…?pgbouncer=true&sslmode=require"`
-   → note the returned `id`.
+1. `npx wrangler hyperdrive create spudtube-db --connection-string="postgresql://…:5432/…?pgbouncer=true&sslmode=require"`
+   → note the returned `id`. (Session pooler port 5432 — the transaction pooler 6543 hangs
+   writes through Hyperdrive; see the note above.)
 2. Put that `id` into `wrangler.jsonc` (`hyperdrive[0].id = "…"`) and regenerate types:
    `npx wrangler types` → commit `worker-configuration.d.ts`. For a Pages dashboard
    project, Dashboard → Pages → spudtube → Settings → Functions → Hyperdrive bindings →
    Add binding → variable `HYPERDRIVE` → pick `spudtube-db`.
 3. Do **not** set `DATABASE_URL` as a Pages secret when Hyperdrive is attached — the binding
    supplies it. For one-off production migrations use a shell env var:
-   `DATABASE_URL="postgresql://…:6543/…" pnpm db:migrate`.
+   `DATABASE_URL="postgresql://…:5432/…" pnpm db:migrate`.
 
 Migrations live in `server/db/migrations/` and apply via `drizzle-kit migrate` (see
 `drizzle.config.ts` which reads `process.env.DATABASE_URL`). Verify in Supabase → Table

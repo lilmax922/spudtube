@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
+  createDb,
   getHyperdriveConnectionString,
   resolveDatabaseUrl,
 } from './index'
+
+function makePool(databaseUrl: string) {
+  const db = createDb(databaseUrl)
+  const pool = db.$client
+  return pool
+}
 
 function makeEvent(connectionString: string | undefined): unknown {
   if (connectionString === undefined) {
@@ -66,5 +73,31 @@ describe('resolveDatabaseUrl', () => {
     delete process.env.DATABASE_URL
     expect(() => resolveDatabaseUrl(makeEvent(undefined) as unknown as Parameters<typeof resolveDatabaseUrl>[0])).toThrow('DATABASE_URL is required')
     process.env.DATABASE_URL = prev
+  })
+})
+
+// Regression guard: production sign-in broke (POST /api/auth/sign-in/social → 500 with an
+// empty body) because the production pooler would silently swallow a write's reply — the
+// INSERT committed on the server while the Worker hung on the query await until Cloudflare
+// canceled the request. A Pool without client-side timeouts never surfaces that mistake:
+// requests hang for the full platform timeout and the empty 500 carries no error to read.
+// These tests pin the fail-fast timeouts every Pool (direct and Hyperdrive) must carry.
+describe('createDb pool fail-fast timeouts', () => {
+  it('sets connectionTimeoutMillis so a stuck pooler connection fails fast', () => {
+    const pool = makePool('postgres://nevermind:5432/db')
+    expect(pool.options.connectionTimeoutMillis).toBeGreaterThan(0)
+  })
+
+  it('sets a client-side query_timeout so a swallowed query reply cannot hang the request', () => {
+    const pool = makePool('postgres://nevermind:5432/db')
+    expect(pool.options.query_timeout).toBeGreaterThan(0)
+  })
+
+  it('applies timeouts to Hyperdrive-backed pools too (production path)', () => {
+    const event = makeEvent('postgres://hyperdrive:5432/db')
+    const db = createDb(getHyperdriveConnectionString(event as unknown as Parameters<typeof getHyperdriveConnectionString>[0])!)
+    const pool = db.$client
+    expect(pool.options.connectionTimeoutMillis).toBeGreaterThan(0)
+    expect(pool.options.query_timeout).toBeGreaterThan(0)
   })
 })

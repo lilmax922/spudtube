@@ -78,11 +78,13 @@ function validateTmdbToken(value) {
 
 function validatePoolerUrl(value) {
   if (!value)
-    return 'Paste the Supabase transaction pooler URL (Session/transaction mode, port 6543)'
+    return 'Paste the Supabase session pooler URL (port 5432 with ?pgbouncer=true)'
   if (!value.startsWith('postgres://') && !value.startsWith('postgresql://'))
     return 'Pooler URL should start with postgres:// or postgresql://'
-  if (!value.includes(':6543'))
-    warn('Pooler URLs usually use port 6543 (transaction mode). Continuing either way.')
+  if (value.includes(':6543'))
+    warn('Port 6543 is the transaction-mode pooler. Use the session pooler (port 5432): ' +
+      'transaction mode silently drops write replies through a Hyperdrive/pg link, which makes ' +
+      'sign-in hang and 500. Continuing with your value, but expect failures if it is 6543.')
   return null
 }
 
@@ -108,10 +110,13 @@ async function main() {
   info('The token is a long JWT starting with eyJ… It must never be committed.')
   const tmdbToken = await ask('TMDB_TOKEN', { validate: validateTmdbToken, secret: true })
 
-  heading('3 — Supabase Postgres + transaction pooler')
+  heading('3 — Supabase Postgres + session pooler')
   info('Create a Supabase project (https://supabase.com) if you do not have one.')
-  info('In Database → Connection string → Transaction pooler (port 6543), copy the URI.')
+  info('In Database → Connection string → Session pooler (port 5432), copy the URI.')
   info('It must include ?pgbouncer=true and sslmode=require (Supabase pooler default).')
+  warn('Do NOT use the transaction pooler (port 6543): Hyperdrive + pg write queries through it')
+  info('commit on the server but the reply never reaches the Worker, so the request hangs and ')
+  info('Cloudflare returns an empty 500. The session pooler is the correct origin.')
   const poolerUrl = await ask('Supabase pooler DATABASE_URL', { validate: validatePoolerUrl, secret: true })
 
   heading('4 — Google OAuth client')
@@ -138,8 +143,8 @@ async function main() {
   const betterAuthUrl = `https://${prodDomain}`
   ok(`BETTER_AUTH_URL will be ${betterAuthUrl} (derived from your prod domain)`)
 
-  heading('6 — Hyperdrive binding (Supabase pooler via Cloudflare)')
-  info('Create a Hyperdrive config that wraps the pooler URL. This is the ONLY way')
+  heading('6 — Hyperdrive binding (Supabase session pooler via Cloudflare)')
+  info('Create a Hyperdrive config that wraps the SESSION pooler URL. This is the ONLY way')
   info('Workers/Pages can reach Postgres at the edge (ADR 0002).')
   info('wrangler.jsonc already contains smart placement & observability per workers-best-practices:')
   info('  "placement": {"mode":"smart"}   // multi-query routes execute near DB')
@@ -199,7 +204,7 @@ async function main() {
   println(`  BETTER_AUTH_URL=http://localhost:3000`)
   println(`  GOOGLE_CLIENT_ID=${googleClientId}`)
   println('  GOOGLE_CLIENT_SECRET=…')
-  println('  # optional: DATABASE_URL=postgresql://…:6543/…?pgbouncer=true&sslmode=require')
+  println('  # optional: DATABASE_URL=postgresql://…:5432/…?pgbouncer=true&sslmode=require')
   println()
 
   const devVarsContent = [
@@ -282,7 +287,7 @@ async function main() {
   println('  Nitro preset:       cloudflare_pages (nuxt.config.ts)')
   println('  Placement:          smart (wrangler.jsonc)')
   println('  Observability:      enabled (wrangler.jsonc → Dashboard Logs/Traces)')
-  println('  DB path:            local DATABASE_URL ↔ prod Hyperdrive(pooler:6543) via getDb(event)')
+  println('  DB path:            local DATABASE_URL ↔ prod Hyperdrive(session pooler:5432) via getDb(event)')
   println('  Attribution:        footer + availability panel (checked in verification)')
 
   println()

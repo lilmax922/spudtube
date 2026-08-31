@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, X } from '@lucide/vue'
+import type { CarouselApi } from '@/components/ui/carousel'
+import { X } from '@lucide/vue'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
 import { computed, nextTick, shallowRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropUrl } from '../lib/images'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 
 interface Props {
@@ -19,15 +21,27 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const currentIndex = shallowRef(props.initialIndex)
+function clampIndex(value: number): number {
+  if (props.paths.length === 0)
+    return 0
+  return Math.min(Math.max(0, value), props.paths.length - 1)
+}
+
+const currentIndex = shallowRef(clampIndex(props.initialIndex))
+const api = shallowRef<CarouselApi | undefined>(undefined)
 
 watch(() => props.initialIndex, (value) => {
-  currentIndex.value = Math.min(Math.max(0, value), Math.max(0, props.paths.length - 1))
+  const next = clampIndex(value)
+  currentIndex.value = next
+  api.value?.scrollTo(next, true)
 })
 
 watch(() => props.open, (open) => {
-  if (open)
-    currentIndex.value = Math.min(Math.max(0, props.initialIndex), Math.max(0, props.paths.length - 1))
+  if (!open)
+    return
+  const next = clampIndex(props.initialIndex)
+  currentIndex.value = next
+  api.value?.scrollTo(next, true)
 })
 
 watch(() => props.paths.length, (len) => {
@@ -35,8 +49,22 @@ watch(() => props.paths.length, (len) => {
     currentIndex.value = Math.max(0, len - 1)
 })
 
-const currentPath = computed(() => props.paths[currentIndex.value] ?? null)
-const currentUrl = computed(() => currentPath.value ? backdropUrl(currentPath.value) : null)
+const counterText = computed(() =>
+  t('detail.media.counter', { current: currentIndex.value + 1, total: props.paths.length }),
+)
+
+function onInitApi(value: CarouselApi | undefined): void {
+  if (!value)
+    return
+  api.value = value
+  const update = (): void => {
+    currentIndex.value = value.selectedScrollSnap()
+  }
+  update()
+  value.on('select', update)
+  value.on('reInit', update)
+  value.scrollTo(currentIndex.value, true)
+}
 
 const closeGuard = shallowRef(false)
 
@@ -56,16 +84,6 @@ function onOpenChange(value: boolean): void {
   else emit('update:open', value)
 }
 
-function goPrev(): void {
-  if (currentIndex.value > 0)
-    currentIndex.value -= 1
-}
-
-function goNext(): void {
-  if (currentIndex.value < props.paths.length - 1)
-    currentIndex.value += 1
-}
-
 const lightboxBoxRef = useTemplateRef<HTMLElement>('lightboxBoxRef')
 
 onClickOutside(lightboxBoxRef, () => {
@@ -76,18 +94,6 @@ onClickOutside(lightboxBoxRef, () => {
 onKeyStroke('Escape', () => {
   if (props.open)
     close()
-})
-
-onKeyStroke('ArrowLeft', () => {
-  if (!props.open)
-    return
-  goPrev()
-})
-
-onKeyStroke('ArrowRight', () => {
-  if (!props.open)
-    return
-  goNext()
 })
 </script>
 
@@ -113,7 +119,7 @@ onKeyStroke('ArrowRight', () => {
           aria-live="polite"
           aria-atomic="true"
         >
-          {{ t('detail.media.counter', { current: currentIndex + 1, total: paths.length }) }}
+          {{ counterText }}
         </span>
         <button
           data-testid="lightbox-close"
@@ -131,38 +137,36 @@ onKeyStroke('ArrowRight', () => {
         data-testid="lightbox-box"
         class="flex flex-1 items-center justify-center gap-2 px-4 pt-14 pb-4 sm:gap-3 sm:px-6 sm:pb-6 w-full min-h-0"
       >
-        <button
-          data-testid="lightbox-prev"
-          type="button"
-          class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:opacity-30 disabled:pointer-events-none"
-          :aria-label="t('detail.media.previous')"
-          :disabled="currentIndex <= 0"
-          @click.stop="goPrev"
+        <Carousel
+          class="w-full max-w-none flex-1 min-h-0 min-w-0"
+          :opts="{ align: 'center', loop: false, containScroll: 'trimSnaps', slidesToScroll: 1, dragFree: false }"
+          @init-api="onInitApi"
         >
-          <ChevronLeft :size="22" :stroke-width="1.75" aria-hidden="true" />
-        </button>
-
-        <div class="flex flex-1 items-center justify-center min-h-0 min-w-0">
-          <img
-            v-if="currentUrl"
-            data-testid="lightbox-image"
-            :src="currentUrl"
-            :alt="t('detail.media.heading')"
-            class="max-h-[min(85dvh,calc(100dvh-160px))] max-w-[min(1120px,calc(100vw-2rem))] h-auto w-auto object-contain select-none"
-            draggable="false"
-          >
-        </div>
-
-        <button
-          data-testid="lightbox-next"
-          type="button"
-          class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:opacity-30 disabled:pointer-events-none"
-          :aria-label="t('detail.media.next')"
-          :disabled="currentIndex >= paths.length - 1"
-          @click.stop="goNext"
-        >
-          <ChevronRight :size="22" :stroke-width="1.75" aria-hidden="true" />
-        </button>
+          <CarouselContent class="-ml-0">
+            <CarouselItem
+              v-for="path in paths"
+              :key="path"
+              class="pl-0 basis-full"
+            >
+              <div class="flex h-full min-h-0 w-full items-center justify-center">
+                <img
+                  v-if="backdropUrl(path)"
+                  data-testid="lightbox-image"
+                  :src="backdropUrl(path) ?? undefined"
+                  :alt="t('detail.media.heading')"
+                  class="max-h-[min(85dvh,calc(100dvh-160px))] max-w-[min(1120px,calc(100vw-2rem))] h-auto w-auto object-contain select-none"
+                  draggable="false"
+                >
+              </div>
+            </CarouselItem>
+          </CarouselContent>
+          <CarouselPrevious
+            class="left-4 top-1/2 -translate-y-1/2 bg-white/10 text-white hover:bg-white/20 border-white/10 backdrop-blur-sm size-10"
+          />
+          <CarouselNext
+            class="right-4 top-1/2 -translate-y-1/2 bg-white/10 text-white hover:bg-white/20 border-white/10 backdrop-blur-sm size-10"
+          />
+        </Carousel>
       </div>
     </DialogContent>
   </Dialog>

@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MediaLightbox from './media-lightbox.vue'
@@ -207,7 +208,7 @@ describe('media lightbox - shadcn-vue carousel core', () => {
     const fs = await import('node:fs/promises')
     let source = ''
     try {
-      source = await fs.readFile(new URL('file:///Users/max/.treehouse/spudtube-b5a88b/4/spudtube/app/components/media-lightbox.vue').pathname, 'utf8')
+      source = await fs.readFile(join(process.cwd(), 'app/components/media-lightbox.vue'), 'utf8')
     }
     catch {
       source = ''

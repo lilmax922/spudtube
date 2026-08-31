@@ -186,6 +186,50 @@ describe('tmdb client — discover', () => {
     expect(requests[0]?.params).toEqual({ sort_by: 'popularity.desc', page: '1', language: 'zh-TW' })
     expect(page.results[0]).toMatchObject({ kind: 'TV_SHOW', tmdbId: 94605, name: 'Arcane' })
   })
+
+  it('adds with_watch_providers and watch_region when filtering by providers', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/discover/movie': DISCOVER_MOVIE_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    await client.discover('MOVIE', { providerIds: [8, 119], watchRegion: 'TW', page: 1, language: 'en' })
+
+    expect(requests[0]?.params).toEqual(expect.objectContaining({
+      with_watch_providers: '8|119',
+      watch_region: 'TW',
+      page: '1',
+      language: 'en',
+      sort_by: 'popularity.desc',
+    }))
+  })
+
+  it('caches discover separately per provider filter and region', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/discover/movie': DISCOVER_MOVIE_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    await client.discover('MOVIE', { providerIds: [8], watchRegion: 'TW' })
+    await client.discover('MOVIE', { providerIds: [8], watchRegion: 'TW' })
+    expect(requests).toHaveLength(1)
+
+    await client.discover('MOVIE', { providerIds: [119], watchRegion: 'TW' })
+    expect(requests).toHaveLength(2)
+
+    await client.discover('MOVIE', { providerIds: [8], watchRegion: 'US' })
+    expect(requests).toHaveLength(3)
+  })
+
+  it('sends language for provider-filtered discover', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/discover/movie': DISCOVER_MOVIE_PAGE,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    await client.discover('MOVIE', { providerIds: [8], watchRegion: 'TW', language: 'zh-TW' })
+    expect(requests[0]?.params.language).toBe('zh-TW')
+  })
 })
 
 describe('tmdb client — trending', () => {

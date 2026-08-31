@@ -1,4 +1,4 @@
-import type { Genre, Kind, Page, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
+import type { Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
 import process from 'node:process'
 import { createTtlCache } from './cache'
 import {
@@ -26,6 +26,7 @@ import {
   rawProviderCatalogSchema,
   rawTvDetailSchema,
   rawTvSummarySchema,
+  rawWatchProviderListSchema,
 } from './schemas'
 
 export interface FetchJsonInit {
@@ -53,6 +54,8 @@ export interface TmdbClientDeps {
 export interface DiscoverOptions {
   genreIds?: number[]
   minRating?: number
+  providerIds?: number[]
+  watchRegion?: string
   page?: number
   language?: TmdbLanguage
 }
@@ -64,6 +67,7 @@ export interface TmdbClient {
   topRated: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   title: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<TitleDetail | null>
   watchProviders: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<ProviderCatalog>
+  watchProviderList: (kind: Kind, language?: TmdbLanguage) => Promise<Provider[]>
   recommendations: (kind: Kind, tmdbId: number, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   genres: (kind: Kind, language?: TmdbLanguage) => Promise<Genre[]>
 }
@@ -123,7 +127,7 @@ export function createTmdbClient({
     },
 
     discover(kind: Kind, options: DiscoverOptions = {}): Promise<Page<TitleSummary>> {
-      const { genreIds, minRating, page = 1, language = DEFAULT_TMDB_LANGUAGE } = options
+      const { genreIds, minRating, providerIds, watchRegion, page = 1, language = DEFAULT_TMDB_LANGUAGE } = options
       const params: Record<string, string> = {
         sort_by: 'popularity.desc',
         page: String(page),
@@ -133,8 +137,13 @@ export function createTmdbClient({
         params.with_genres = genreIds.join('|')
       if (minRating != null)
         params['vote_average.gte'] = String(minRating)
+      if (providerIds && providerIds.length > 0) {
+        params.with_watch_providers = providerIds.join('|')
+        if (watchRegion)
+          params.watch_region = watchRegion
+      }
       const segment = toMediaSegment(kind)
-      return cache.wrap(`discover:${language}:${segment}:${params.with_genres ?? ''}:${params['vote_average.gte'] ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
+      return cache.wrap(`discover:${language}:${segment}:${params.with_genres ?? ''}:${params['vote_average.gte'] ?? ''}:${params.with_watch_providers ?? ''}:${params.watch_region ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(await request(`/discover/${segment}`, params))
         return mapPage(raw, raw.results.map(item =>
           kind === 'MOVIE'
@@ -210,6 +219,20 @@ export function createTmdbClient({
           await request(`/${segment}/${tmdbId}/watch/providers`, {}),
         )
         return mapProviderCatalog(raw)
+      })
+    },
+
+    watchProviderList(kind: Kind, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Provider[]> {
+      const segment = toMediaSegment(kind)
+      return cache.wrap(`provider-list:${language}:${segment}`, DETAIL_TTL_MS, async () => {
+        const raw = rawWatchProviderListSchema.parse(
+          await request(`/watch/providers/${segment}`, { language }),
+        )
+        return raw.results.map(entry => ({
+          id: entry.provider_id,
+          name: entry.provider_name,
+          logoPath: entry.logo_path,
+        })).sort((a, b) => a.name.localeCompare(b.name))
       })
     },
 

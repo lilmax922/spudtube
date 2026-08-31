@@ -1,35 +1,49 @@
 import type { Ref } from 'vue'
-import type { Kind, Page, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
+import type { HeroPayload } from '#server/api/catalog/[kind]/hero.get'
+import type { Kind, TmdbLanguage } from '#server/tmdb/types'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'
 
-const HERO_LIMIT = 5
+export interface HeroTitle {
+  kind: 'MOVIE' | 'TV_SHOW'
+  tmdbId: number
+  name: string
+  posterPath: string | null
+  backdropPath: string | null
+  releaseDate: string | null
+  voteAverage: number | null
+  overview: string | null
+  runtimeMinutes: number | null
+  contentRating: string | null
+  genres: { id: number, name: string }[]
+  providers: { id: number, name: string, logoPath: string | null }[]
+}
 
 export interface HeroFetcher {
-  fetchTrending: (kind: Kind, page: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  fetchHero: (kind: Kind, language?: TmdbLanguage) => Promise<HeroPayload>
 }
 
 export function createApiHeroFetcher(): HeroFetcher {
   return {
-    fetchTrending(kind, page, language) {
-      return $fetch<Page<TitleSummary>>(`/api/catalog/${toMediaSegment(kind)}/trending`, {
-        query: { page, ...(language ? { language } : {}) },
+    fetchHero(kind, language) {
+      return $fetch<HeroPayload>(`/api/catalog/${toMediaSegment(kind)}/hero`, {
+        query: { ...(language ? { language } : {}) },
       })
     },
   }
 }
 
 export interface HeroTitlesState {
-  titles: Ref<TitleSummary[]>
+  titles: Ref<HeroTitle[]>
   loading: Ref<boolean>
   error: Ref<boolean>
 }
 
 let heroInstance: HeroTitlesState | undefined
 
-export function useHeroTitles(kind: Ref<Kind>, fetcher?: HeroFetcher): HeroTitlesState {
+export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetcher): HeroTitlesState {
   const isDefault = fetcher === undefined
   if (isDefault && heroInstance)
     return heroInstance
@@ -41,7 +55,7 @@ export function useHeroTitles(kind: Ref<Kind>, fetcher?: HeroFetcher): HeroTitle
   catch {
     localeRef = ref('en') as Ref<string>
   }
-  const titles = ref<TitleSummary[]>([])
+  const titles = ref<HeroTitle[]>([])
   const loading = ref(false)
   const error = ref(false)
   let generation = 0
@@ -51,12 +65,23 @@ export function useHeroTitles(kind: Ref<Kind>, fetcher?: HeroFetcher): HeroTitle
     loading.value = true
     error.value = false
     try {
-      const page = await actualFetcher.fetchTrending(kind.value, 1, localeRef.value as TmdbLanguage)
+      const payload = await actualFetcher.fetchHero(kind.value, localeRef.value as TmdbLanguage)
       if (current !== generation)
         return
-      // Sort by vote average so the highest-rated title leads the carousel.
-      const sorted = [...page.results].sort((a, b) => (b.voteAverage ?? 0) - (a.voteAverage ?? 0))
-      titles.value = sorted.slice(0, HERO_LIMIT)
+      titles.value = payload.results.map(r => ({
+        kind: r.kind,
+        tmdbId: r.tmdbId,
+        name: r.name,
+        posterPath: r.posterPath,
+        backdropPath: r.backdropPath,
+        releaseDate: r.releaseDate,
+        voteAverage: r.voteAverage,
+        overview: r.overview ?? null,
+        runtimeMinutes: r.runtimeMinutes,
+        contentRating: r.contentRating,
+        genres: r.genres,
+        providers: r.providers,
+      }))
     }
     catch {
       if (current === generation)
@@ -68,8 +93,6 @@ export function useHeroTitles(kind: Ref<Kind>, fetcher?: HeroFetcher): HeroTitle
     }
   }
 
-  // Refetch when the kind or locale flips; the hero never reacts to user filters, only to the
-  // current catalog and display language.
   void load()
   watch([kind, localeRef], () => {
     void load()
@@ -81,7 +104,6 @@ export function useHeroTitles(kind: Ref<Kind>, fetcher?: HeroFetcher): HeroTitle
   return state
 }
 
-// Test-only escape hatch to reset the singleton between tests.
 export function resetHeroTitlesForTest(): void {
   heroInstance = undefined
 }

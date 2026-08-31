@@ -1,5 +1,5 @@
 import type { ComputedRef, Ref } from 'vue'
-import type { Genre, Kind, Page, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
+import type { Genre, Kind, Page, Provider, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
@@ -14,8 +14,10 @@ export interface BrowseFetcher {
   fetchGenres: (kind: Kind, language?: TmdbLanguage) => Promise<Genre[]>
   fetchDiscover: (
     kind: Kind,
-    options: { genreIds: number[], minRating: number | null, page: number, language?: TmdbLanguage },
+    options: { genreIds: number[], minRating: number | null, providerIds: number[], page: number, language?: TmdbLanguage },
   ) => Promise<Page<TitleSummary>>
+  fetchProviders: (kind: Kind, tmdbIds: number[], language?: TmdbLanguage) => Promise<Map<string, Provider[]>>
+  fetchProviderList: (kind: Kind, language?: TmdbLanguage) => Promise<Provider[]>
 }
 
 export function createApiBrowseFetcher(): BrowseFetcher {
@@ -28,13 +30,33 @@ export function createApiBrowseFetcher(): BrowseFetcher {
         },
       })
     },
-    fetchDiscover(kind, { genreIds, minRating, page, language }) {
+    fetchDiscover(kind, { genreIds, minRating, providerIds, page, language }) {
       return $fetch<Page<TitleSummary>>('/api/catalog/discover', {
         query: {
           kind: KIND_SEGMENT[kind],
           ...(genreIds.length > 0 ? { genres: genreIds.join(',') } : {}),
           ...(minRating != null ? { minRating: String(minRating) } : {}),
+          ...(providerIds.length > 0 ? { providers: providerIds.join(',') } : {}),
           page,
+          ...(language ? { language } : {}),
+        },
+      })
+    },
+    fetchProviders(kind, tmdbIds, language) {
+      if (tmdbIds.length === 0)
+        return Promise.resolve(new Map())
+      return $fetch<Record<string, Provider[]>>('/api/catalog/providers', {
+        query: {
+          kind: KIND_SEGMENT[kind],
+          ids: tmdbIds.join(','),
+          ...(language ? { language } : {}),
+        },
+      }).then((record: Record<string, Provider[]>) => new Map(Object.entries(record)))
+    },
+    fetchProviderList(kind, language) {
+      return $fetch<Provider[]>('/api/catalog/provider-list', {
+        query: {
+          kind: KIND_SEGMENT[kind],
           ...(language ? { language } : {}),
         },
       })
@@ -46,6 +68,8 @@ export interface BrowseGridState {
   kind: Ref<Kind>
   selectedGenreIds: Ref<number[]>
   minRating: Ref<number | null>
+  selectedProviderIds: Ref<number[]>
+  availableProviders: ComputedRef<Provider[]>
   genres: Ref<Genre[]>
   items: Ref<TitleSummary[]>
   page: Ref<number>
@@ -60,6 +84,9 @@ export interface BrowseGridState {
   toggleGenre: (genreId: number) => void
   clearGenres: () => void
   setMinRating: (rating: number | null) => void
+  toggleProvider: (providerId: number) => void
+  clearProviders: () => void
+  clearFilters: () => void
 }
 
 let browseGridInstance: BrowseGridState | undefined
@@ -72,6 +99,8 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const kind = ref<Kind>('MOVIE')
   const selectedGenreIds = ref<number[]>([])
   const minRating = ref<number | null>(null)
+  const selectedProviderIds = ref<number[]>([])
+  const providerListRaw = ref<Provider[]>([])
   const genres = ref<Genre[]>([])
   let localeRef: Ref<string>
   try {
@@ -83,10 +112,16 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const tmdbLanguage = computed<TmdbLanguage>(() =>
     localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
   )
+
+  const availableProviders = computed<Provider[]>(() => {
+    return [...providerListRaw.value].sort((a, b) => a.name.localeCompare(b.name))
+  })
+
   const { loadFirstPage, loadNextPage, ...paged } = usePagedResults<TitleSummary>(page =>
     actualFetcher.fetchDiscover(kind.value, {
       genreIds: selectedGenreIds.value,
       minRating: minRating.value,
+      providerIds: selectedProviderIds.value,
       page,
       language: tmdbLanguage.value,
     }),
@@ -94,12 +129,23 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
 
   async function refresh(): Promise<void> {
     try {
-      const [genreList, applied] = await Promise.all([
+      const fetchList = actualFetcher.fetchProviderList
+        ? actualFetcher.fetchProviderList(kind.value, tmdbLanguage.value).catch(() => [] as Provider[])
+        : Promise.resolve([] as Provider[])
+      const [genreList, providerList, applied] = await Promise.all([
         actualFetcher.fetchGenres(kind.value, tmdbLanguage.value),
+        fetchList,
         loadFirstPage(),
       ])
-      if (applied)
+      if (applied) {
         genres.value = genreList
+        providerListRaw.value = providerList
+      }
+      else {
+        // Still update filter chrome even if page failed, so providers/genres stay fresh
+        providerListRaw.value = providerList
+        genres.value = genreList
+      }
     }
     catch {
       paged.markFailed(paged.attempt())
@@ -115,6 +161,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
       return
     kind.value = next
     selectedGenreIds.value = []
+    selectedProviderIds.value = []
     void refresh()
   }
 
@@ -139,18 +186,50 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     void refresh()
   }
 
+  function toggleProvider(providerId: number): void {
+    selectedProviderIds.value = selectedProviderIds.value.includes(providerId)
+      ? selectedProviderIds.value.filter(id => id !== providerId)
+      : [...selectedProviderIds.value, providerId]
+    void refresh()
+  }
+
+  function clearProviders(): void {
+    if (selectedProviderIds.value.length === 0)
+      return
+    selectedProviderIds.value = []
+    void refresh()
+  }
+
+  function clearFilters(): void {
+    const hadGenre = selectedGenreIds.value.length > 0
+    selectedGenreIds.value = []
+    const hadRating = minRating.value != null
+    minRating.value = null
+    const hadProvider = selectedProviderIds.value.length > 0
+    selectedProviderIds.value = []
+    if (hadGenre || hadRating || hadProvider)
+      void refresh()
+  }
+
   const state: BrowseGridState = {
     ...paged,
     kind,
     selectedGenreIds,
     minRating,
+    selectedProviderIds,
+    availableProviders,
     genres,
     refresh,
-    loadMore: loadNextPage,
+    loadMore: async () => {
+      await loadNextPage()
+    },
     setKind,
     toggleGenre,
     clearGenres,
     setMinRating,
+    toggleProvider,
+    clearProviders,
+    clearFilters,
   }
   if (isDefault)
     browseGridInstance = state

@@ -12,3 +12,8 @@ export const genreIdsParam = z
   .string()
   .regex(/^\d+(,\d+)*$/, 'must be a comma-separated list of TMDB genre ids')
   .transform(value => value.split(',').map(Number))
+
+export const providerIdsParam = z
+  .string()
+  .regex(/^\d+(,\d+)*$/, 'must be a comma-separated list of provider ids')
+  .transform(value => value.split(',').map(Number))

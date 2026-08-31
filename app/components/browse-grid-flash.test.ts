@@ -9,6 +9,8 @@ interface MockState {
   kind: { value: 'MOVIE' | 'TV_SHOW' }
   selectedGenreIds: { value: number[] }
   minRating: { value: number | null }
+  selectedProviderIds: { value: number[] }
+  availableProviders: { value: { id: number, name: string, logoPath: string | null }[] }
   genres: { value: Genre[] }
   items: { value: TitleSummary[] }
   loading: { value: boolean }
@@ -33,6 +35,9 @@ const mock = vi.hoisted(() => ({
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
     setMinRating: vi.fn(),
+    toggleProvider: vi.fn(),
+    clearProviders: vi.fn(),
+    clearFilters: vi.fn(),
   },
   search: {
     loadMore: vi.fn(),
@@ -43,6 +48,8 @@ const browseState = {
   kind: shallowRef<'MOVIE' | 'TV_SHOW'>('MOVIE'),
   selectedGenreIds: shallowRef<number[]>([]),
   minRating: shallowRef<number | null>(null),
+  selectedProviderIds: shallowRef<number[]>([]),
+  availableProviders: shallowRef<{ id: number, name: string, logoPath: string | null }[]>([]),
   genres: shallowRef<Genre[]>([]),
   items: shallowRef<TitleSummary[]>([]),
   loading: shallowRef(false),
@@ -68,6 +75,9 @@ vi.mock('../composables/use-browse-grid', () => ({
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
     setMinRating: mock.browse.setMinRating,
+    toggleProvider: mock.browse.toggleProvider,
+    clearProviders: mock.browse.clearProviders,
+    clearFilters: mock.browse.clearFilters,
   }),
 }))
 
@@ -113,6 +123,8 @@ beforeEach(() => {
   state.kind.value = 'MOVIE'
   state.selectedGenreIds.value = []
   state.minRating.value = null
+  state.selectedProviderIds.value = []
+  state.availableProviders.value = []
   state.genres.value = genres
   state.items.value = []
   state.loading.value = false
@@ -137,6 +149,9 @@ afterEach(() => {
   mock.browse.toggleGenre.mockReset()
   mock.browse.clearGenres.mockReset()
   mock.browse.setMinRating.mockReset()
+  mock.browse.toggleProvider.mockReset()
+  mock.browse.clearProviders.mockReset()
+  mock.browse.clearFilters.mockReset()
   mock.search.loadMore.mockReset()
   vi.unstubAllGlobals()
 })

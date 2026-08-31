@@ -12,13 +12,23 @@
     "ratingLabel": "Minimum rating",
     "ratingAll": "All",
     "ratingHigh": "7+",
-    "ratingTop": "8+"
+    "ratingTop": "8+",
+    "providersLabel": "Providers",
+    "minutesShort": "{minutes} min"
   },
   "hero": {
     "viewDetails": "View details",
     "previous": "Previous title",
     "next": "Next title",
-    "slide": "Slide {index}"
+    "slide": "Slide {index}",
+    "playTrailer": "Play trailer",
+    "rate": "Rate",
+    "addToWatchlist": "Watchlist",
+    "markWatched": "Mark watched",
+    "streamingOn": "Streaming on {provider}",
+    "streamingOnMultiple": "{count} providers",
+    "noStreaming": "Streaming data unavailable",
+    "signInToRate": "Sign in to rate"
   },
   "card": {
     "badges": {
@@ -146,7 +156,12 @@
       "heading": "Top billed cast"
     },
     "media": {
-      "heading": "Media"
+      "heading": "Media",
+      "open": "Open image {index} of {total}",
+      "close": "Close",
+      "previous": "Previous image",
+      "next": "Next image",
+      "counter": "{current} / {total}"
     },
     "crew": {
       "director": "Director",

@@ -6,7 +6,11 @@ import { useBrowseGrid } from './use-browse-grid'
 function createFakeFetcher() {
   const fetchGenres = vi.fn<BrowseFetcher['fetchGenres']>()
   const fetchDiscover = vi.fn<BrowseFetcher['fetchDiscover']>()
-  return { fetcher: { fetchGenres, fetchDiscover }, fetchGenres, fetchDiscover }
+  const fetchProviders = vi.fn<BrowseFetcher['fetchProviders']>()
+  const fetchProviderList = vi.fn<BrowseFetcher['fetchProviderList']>()
+  fetchProviders.mockResolvedValue(new Map())
+  fetchProviderList.mockResolvedValue([])
+  return { fetcher: { fetchGenres, fetchDiscover, fetchProviders, fetchProviderList } as unknown as BrowseFetcher, fetchGenres, fetchDiscover, fetchProviders, fetchProviderList }
 }
 
 function page(results: TitleSummary[], totalPages: number): Page<TitleSummary> {
@@ -39,7 +43,7 @@ const genres: Genre[] = [
 ]
 
 describe('use-browse-grid', () => {
-  const baseOptions = { genreIds: [] as number[], minRating: null as number | null, page: 1, language: 'en' }
+  const baseOptions = { genreIds: [] as number[], minRating: null as number | null, providerIds: [] as number[], page: 1, language: 'en' }
 
   it('loads genres and the first page for the default kind', async () => {
     const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()
@@ -152,8 +156,7 @@ describe('use-browse-grid', () => {
   })
 
   it('flags an error when the first page fails to load', async () => {
-    const { fetcher } = createFakeFetcher()
-    const { fetchGenres, fetchDiscover } = fetcher
+    const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()
     fetchGenres.mockRejectedValue(new Error('boom'))
     fetchDiscover.mockResolvedValue(page([dune], 5))
 
@@ -187,5 +190,67 @@ describe('use-browse-grid', () => {
 
     expect(grid.page.value).toBe(1)
     expect(grid.loadingMore.value).toBe(false)
+  })
+
+  it('toggles provider filter and refetches discover with providerIds', async () => {
+    const { fetcher, fetchDiscover } = createFakeFetcher()
+    fetchDiscover.mockResolvedValue(page([dune], 1))
+
+    const grid = useBrowseGrid(fetcher)
+    await grid.refresh()
+    fetchDiscover.mockClear()
+
+    grid.toggleProvider(8)
+
+    await vi.waitFor(() =>
+      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ providerIds: [8] })),
+    )
+    expect(grid.selectedProviderIds.value).toEqual([8])
+
+    fetchDiscover.mockClear()
+    grid.toggleProvider(8)
+    await vi.waitFor(() =>
+      expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ providerIds: [] })),
+    )
+    expect(grid.selectedProviderIds.value).toEqual([])
+  })
+
+  it('exposes availableProviders from fetchProviderList (global), not from current page items', async () => {
+    const globalProviders = [
+      { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
+      { id: 119, name: 'Prime Video', logoPath: '/prime.jpg' },
+      { id: 337, name: 'Disney Plus', logoPath: '/disney.jpg' },
+    ]
+    const fetchProviderList = vi.fn().mockResolvedValue(globalProviders)
+    const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()
+    ;(fetcher as unknown as Record<string, unknown>).fetchProviderList = fetchProviderList
+    fetchGenres.mockResolvedValue(genres)
+    fetchDiscover.mockResolvedValue(page([dune], 1))
+
+    const grid = useBrowseGrid(fetcher as unknown as import('./use-browse-grid').BrowseFetcher)
+    await grid.refresh()
+
+    await vi.waitFor(() => expect(grid.availableProviders.value.length).toBe(3))
+    expect(grid.availableProviders.value.map(p => p.id).sort((a, b) => a - b)).toEqual([8, 119, 337])
+    // Should not be derived from current page's ids (dune alone would only give its own providers)
+    expect(fetchProviderList).toHaveBeenCalled()
+  })
+
+  it('clearFilters resets providerIds and refetches', async () => {
+    const { fetcher, fetchDiscover } = createFakeFetcher()
+    fetchDiscover.mockResolvedValue(page([dune], 1))
+    const grid = useBrowseGrid(fetcher)
+    await grid.refresh()
+    grid.toggleProvider(8)
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ providerIds: [8] })))
+    fetchDiscover.mockClear()
+    grid.toggleGenre(28)
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalled())
+    fetchDiscover.mockClear()
+    grid.clearFilters()
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ providerIds: [], genreIds: [] })))
+    expect(grid.selectedProviderIds.value).toEqual([])
+    expect(grid.selectedGenreIds.value).toEqual([])
+    expect(grid.minRating.value).toBeNull()
   })
 })

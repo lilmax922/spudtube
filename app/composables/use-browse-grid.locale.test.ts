@@ -23,10 +23,14 @@ vi.mock('vue-i18n', async () => {
 
 const { useBrowseGrid } = await import('./use-browse-grid')
 
-function createFakeFetcher(): { fetcher: BrowseFetcher, fetchGenres: ReturnType<typeof vi.fn>, fetchDiscover: ReturnType<typeof vi.fn> } {
+function createFakeFetcher(): { fetcher: BrowseFetcher, fetchGenres: ReturnType<typeof vi.fn>, fetchDiscover: ReturnType<typeof vi.fn>, fetchProviders: ReturnType<typeof vi.fn>, fetchProviderList: ReturnType<typeof vi.fn> } {
   const fetchGenres = vi.fn<BrowseFetcher['fetchGenres']>()
   const fetchDiscover = vi.fn<BrowseFetcher['fetchDiscover']>()
-  return { fetcher: { fetchGenres, fetchDiscover }, fetchGenres, fetchDiscover }
+  const fetchProviders = vi.fn<BrowseFetcher['fetchProviders']>()
+  const fetchProviderList = vi.fn<BrowseFetcher['fetchProviderList']>()
+  fetchProviders.mockResolvedValue(new Map())
+  fetchProviderList.mockResolvedValue([])
+  return { fetcher: { fetchGenres, fetchDiscover, fetchProviders, fetchProviderList } as unknown as BrowseFetcher, fetchGenres, fetchDiscover, fetchProviders, fetchProviderList }
 }
 
 function page(results: TitleSummary[], totalPages: number): Page<TitleSummary> {
@@ -48,7 +52,7 @@ const genres: Genre[] = [
 ]
 
 describe('use-browse-grid — locale watch (TMDB language orthogonal)', () => {
-  const baseOptions = { genreIds: [] as number[], minRating: null as number | null, page: 1, language: 'en' }
+  const baseOptions = { genreIds: [] as number[], minRating: null as number | null, providerIds: [] as number[], page: 1, language: 'en' }
 
   it('refetches discover and genres with the new language when locale changes', async () => {
     const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()

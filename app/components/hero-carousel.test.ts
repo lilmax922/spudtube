@@ -1,10 +1,10 @@
-import type { TitleSummary } from '#server/tmdb/types'
+import type { HeroTitle } from '../composables/use-hero-titles'
 import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import HeroCarousel from './hero-carousel.vue'
 
-const sampleTitles: TitleSummary[] = [
+const sampleTitles: HeroTitle[] = [
   {
     kind: 'MOVIE',
     tmdbId: 419430,
@@ -13,7 +13,11 @@ const sampleTitles: TitleSummary[] = [
     backdropPath: '/iopYFB1b6Bh7FWZhjzonDEfMvZB.jpg',
     releaseDate: '2021-10-22',
     voteAverage: 7.8,
-    genreIds: [878],
+    overview: 'Paul Atreides, a brilliant and gifted young man...',
+    runtimeMinutes: 155,
+    contentRating: 'PG-13',
+    genres: [{ id: 878, name: 'Sci-Fi' }, { id: 12, name: 'Adventure' }],
+    providers: [],
   },
   {
     kind: 'MOVIE',
@@ -23,7 +27,11 @@ const sampleTitles: TitleSummary[] = [
     backdropPath: '/87FQUboshqcztBkz5wXRPlbMmyM.jpg',
     releaseDate: '2024-02-27',
     voteAverage: 8.3,
-    genreIds: [878],
+    overview: 'Paul Atreides unites with the Fremen...',
+    runtimeMinutes: 166,
+    contentRating: 'PG-13',
+    genres: [{ id: 878, name: 'Sci-Fi' }],
+    providers: [{ id: 8, name: 'Netflix', logoPath: '/netflix.jpg' }],
   },
   {
     kind: 'TV_SHOW',
@@ -33,7 +41,11 @@ const sampleTitles: TitleSummary[] = [
     backdropPath: '/2OMB0ynKlyIenMJWI2Dy9IWT4c.jpg',
     releaseDate: '2011-04-17',
     voteAverage: 8.4,
-    genreIds: [10765],
+    overview: 'Seven noble families fight for control of the mythical land of Westeros.',
+    runtimeMinutes: 60,
+    contentRating: 'TV-MA',
+    genres: [{ id: 10765, name: 'Sci-Fi & Fantasy' }],
+    providers: [],
   },
 ]
 
@@ -46,7 +58,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function mountCarousel(titles: TitleSummary[]): Promise<{ wrapper: Awaited<ReturnType<typeof mountSuspended>> }> {
+async function mountCarousel(titles: HeroTitle[]): Promise<{ wrapper: Awaited<ReturnType<typeof mountSuspended>> }> {
   registerEndpoint('https://image.tmdb.org/t/p/**', () => ({ body: '' }))
   const wrapper = await mountSuspended(HeroCarousel, {
     props: { titles },
@@ -68,7 +80,7 @@ describe('hero-carousel', () => {
   })
 
   it('picks the top 5 titles by voteAverage as trending slides', async () => {
-    const manyTitles: TitleSummary[] = Array.from({ length: 8 }, (_, i) => ({
+    const manyTitles: HeroTitle[] = Array.from({ length: 8 }, (_, i) => ({
       kind: 'MOVIE' as const,
       tmdbId: 1000 + i,
       name: `Title ${i}`,
@@ -76,14 +88,17 @@ describe('hero-carousel', () => {
       backdropPath: null,
       releaseDate: '2020-01-01',
       voteAverage: 5 + i * 0.3,
-      genreIds: [],
+      overview: null,
+      runtimeMinutes: null,
+      contentRating: null,
+      genres: [],
+      providers: [],
     }))
 
     const { wrapper } = await mountCarousel(manyTitles)
     const r = root(wrapper)
     expect(r.querySelectorAll('[data-index]')).toHaveLength(5)
 
-    // The first slide should be the highest-rated title
     const firstName = r.querySelector('[data-index="0"] .heroTitle')?.textContent?.trim()
     expect(firstName).toBe('Title 7')
 
@@ -97,7 +112,6 @@ describe('hero-carousel', () => {
     expect(activeSlide).toBeTruthy()
     const img = activeSlide!.querySelector('img')
     expect(img).toBeTruthy()
-    // Game of Thrones has the highest voteAverage so it leads the active slide
     expect(img!.getAttribute('src') ?? '').toContain('/2OMB0ynKlyIenMJWI2Dy9IWT4c.jpg')
 
     wrapper.unmount()
@@ -139,14 +153,100 @@ describe('hero-carousel', () => {
     wrapper.unmount()
   })
 
-  it('exposes a CTA link to the active slide detail page', async () => {
+  it('exposes a view-details link to the active slide detail page', async () => {
     const { wrapper } = await mountCarousel(sampleTitles)
     const r = root(wrapper)
-    const cta = r.querySelector('.heroInfo a') as HTMLAnchorElement | null
-    expect(cta).toBeTruthy()
-    // Active slide is the highest-rated title (Game of Thrones 8.4 > Dune Part Two 8.3)
-    expect(cta!.getAttribute('href')).toBe('/tv/1399')
+    const primaryLink = r.querySelector('.heroBtnPrimary') as HTMLAnchorElement | null
+    expect(primaryLink).toBeTruthy()
+    expect(primaryLink!.getAttribute('href')).toBe('/tv/1399')
 
+    wrapper.unmount()
+  })
+
+  it('renders the five-row metadata stack (title, rating+genres, overview, provider+year+time, actions)', async () => {
+    const { wrapper } = await mountCarousel(sampleTitles)
+    const r = root(wrapper)
+    const activeSlide = r.querySelector('.heroSlide.active')
+    expect(activeSlide).toBeTruthy()
+
+    expect(activeSlide!.querySelector('.heroTitle')).toBeTruthy()
+    expect(activeSlide!.querySelector('.heroMeta')?.textContent).toContain('★')
+    expect(activeSlide!.querySelector('.heroMeta')?.textContent).toContain('Sci-Fi & Fantasy')
+    expect(activeSlide!.querySelector('.heroOverview')?.textContent).toContain('Westeros')
+    expect(activeSlide!.querySelector('.heroStrip')?.textContent).toContain('2011')
+    expect(activeSlide!.querySelector('.heroActions')).toBeTruthy()
+    expect(activeSlide!.querySelectorAll('.heroActions .heroBtn').length).toBeGreaterThanOrEqual(4)
+
+    wrapper.unmount()
+  })
+
+  it('shows a provider logo for titles that have providers, alongside year', async () => {
+    const { wrapper } = await mountCarousel(sampleTitles)
+    const r = root(wrapper)
+    const slides = [...r.querySelectorAll('.heroSlide')]
+    const duneSlide = slides.find(s => s.querySelector('.heroTitle')?.textContent?.includes('Dune Part Two'))!
+    expect(duneSlide.querySelector('.heroStripProviderLogo')).toBeTruthy()
+    expect(duneSlide.querySelector('.heroStrip')!.textContent ?? '').toContain('2024')
+    expect(duneSlide.querySelector('.heroStrip')!.textContent ?? '').not.toMatch(/Streaming/i)
+
+    wrapper.unmount()
+  })
+
+  it('does not render a streaming fallback label when providers are empty (logo omitted, year still shown)', async () => {
+    const { wrapper } = await mountCarousel(sampleTitles)
+    const r = root(wrapper)
+    const slides = [...r.querySelectorAll('.heroSlide')]
+    const active = slides.find(s => s.classList.contains('active'))!
+    expect(active.querySelector('.heroStripProvider')).toBeFalsy()
+    const strip = active.querySelector('.heroStrip')!.textContent ?? ''
+    expect(strip).not.toMatch(/Streaming/i)
+    expect(strip).toContain('2011')
+    wrapper.unmount()
+  })
+
+  it('places backdrop image above fallback solid (backdrop visible)', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/hero-carousel.vue'), 'utf-8')
+    const beforeIdx = vueFile.indexOf('.heroSlide::before')
+    const beforeBlock = vueFile.slice(beforeIdx, beforeIdx + 800)
+    const backdropIdx = vueFile.indexOf('.heroBackdrop')
+    const backdropBlock = vueFile.slice(backdropIdx, backdropIdx + 600)
+    const afterIdx = vueFile.indexOf('.heroSlide::after')
+    const afterBlock = vueFile.slice(afterIdx, afterIdx + 900)
+    expect(beforeBlock).toMatch(/z-index:\s*-3/)
+    expect(backdropBlock).toMatch(/z-index:\s*-2/)
+    expect(afterBlock).toMatch(/z-index:\s*-1/)
+    // ordering ensures image covers fallback but sits under gradient
+  })
+
+  it('places kind immediately to the right of rating score in row2 (heroMeta)', async () => {
+    const { wrapper } = await mountCarousel(sampleTitles)
+    const r = root(wrapper)
+    const active = r.querySelector('.heroSlide.active')!
+    const meta = active.querySelector('.heroMeta')!.textContent ?? ''
+    // rating ★ 8.4 then kind TV Show should appear in same row, adjacent
+    expect(meta).toMatch(/★/)
+    expect(meta).toContain('TV Show')
+    // kind must not be in heroStrip after fix
+    expect(active.querySelector('.heroStrip')!.textContent ?? '').not.toContain('TV Show')
+    expect(active.querySelector('.heroStrip')!.textContent ?? '').not.toContain('Movie')
+    wrapper.unmount()
+  })
+
+  it('heroStrip shows provider logo, year and runtime without streaming texts', async () => {
+    const { wrapper } = await mountCarousel(sampleTitles)
+    const r = root(wrapper)
+    const slides = [...r.querySelectorAll('.heroSlide')]
+    const active = slides.find(s => s.classList.contains('active'))!
+    const strip = active.querySelector('.heroStrip')!.textContent ?? ''
+    expect(strip).not.toMatch(/Streaming/i)
+    expect(strip).not.toMatch(/providers?/i)
+    expect(strip).toContain('2011')
+    // provider logo should still render for titles that have providers (Dune Part Two)
+    const duneSlide = slides.find(s => s.querySelector('.heroTitle')?.textContent?.includes('Dune Part Two'))!
+    expect(duneSlide.querySelector('.heroStripProvider')).toBeTruthy()
+    expect(duneSlide.querySelector('.heroStrip')!.textContent ?? '').toContain('2024')
     wrapper.unmount()
   })
 })

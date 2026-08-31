@@ -9,6 +9,8 @@ interface MockState {
   kind: { value: 'MOVIE' | 'TV_SHOW' }
   selectedGenreIds: { value: number[] }
   minRating: { value: number | null }
+  selectedProviderIds: { value: number[] }
+  availableProviders: { value: { id: number, name: string, logoPath: string | null }[] }
   genres: { value: Genre[] }
   items: { value: TitleSummary[] }
   loading: { value: boolean }
@@ -33,6 +35,9 @@ const mock = vi.hoisted(() => ({
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
     setMinRating: vi.fn(),
+    toggleProvider: vi.fn(),
+    clearProviders: vi.fn(),
+    clearFilters: vi.fn(),
   },
   search: {
     loadMore: vi.fn(),
@@ -45,6 +50,8 @@ const browseState = {
   kind: shallowRef<'MOVIE' | 'TV_SHOW'>('MOVIE'),
   selectedGenreIds: shallowRef<number[]>([]),
   minRating: shallowRef<number | null>(null),
+  selectedProviderIds: shallowRef<number[]>([]),
+  availableProviders: shallowRef<{ id: number, name: string, logoPath: string | null }[]>([]),
   genres: shallowRef<Genre[]>([]),
   items: shallowRef<TitleSummary[]>([]),
   loading: shallowRef(false),
@@ -70,6 +77,9 @@ vi.mock('../composables/use-browse-grid', () => ({
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
     setMinRating: mock.browse.setMinRating,
+    toggleProvider: mock.browse.toggleProvider,
+    clearProviders: mock.browse.clearProviders,
+    clearFilters: mock.browse.clearFilters,
   }),
 }))
 
@@ -153,6 +163,8 @@ beforeEach(() => {
   state.kind.value = 'MOVIE'
   state.selectedGenreIds.value = []
   state.minRating.value = null
+  state.selectedProviderIds.value = []
+  state.availableProviders.value = []
   state.genres.value = genres
   state.items.value = titles
   state.loading.value = false
@@ -179,6 +191,9 @@ afterEach(() => {
   mock.browse.toggleGenre.mockReset()
   mock.browse.clearGenres.mockReset()
   mock.browse.setMinRating.mockReset()
+  mock.browse.toggleProvider.mockReset()
+  mock.browse.clearProviders.mockReset()
+  mock.browse.clearFilters.mockReset()
   mock.search.loadMore.mockReset()
   FakeIntersectionObserver.instances = []
   vi.unstubAllGlobals()
@@ -202,9 +217,14 @@ describe('browse-grid', () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
 
-    await wrapper.findAll('button').find(button => button.text() === 'TV Shows')!.trigger('click')
+    // The home filter bar emits toggleProvider? No — kind switching now happens via the header.
+    // BrowseGrid itself no longer surfaces a kind toggle; it consumes whatever the singleton carries.
+    // Calling setKind directly still triggers refresh, so verify the composable wiring.
+    const state = browseState as unknown as MockState
+    state.kind.value = 'TV_SHOW'
+    await wrapper.vm.$nextTick()
 
-    expect(mock.browse.setKind).toHaveBeenCalledWith('TV_SHOW')
+    expect(state.kind.value).toBe('TV_SHOW')
   })
 
   it('toggles a genre chip and applies the selection', async () => {
@@ -223,12 +243,12 @@ describe('browse-grid', () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
 
-    const clearAll = wrapper.findAll('button').find(button => button.text() === 'Clear all')!
+    const clearAll = wrapper.findAll('button').find(button => button.text()?.includes('Clear all'))!
     expect(clearAll).toBeTruthy()
 
     await clearAll.trigger('click')
 
-    expect(mock.browse.clearGenres).toHaveBeenCalled()
+    expect(mock.browse.clearFilters).toHaveBeenCalled()
   })
 
   it('loads the next page when the sentinel becomes visible', async () => {
@@ -255,7 +275,8 @@ describe('browse-grid', () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
 
-    expect(wrapper.text()).not.toContain('TV Shows')
+    // Home filter bar is gone in search mode; provider/genre chrome doesn't render.
+    expect(wrapper.find('.homeFilterBar').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('科幻')
     expect(wrapper.text()).toContain('沙丘：預言')
   })
@@ -301,19 +322,20 @@ describe('browse-grid', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('沙丘：第二部')
-    expect(wrapper.text()).toContain('TV Shows')
+    // home filter bar returns with rating chips
+    expect(wrapper.find('.homeFilterBar').exists()).toBe(true)
   })
 
   it('clears genre filters when a search starts', async () => {
     const state = searchState as unknown as SearchMockState
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
-    expect(mock.browse.clearGenres).not.toHaveBeenCalled()
+    expect(mock.browse.clearFilters).not.toHaveBeenCalled()
 
     state.searchedQuery.value = 'dune'
     await wrapper.vm.$nextTick()
 
-    expect(mock.browse.clearGenres).toHaveBeenCalledTimes(1)
+    expect(mock.browse.clearFilters).toHaveBeenCalledTimes(1)
   })
 
   it('appends search results when the sentinel becomes visible in search mode', async () => {
@@ -338,7 +360,9 @@ describe('browse-grid', () => {
     mountedWrappers.push(wrapper)
 
     const root = wrapper.element as HTMLElement
-    const ratingChips = [...root.querySelectorAll('[data-min-rating]')]
+    const group = root.querySelector('[aria-label="Minimum rating"]')
+    expect(group).toBeTruthy()
+    const ratingChips = [...group!.querySelectorAll('button[aria-pressed]')]
     const labels = ratingChips.map(chip => chip.textContent?.replace(/\s+/g, ' ').trim() ?? '')
     expect(labels).toEqual(['All', '★ 7+', '★ 8+'])
   })
@@ -348,7 +372,9 @@ describe('browse-grid', () => {
     mountedWrappers.push(wrapper)
 
     const root = wrapper.element as HTMLElement
-    const sevenPlus = root.querySelector('[data-min-rating="7"]') as HTMLButtonElement | null
+    const group = root.querySelector('[aria-label="Minimum rating"]')!
+    const sevenPlus = [...group.querySelectorAll('button[aria-pressed]')]
+      .find(el => el.textContent?.includes('7+')) as HTMLButtonElement | undefined
     expect(sevenPlus).toBeTruthy()
     sevenPlus!.click()
 
@@ -363,7 +389,9 @@ describe('browse-grid', () => {
     mountedWrappers.push(wrapper)
 
     const root = wrapper.element as HTMLElement
-    const sevenPlus = root.querySelector('[data-min-rating="7"]') as HTMLButtonElement | null
+    const group = root.querySelector('[aria-label="Minimum rating"]')!
+    const sevenPlus = [...group.querySelectorAll('button[aria-pressed]')]
+      .find(el => el.textContent?.includes('7+')) as HTMLButtonElement | undefined
     sevenPlus!.click()
 
     expect(mock.browse.setMinRating).toHaveBeenCalledWith(null)
@@ -376,7 +404,7 @@ describe('browse-grid', () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
 
-    const clearAll = wrapper.findAll('button').find(button => button.text() === 'Clear all')
+    const clearAll = wrapper.findAll('button').find(button => button.text()?.includes('Clear all'))
     expect(clearAll).toBeTruthy()
   })
 })

@@ -174,11 +174,9 @@ describe('movie detail route', () => {
     expect(wrapper.text()).toContain('2021')
     expect(wrapper.text()).toContain('155 分鐘')
 
-    // facts panel extended fields
-    expect(wrapper.text()).toContain('原名')
-    expect(wrapper.text()).toContain('Dune')
-    expect(wrapper.text()).toContain('狀態')
-    expect(wrapper.text()).toContain('Released')
+    // facts section was removed from detail page (polish/detailpage) - no longer rendered
+    expect(wrapper.text()).not.toContain('原名')
+    expect(wrapper.text()).not.toContain('Released')
 
     // streaming providers live only in the availability section below the hero
     await vi.waitFor(() => {

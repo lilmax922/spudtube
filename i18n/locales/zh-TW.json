@@ -179,6 +179,17 @@
       "backHome": "回到首頁"
     }
   },
+  "footer": {
+    "description": "探索電影與影集，找到你所在地區的串流平台，收藏下一部想看的作品。",
+    "attribution": "提供者資料由 JustWatch 授權。",
+    "tmdbNotice": "本產品使用 TMDB API 但未被 TMDB 認可或認證。",
+    "copyright": "© {year} SpudTube · 用 ❤️ 為每一顆影劇馬鈴薯打造。",
+    "nav": {
+      "browse": "瀏覽",
+      "library": "片單",
+      "data": "Data & Attribution"
+    }
+  },
   "myList": {
     "heading": "我的片單",
     "loading": "載入中…",

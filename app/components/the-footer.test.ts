@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createI18n } from 'vue-i18n'
 import en from '../../i18n/locales/en.json'
 import zhTw from '../../i18n/locales/zh-TW.json'
-import AttributionFooter from './attribution-footer.vue'
+import TheFooter from './the-footer.vue'
 
 function mountFooter(locale: 'en' | 'zh-TW') {
   const i18n = createI18n({
@@ -11,12 +11,12 @@ function mountFooter(locale: 'en' | 'zh-TW') {
     locale,
     messages: { en, 'zh-TW': zhTw },
   })
-  return mount(AttributionFooter, {
+  return mount(TheFooter, {
     global: { plugins: [i18n] },
   })
 }
 
-describe('attribution-footer', () => {
+describe('the-footer', () => {
   it('renders TMDB and JustWatch attribution', () => {
     const wrapper = mountFooter('en')
     expect(wrapper.text()).toContain('TMDB')

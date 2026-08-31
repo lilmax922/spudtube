@@ -5,9 +5,9 @@ import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo, useFetch, useHead, useRoute } from '#imports'
 import AccountMenu from './components/account-menu.vue'
-import AttributionFooter from './components/attribution-footer.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import SearchOverlay from './components/search-overlay.vue'
+import TheFooter from './components/the-footer.vue'
 import { Toaster } from './components/ui/sonner'
 import { useBrowseGrid } from './composables/use-browse-grid'
 import { useMediaLightboxState } from './composables/use-media-lightbox'
@@ -122,12 +122,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
           @click="goHome"
           @keydown.enter.prevent="goHome"
           @keydown.space.prevent="goHome"
-        >
-          <span class="pot">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#FF0000"><path d="M12 3c-3.8 0-6.5 1.8-7.4 4.4C3.2 8.2 3 9 3 10c0 2 .8 3.4 2 4.8V19c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-4.2c1.2-1.4 2-2.8 2-4.8 0-1-.2-1.8-.6-2.6C18.5 4.8 15.8 3 12 3zM8.5 8.5A1.5 1.5 0 1 1 8.5 11.5 1.5 1.5 0 0 1 8.5 8.5zm7 0a1.5 1.5 0 1 1-1.5 1.5 1.5 1.5 0 0 1 1.5-1.5zM12 13a1.5 1.5 0 1 1-1.5 1.5A1.5 1.5 0 0 1 12 13z" /></svg>
-          </span>
-          SpudTube
-        </span>
+        >SpudTube</span>
         <nav id="primeNav" :aria-label="t('browse.kindLabel')">
           <button
             type="button"
@@ -196,7 +191,7 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
       close-button
       close-button-position="top-right"
     />
-    <AttributionFooter />
+    <TheFooter />
   </div>
 </template>
 
@@ -232,7 +227,6 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
   font-size: var(--text-heading-lg);
   line-height: var(--leading-heading-lg);
   letter-spacing: var(--tracking-display);
@@ -241,10 +235,6 @@ useHead(() => ({ htmlAttrs: { lang: locale.value } }))
   border-radius: var(--radius);
   cursor: pointer;
   color: var(--foreground);
-}
-.logo .pot {
-  color: #FF0000;
-  display: inline-flex;
 }
 .logo:hover {
   background: rgba(255, 255, 255, 0.06);

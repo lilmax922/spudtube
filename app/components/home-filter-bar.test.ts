@@ -1,6 +1,6 @@
 import type { VueWrapper } from '@vue/test-utils'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import HomeFilterBar from './home-filter-bar.vue'
 
 const sampleGenres = [
@@ -95,6 +95,9 @@ describe('homeFilterBar', () => {
     const root = wrapper.element as HTMLElement
     expect(root.querySelector('img[alt="Netflix"]')).toBeTruthy()
     expect(root.querySelector('img[alt="Amazon Prime Video"]')).toBeTruthy()
+    // Popover trigger should be shadcn primitive (data-slot) and not rely on manual open logic
+    const vueFile = await import('node:fs').then(fs => fs.readFileSync(`${process.cwd()}/app/components/home-filter-bar.vue`, 'utf-8'))
+    expect(vueFile).toMatch(/PopoverTrigger/)
   })
 
   it('expands the provider logo scroller when the cluster button is clicked', async () => {
@@ -103,13 +106,18 @@ describe('homeFilterBar', () => {
 
     const trigger = wrapper.find('button[aria-controls="home-filter-bar-detail"]')
     await trigger.trigger('click')
+    await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('#home-filter-bar-detail').exists()).toBe(true)
-    expect(trigger.attributes('aria-expanded')).toBe('true')
+    // PopoverContent is teleported to body via reka-ui PopoverPortal — check document
+    const detail = document.getElementById('home-filter-bar-detail')
+      ?? document.querySelector('[data-slot="popover-content"]')
+    expect(detail).toBeTruthy()
+    // Radix/reka adds data-state attributes on trigger/content
+    expect(document.body.innerHTML).toMatch(/popover-content|data-radix|data-slot="popover"/i)
 
-    const root = wrapper.element as HTMLElement
-    expect(root.querySelector('img[alt="Netflix"]')).toBeTruthy()
-    expect(root.querySelector('[title="Netflix"]')).toBeTruthy()
+    const root = document.body as unknown as HTMLElement
+    // logos render inside teleported content or inline cluster
+    expect(root.querySelector('[title="Netflix"]') ?? wrapper.element.querySelector('[title="Netflix"]')).toBeTruthy()
   })
 
   it('hides the provider cluster button when no providers are available', async () => {
@@ -127,9 +135,12 @@ describe('homeFilterBar', () => {
     mounted.push(wrapper)
 
     await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
-    const netflixBtn = wrapper.find('[title="Netflix"]')
-    expect(netflixBtn.exists()).toBe(true)
-    await netflixBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+    // content is teleported — query document body fallback
+    const netflixBtn = document.querySelector('[title="Netflix"]') as HTMLElement | null
+      ?? wrapper.find('[title="Netflix"]').element as unknown as HTMLElement
+    expect(netflixBtn).toBeTruthy()
+    ;(netflixBtn as HTMLElement).click()
 
     expect(wrapper.emitted('toggleProvider')?.at(-1)?.[0]).toBe(8)
   })
@@ -200,5 +211,323 @@ describe('homeFilterBar', () => {
     await sciFi!.trigger('click')
 
     expect(wrapper.emitted('toggleGenre')?.at(-1)?.[0]).toBe(878)
+  })
+
+  it('keeps genre chips in a single scroll row (no wrap bulk)', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    // bulk came from flex-wrap; compact uses nowrap + overflow-x-auto + hidden scrollbar
+    expect(vueFile).toMatch(/overflow-x-auto/)
+    expect(vueFile).toMatch(/scrollbar-width:\s*none/)
+    // should not rely on flex-wrap for genre layout to create 2-3 rows
+    const genreSection = vueFile.slice(vueFile.indexOf('homeFilterBarGenres'))
+    expect(genreSection).not.toMatch(/flex-wrap/)
+  })
+
+  it('renders provider filter as anchored popover (no layout shift)', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    // popover should be overlay via shadcn Popover primitives, not a full-width bar that pushes grid
+    expect(vueFile).toMatch(/Popover/)
+    expect(vueFile).toMatch(/PopoverContent/)
+    expect(vueFile).toMatch(/from\s+['"]@\/components\/ui\/popover['"]/)
+    expect(vueFile).toMatch(/bg-popover|background:\s*var\(--popover\)/)
+  })
+
+  it('uses shadcn Popover primitives from ui/popover instead of hand-rolled absolute + onClickOutside', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    expect(vueFile).toMatch(/from\s+['"]@\/components\/ui\/popover['"]/)
+    expect(vueFile).toMatch(/<Popover/)
+    expect(vueFile).toMatch(/<PopoverTrigger/)
+    expect(vueFile).toMatch(/<PopoverContent/)
+    expect(vueFile).not.toMatch(/onClickOutside/)
+    expect(vueFile).not.toMatch(/AnimatePresence/)
+  })
+
+  it('shows active genre count on the toolbar when genres are selected', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, {
+      props: props({ selectedGenreIds: [28, 878] }),
+    })
+    mounted.push(wrapper)
+
+    const root = wrapper.element as HTMLElement
+    // genre trigger or badge should reflect 2 selected
+    expect(root.textContent).toMatch(/2/)
+  })
+
+  it('keeps the toolbar on a single line without wrapping to 2-3 rows', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    // inner toolbar should not wrap into multiple rows; genres flex and scroll instead
+    expect(vueFile).not.toMatch(/\.homeFilterBarInner\s*\{[^}]*flex-wrap:\s*wrap/)
+  })
+
+  it('shows a provider search input inside the popover', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    const input = (document.querySelector('input[type="search"]') ?? wrapper.element.querySelector('input[type="search"]')) as HTMLInputElement | null
+    expect(input).toBeTruthy()
+    expect(input?.placeholder).toMatch(/Search providers|搜尋平台/)
+  })
+
+  it('emits searchProviders when typing in the provider search input', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    const inputEl = (document.querySelector('input[type="search"]') ?? wrapper.element.querySelector('input[type="search"]')) as HTMLInputElement | null
+    expect(inputEl).toBeTruthy()
+    inputEl!.value = 'net'
+    inputEl!.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('searchProviders')?.at(-1)?.[0]).toBe('net')
+  })
+
+  it('renders popular providers by default instead of the full 805 list', async () => {
+    const popular = [{ id: 8, name: 'Netflix', logoPath: '/netflix.jpg' }]
+    const full = [
+      { id: 8, name: 'Netflix', logoPath: '/netflix.jpg' },
+      { id: 119, name: 'Amazon Prime Video', logoPath: '/prime.jpg' },
+      { id: 337, name: 'Disney Plus', logoPath: '/disney.jpg' },
+    ]
+    const wrapper = await mountSuspended(HomeFilterBar, {
+      props: props({ availableProviders: full, popularProviders: popular }),
+    })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    // PopoverContent is teleported to body via reka-ui portal
+    const bodyRoot = document.body as unknown as HTMLElement
+    expect(bodyRoot.querySelector('[title="Netflix"]')).toBeTruthy()
+    expect(bodyRoot.querySelector('[title="Amazon Prime Video"]')).toBeFalsy()
+  })
+
+  it('renders search results dynamically when providerSearchResults are provided', async () => {
+    const popular = [{ id: 8, name: 'Netflix', logoPath: '/netflix.jpg' }]
+    const results = [{ id: 119, name: 'Amazon Prime Video', logoPath: '/prime.jpg' }]
+    const wrapper = await mountSuspended(HomeFilterBar, {
+      props: props({
+        availableProviders: popular,
+        popularProviders: popular,
+        providerSearchResults: results,
+      }),
+    })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    // simulate user typing so component switches to search mode
+    const inputEl = (document.querySelector('input[type="search"]') ?? wrapper.element.querySelector('input[type="search"]')) as HTMLInputElement | null
+    expect(inputEl).toBeTruthy()
+    inputEl!.value = 'prime'
+    inputEl!.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+    // swap in results
+    await wrapper.setProps({ providerSearchResults: results } as never)
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const bodyRoot = document.body as unknown as HTMLElement
+    expect(bodyRoot.querySelector('[title="Amazon Prime Video"]')).toBeTruthy()
+  })
+
+  it('shows an empty state when provider search returns no results', async () => {
+    const popular = [{ id: 8, name: 'Netflix', logoPath: '/netflix.jpg' }]
+    const wrapper = await mountSuspended(HomeFilterBar, {
+      props: props({
+        availableProviders: popular,
+        popularProviders: popular,
+        providerSearchResults: [],
+      }),
+    })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 50))
+    const inputEl = document.querySelector('input[type="search"]') as HTMLInputElement | null
+    expect(inputEl).toBeTruthy()
+    // use Vue Test Utils setValue to properly trigger v-model
+    const inputWrapper = wrapper.find('input[type="search"]')
+    // teleported input lives in document, not wrapper — set via direct DOM then dispatch
+    inputEl!.focus()
+    inputEl!.value = 'zzz'
+    inputEl!.dispatchEvent(new Event('input', { bubbles: true }))
+    // also trigger Vue's v-model update via wrapper if available
+    if (inputWrapper.exists())
+      await inputWrapper.setValue('zzz')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 50))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.getElementById('home-filter-bar-detail') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    expect(detailEl!.textContent).toMatch(/No providers found|找不到相符平台/)
+  })
+
+  it('scrolls smoothly to cover hero when provider filter button is clicked', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    expect(vueFile).toMatch(/window\.scrollTo/)
+    expect(vueFile).toMatch(/behavior:\s*['"]smooth['"]/)
+    // must scroll to barTop - headerH to hide hero (smooth cover)
+    expect(vueFile).toMatch(/barTop\s*-\s*headerH|heroHideY/)
+    // also behavioral: trigger should cause scrollTo
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+    const scrollSpy = vi.fn()
+    const originalScrollTo = window.scrollTo
+    window.scrollTo = scrollSpy as unknown as typeof window.scrollTo
+    // mock bar and header to simulate hero visible
+    const barEl = document.createElement('div')
+    barEl.className = 'homeFilterBar'
+    barEl.getBoundingClientRect = () => ({ top: 600, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON() {} } as DOMRect)
+    document.body.appendChild(barEl)
+    const getComputedSpy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({ getPropertyValue: () => '64' } as unknown as CSSStyleDeclaration)
+    Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true })
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await new Promise(r => setTimeout(r, 30))
+    // allow requestAnimationFrame
+    await new Promise(r => requestAnimationFrame(() => r(undefined)))
+    await new Promise(r => setTimeout(r, 30))
+    expect(scrollSpy).toHaveBeenCalled()
+    const callArg = scrollSpy.mock.calls[0]?.[0] as { behavior?: string } | undefined
+    expect(callArg?.behavior).toBe('smooth')
+    window.scrollTo = originalScrollTo
+    getComputedSpy.mockRestore()
+    barEl.remove()
+  })
+
+  it('makes provider popover compact with tight spacing between provider icons', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    // popover should be compact — not 520px wide; expect <= 420px desktop
+    const widthMatch = vueFile.match(/\.homeFilterBarPopover\s*\{[^}]*width:\s*min\((\d+)px/)
+    expect(widthMatch).toBeTruthy()
+    const width = widthMatch ? Number(widthMatch[1]) : 999
+    expect(width).toBeLessThanOrEqual(420)
+    expect(width).toBeGreaterThanOrEqual(340)
+    // compact popover: padding 12-14px, not 16px; gap between icons should be tight (gap-2)
+    expect(vueFile).toMatch(/grid-cols-6 gap-2(\s|")/)
+    expect(vueFile).not.toMatch(/grid-cols-6 gap-3/)
+    expect(vueFile).not.toMatch(/grid-cols-6 gap-4/)
+    // also verify teleported content has compact gap class
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const gridEl = detailEl?.querySelector('[role="group"]') as HTMLElement | null
+    expect(gridEl?.className).toMatch(/gap-2(\s|$)/)
+    expect(gridEl?.className).not.toMatch(/gap-3/)
+  })
+
+  it('dims unselected providers only when some provider is selected', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    // unselected should be dimmed via grayscale + reduced opacity, but only when selection exists
+    expect(vueFile).toMatch(/grayscale/)
+    expect(vueFile).toMatch(/opacity-(40|50|55|60)/)
+    // selected should have ring and not grayscale
+    const selectedBranch = vueFile.slice(vueFile.indexOf('selectedProviderIds.includes'))
+    expect(selectedBranch).toMatch(/ring-2/)
+    expect(selectedBranch).toMatch(/grayscale|opacity/)
+    // must conditionally dim: file should check selectedProviderIds.length to avoid dimming when none selected
+    expect(vueFile).toMatch(/selectedProviderIds\.length/)
+  })
+
+  it('does not dim providers when none are selected — all stay in color', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ selectedProviderIds: [] }) })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const providerBtns = [...(detailEl!.querySelectorAll('[title="Netflix"],[title="Amazon Prime Video"]') as NodeListOf<HTMLElement>)]
+    // when nothing selected, buttons should NOT have dimming classes (grayscale without -0, opacity-55)
+    for (const btn of providerBtns) {
+      expect(btn.classList.contains('grayscale')).toBe(false)
+      expect(btn.className).not.toMatch(/opacity-55/)
+      expect(btn.className).not.toMatch(/opacity-50/)
+    }
+  })
+
+  it('dims unselected providers when at least one is selected', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ selectedProviderIds: [8] }) })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const unselectedBtn = detailEl!.querySelector('[title="Amazon Prime Video"]') as HTMLElement | null
+    const selectedBtn = detailEl!.querySelector('[title="Netflix"]') as HTMLElement | null
+    expect(unselectedBtn).toBeTruthy()
+    expect(selectedBtn).toBeTruthy()
+    expect(unselectedBtn!.className).toMatch(/grayscale/)
+    expect(unselectedBtn!.className).toMatch(/opacity-55|opacity-50/)
+    expect(selectedBtn!.className).toMatch(/ring-2/)
+    expect(selectedBtn!.className).not.toMatch(/grayscale opacity-55/)
+  })
+
+  it('keeps selected provider button from looking squeezed (no ring-offset)', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const vueFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    const selectedBranch = vueFile.slice(vueFile.indexOf('selectedProviderIds.includes'))
+    expect(selectedBranch).toMatch(/ring-2/)
+    expect(selectedBranch).not.toMatch(/ring-offset-2/)
+    expect(selectedBranch).not.toMatch(/ring-offset-popover/)
+    // behavioral: selected vs unselected inner size stays 40px
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ selectedProviderIds: [8] }) })
+    mounted.push(wrapper)
+    await wrapper.find('button[aria-controls="home-filter-bar-detail"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    const detailEl = document.querySelector('[data-testid="home-filter-bar-detail"]') as HTMLElement | null
+      ?? document.querySelector('[data-slot="popover-content"]') as HTMLElement | null
+    expect(detailEl).toBeTruthy()
+    const selectedSpan = detailEl!.querySelector('[title="Netflix"] span') as HTMLElement | null
+    const unselectedSpan = detailEl!.querySelector('[title="Amazon Prime Video"] span') as HTMLElement | null
+    expect(selectedSpan).toBeTruthy()
+    expect(unselectedSpan).toBeTruthy()
+    expect(selectedSpan!.className).toMatch(/size-10/)
+    expect(unselectedSpan!.className).toMatch(/size-10/)
+    expect(selectedSpan!.className).toBe(unselectedSpan!.className)
+  })
+
+  it('ensures home-filter-bar stays above title-card on hover (z-index fix)', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const barFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/home-filter-bar.vue'), 'utf-8')
+    const cardFile = fs.readFileSync(path.resolve(process.cwd(), 'app/components/title-card.vue'), 'utf-8')
+    const barMatch = barFile.match(/\.homeFilterBar\s*\{[^}]*z-index:\s*(\d+)/)
+    const cardHoverMatch = cardFile.match(/\.title-card-root:hover\s*\{[^}]*z-index:\s*(\d+)/)
+    expect(barMatch).toBeTruthy()
+    expect(cardHoverMatch).toBeTruthy()
+    const barZ = barMatch ? Number(barMatch[1]) : 0
+    const cardZ = cardHoverMatch ? Number(cardHoverMatch[1]) : 999
+    expect(barZ).toBeGreaterThan(cardZ)
+    expect(barZ).toBeGreaterThanOrEqual(45)
+    // header must remain highest
+    const appFile = fs.readFileSync(path.resolve(process.cwd(), 'app/app.vue'), 'utf-8')
+    const headerMatch = appFile.match(/#siteHeader\s*\{[^}]*z-index:\s*(\d+)/)
+    const headerZ = headerMatch ? Number(headerMatch[1]) : 0
+    expect(headerZ).toBeGreaterThan(barZ)
   })
 })

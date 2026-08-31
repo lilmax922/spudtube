@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { LoaderCircle } from '@lucide/vue'
+import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useBrowseGrid } from '../composables/use-browse-grid'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
 import { useSearchState } from '../composables/use-search-state'
@@ -16,6 +18,10 @@ const {
   minRating,
   selectedProviderIds,
   availableProviders,
+  popularProviders,
+  providerSearchResults,
+  providerSearchQuery,
+  providerSearchLoading,
   genres,
   items,
   loading,
@@ -27,6 +33,8 @@ const {
   setMinRating,
   toggleProvider,
   clearFilters,
+  searchProviders,
+  clearProviderSearch,
 } = useBrowseGrid()
 const safeMinRating = computed(() => (minRating as unknown as { value: number | null } | undefined)?.value ?? null)
 const {
@@ -167,10 +175,16 @@ void refresh()
       :selected-provider-ids="selectedProviderIds"
       :genres="genres"
       :available-providers="availableProviders"
+      :popular-providers="popularProviders"
+      :provider-search-results="providerSearchResults"
+      :provider-search-query="providerSearchQuery"
+      :provider-search-loading="providerSearchLoading"
       @toggle-genre="toggleGenre"
       @set-min-rating="setMinRating"
       @toggle-provider="toggleProvider"
       @clear-filters="clearFilters"
+      @search-providers="searchProviders"
+      @clear-provider-search="clearProviderSearch"
     />
 
     <div class="browseGridBody">
@@ -179,56 +193,6 @@ void refresh()
           {{ mode === 'search' ? t('search.error') : t('browse.error') }}
         </p>
       </div>
-
-      <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
-        <p class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
-          {{ emptyMessage }}
-        </p>
-      </div>
-
-      <template v-else>
-        <div v-if="mode === 'search'" class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]" :aria-busy="gridLoading || gridLoadingMore">
-          <TitleCard
-            v-for="title in gridItems"
-            :key="`${title.kind}-${title.tmdbId}`"
-            :title="title"
-            :show-kind="showKind"
-          />
-        </div>
-
-        <div v-else-if="isRowsMode" class="rows flex flex-col gap-10 pt-2">
-          <ContentRow
-            v-for="row in rows"
-            :key="row.key"
-            :title="row.label"
-            :items="row.items"
-            :aria-label="row.label"
-            @see-more="handleSeeMore(row.key)"
-          />
-        </div>
-
-        <div
-          v-else
-          class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
-          :aria-busy="gridLoading || gridLoadingMore"
-        >
-          <TitleCard
-            v-for="title in gridItems"
-            :key="`${title.kind}-${title.tmdbId}`"
-            :title="title"
-            :show-kind="showKind"
-          />
-        </div>
-      </template>
-
-      <div ref="sentinel" aria-hidden="true" />
-
-      <p
-        v-if="gridError && gridItems.length > 0"
-        class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] text-center text-body-md text-muted-foreground"
-      >
-        {{ mode === 'search' ? t('search.error') : t('browse.error') }}
-      </p>
 
       <div
         v-else-if="gridLoading && gridItems.length === 0"
@@ -245,13 +209,13 @@ void refresh()
             class="content-row relative"
           >
             <div class="mx-auto flex w-full max-w-[var(--max-content-width)] items-baseline gap-3.5 px-[var(--content-gutter)] pb-3">
-              <div class="h-6 w-32 animate-pulse rounded bg-muted" />
+              <Skeleton class="h-6 w-32 rounded bg-muted" />
             </div>
             <div class="flex gap-4 overflow-hidden px-[var(--content-gutter)]">
-              <div
+              <Skeleton
                 v-for="index in 6"
                 :key="index"
-                class="aspect-[2/3] w-[180px] shrink-0 animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)] max-[880px]:w-[168px] max-[560px]:w-[152px]"
+                class="aspect-[2/3] w-[180px] shrink-0 rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)] max-[880px]:w-[168px] max-[560px]:w-[152px]"
               />
             </div>
           </div>
@@ -260,17 +224,124 @@ void refresh()
           v-else
           class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
         >
-          <div
+          <Skeleton
             v-for="index in 12"
             :key="index"
-            class="aspect-[2/3] animate-pulse rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+            class="aspect-[2/3] rounded-lg bg-card shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
           />
         </div>
       </div>
 
+      <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
+        <p class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+          {{ emptyMessage }}
+        </p>
+      </div>
+
+      <template v-else>
+        <AnimatePresence mode="wait">
+          <motion.div
+            v-if="mode === 'search'"
+            key="search-grid"
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0, y: -8 }"
+            :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
+            class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
+            :aria-busy="gridLoading || gridLoadingMore"
+          >
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                v-for="title in gridItems"
+                :key="`${title.kind}-${title.tmdbId}`"
+                layout
+                :initial="{ opacity: 0, y: 12, scale: 0.98 }"
+                :animate="{ opacity: 1, y: 0, scale: 1 }"
+                :exit="{ opacity: 0, y: -8, scale: 0.98 }"
+                :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
+              >
+                <TitleCard
+                  :title="title"
+                  :show-kind="showKind"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+
+          <motion.div
+            v-else-if="isRowsMode"
+            key="rows"
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0, y: -8 }"
+            :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
+            class="rows flex flex-col gap-10 pt-2"
+          >
+            <ContentRow
+              v-for="row in rows"
+              :key="row.key"
+              :title="row.label"
+              :items="row.items"
+              :aria-label="row.label"
+              @see-more="handleSeeMore(row.key)"
+            />
+          </motion.div>
+
+          <motion.div
+            v-else
+            key="filtered-grid"
+            :initial="{ opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0, y: -8 }"
+            :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
+            class="mx-auto grid w-full max-w-[var(--max-content-width)] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 px-[var(--content-gutter)] max-[880px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(152px,1fr))]"
+            :aria-busy="gridLoading || gridLoadingMore"
+          >
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                v-for="title in gridItems"
+                :key="`${title.kind}-${title.tmdbId}`"
+                layout
+                :initial="{ opacity: 0, y: 12, scale: 0.98 }"
+                :animate="{ opacity: 1, y: 0, scale: 1 }"
+                :exit="{ opacity: 0, y: -8, scale: 0.98 }"
+                :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
+              >
+                <TitleCard
+                  :title="title"
+                  :show-kind="showKind"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        </AnimatePresence>
+      </template>
+
+      <div
+        v-if="gridLoading && gridItems.length > 0"
+        data-testid="filter-loading"
+        class="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center bg-background/55 pt-24 backdrop-blur-[2px]"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <div class="pointer-events-auto flex items-center gap-2 rounded-full bg-card px-4 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+          <LoaderCircle :size="16" :stroke-width="1.75" class="animate-spin text-foreground" aria-hidden="true" />
+          <span class="text-body-md text-foreground">{{ loadingMessage }}</span>
+        </div>
+      </div>
+
+      <div ref="sentinel" aria-hidden="true" />
+
+      <p
+        v-if="gridError && gridItems.length > 0"
+        class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] text-center text-body-md text-muted-foreground"
+      >
+        {{ mode === 'search' ? t('search.error') : t('browse.error') }}
+      </p>
+
       <p
         v-if="!isRowsMode && (gridLoadingMore || (gridLoading && gridItems.length > 0))"
-        class="mx-auto flex w-full max-w-[var(--max-content-width)] items-center justify-center gap-2 px-[var(--content-gutter)] text-body-md text-muted-foreground"
+        class="mx-auto flex w-full max-w-[var(--max-content-width)] items-center justify-center gap-2 px-[var(--content-gutter)] pt-8 text-body-md text-muted-foreground"
       >
         <LoaderCircle :size="16" :stroke-width="1.75" class="animate-spin" aria-hidden="true" />
         {{ loadingMessage }}
@@ -281,6 +352,8 @@ void refresh()
 
 <style scoped>
 .browseGridBody {
+  position: relative;
   padding-bottom: 64px;
+  min-height: 240px;
 }
 </style>

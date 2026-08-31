@@ -14,6 +14,10 @@
     "ratingHigh": "7+",
     "ratingTop": "8+",
     "providersLabel": "平台",
+    "providersSearchPlaceholder": "搜尋平台",
+    "providersSearchEmpty": "找不到相符平台",
+    "providersPopular": "熱門",
+    "providersSearchResults": "搜尋結果",
     "minutesShort": "{minutes} 分鐘"
   },
   "hero": {
@@ -199,6 +203,10 @@
       "kindLabel": "類型",
       "monetizationLabel": "觀看方式",
       "providersLabel": "平台",
+      "providersSearchPlaceholder": "搜尋平台",
+      "providersSearchEmpty": "找不到相符平台",
+      "providersPopular": "熱門",
+      "providersSearchResults": "搜尋結果",
       "sortLabel": "排序",
       "recent": "最近加入",
       "titleAsc": "A–Z",

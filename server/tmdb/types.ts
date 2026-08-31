@@ -66,6 +66,7 @@ export interface Provider {
   id: number
   name: string
   logoPath: string | null
+  displayPriority?: number
 }
 
 export interface AvailabilityGroups {

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { HeroTitle } from '../composables/use-hero-titles'
-import { Bookmark, Check, Play, Star } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { backdropSrcSet, backdropUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
+import HeroSlideActions from './hero-slide-actions.vue'
 
 interface Props {
   titles: HeroTitle[]
@@ -66,13 +66,6 @@ function detailPath(title: HeroTitle): string {
   return title.kind === 'MOVIE' ? `/movie/${title.tmdbId}` : `/tv/${title.tmdbId}`
 }
 
-function hasTrailer(_title: HeroTitle): boolean {
-  // The hero endpoint doesn't currently fetch the trailer key; presence on the
-  // detail payload (translations append) is the source of truth. The hero disables
-  // the button rather than calling for missing data — the detail page owns playback.
-  return false
-}
-
 function firstProviderLogo(title: HeroTitle): string | null {
   return providerLogoUrl(title.providers[0]?.logoPath ?? null)
 }
@@ -86,6 +79,36 @@ function handleMouseEnter(): void {
 }
 function handleMouseLeave(): void {
   startTimer()
+}
+
+let wheelCooldown = false
+
+function handleWheel(event: WheelEvent): void {
+  const absX = Math.abs(event.deltaX)
+  const absY = Math.abs(event.deltaY)
+  if (absX < 10 && absY < 10)
+    return
+  const isHorizontal = absX > absY
+  if (!isHorizontal)
+    return
+  if (wheelCooldown)
+    return
+  if (event.deltaX > 0) {
+    event.preventDefault()
+    wheelCooldown = true
+    next()
+    setTimeout(() => {
+      wheelCooldown = false
+    }, 400)
+  }
+  else if (event.deltaX < 0) {
+    event.preventDefault()
+    wheelCooldown = true
+    prev()
+    setTimeout(() => {
+      wheelCooldown = false
+    }, 400)
+  }
 }
 
 watch(trending, () => {
@@ -110,6 +133,7 @@ onBeforeUnmount(() => {
     :aria-label="t('browse.sectionLabel')"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
+    @wheel="handleWheel"
   >
     <div
       v-for="(feat, i) in trending"
@@ -177,39 +201,7 @@ onBeforeUnmount(() => {
             >
               {{ t('hero.viewDetails') }}
             </NuxtLink>
-            <NuxtLink
-              v-if="hasTrailer(feat)"
-              :to="`${detailPath(feat)}#trailer`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.playTrailer')"
-            >
-              <Play :size="16" :stroke-width="1.75" fill="currentColor" aria-hidden="true" />
-              {{ t('hero.playTrailer') }}
-            </NuxtLink>
-            <NuxtLink
-              :to="`${detailPath(feat)}#rate`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.rate')"
-            >
-              <Star :size="16" :stroke-width="1.75" aria-hidden="true" />
-              {{ t('hero.rate') }}
-            </NuxtLink>
-            <NuxtLink
-              :to="`${detailPath(feat)}#watchlist`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.addToWatchlist')"
-            >
-              <Bookmark :size="16" :stroke-width="1.75" aria-hidden="true" />
-              {{ t('hero.addToWatchlist') }}
-            </NuxtLink>
-            <NuxtLink
-              :to="`${detailPath(feat)}#watched`"
-              class="heroBtn heroBtnGhost"
-              :aria-label="t('hero.markWatched')"
-            >
-              <Check :size="16" :stroke-width="1.75" aria-hidden="true" />
-              {{ t('hero.markWatched') }}
-            </NuxtLink>
+            <HeroSlideActions :kind="feat.kind" :tmdb-id="feat.tmdbId" />
           </div>
         </div>
       </div>
@@ -240,6 +232,8 @@ onBeforeUnmount(() => {
 .heroCarousel {
   position: relative;
   min-height: 600px;
+  height: min(100dvh, 56.25vw);
+  max-height: 100dvh;
   overflow: hidden;
   isolation: isolate;
   width: 100vw;
@@ -247,6 +241,12 @@ onBeforeUnmount(() => {
   margin-right: calc(50% - 50vw);
   margin-top: calc(var(--header-h) * -1);
   background: #0a0a0a;
+}
+@supports not (height: 1dvh) {
+  .heroCarousel {
+    height: min(100vh, 56.25vw);
+    max-height: 100vh;
+  }
 }
 .heroSlide {
   position: absolute;
@@ -400,6 +400,24 @@ onBeforeUnmount(() => {
   gap: 10px;
   margin-top: 4px;
 }
+.heroActions :deep(.bg-muted) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+.heroActions :deep(.bg-muted:hover) {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+}
+.heroActions :deep(.border-input) {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+.heroActions :deep(.text-muted-foreground) {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+.heroActions :deep(.text-foreground) {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
 .heroBtn {
   display: inline-flex;
   align-items: center;
@@ -446,9 +464,19 @@ onBeforeUnmount(() => {
   color: #fff;
   backdrop-filter: blur(6px);
   z-index: 4;
-  transition: background 0.15s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background 0.15s;
   border: none;
   cursor: pointer;
+}
+.heroCarousel:hover .heroArrow {
+  opacity: 1;
+  pointer-events: auto;
+}
+.heroArrow:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 .heroArrow:hover {
   background: rgba(0, 0, 0, 0.58);
@@ -486,6 +514,7 @@ onBeforeUnmount(() => {
 @media (max-width: 880px) {
   .heroCarousel {
     min-height: 540px;
+    height: min(100dvh, 56.25vw);
   }
   .heroInfo {
     max-width: 100%;

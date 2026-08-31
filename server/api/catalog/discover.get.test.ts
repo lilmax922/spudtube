@@ -1,12 +1,24 @@
 import { createApp, createRouter, toWebHandler } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const fakeClient = vi.hoisted(() => ({
-  discover: vi.fn(),
+const { fakeClient, TmdbApiError } = vi.hoisted(() => ({
+  fakeClient: {
+    discover: vi.fn(),
+  },
+  TmdbApiError: class TmdbApiError extends Error {
+    constructor(status: number) {
+      super(`TMDB request failed: ${status}`)
+      this.name = 'TmdbApiError'
+      this.status = status
+    }
+
+    status: number
+  },
 }))
 
 vi.mock('../../tmdb/client', () => ({
   getTmdbClient: () => fakeClient,
+  TmdbApiError,
 }))
 
 const handler = (await import('./discover.get')).default
@@ -115,5 +127,27 @@ describe('gET /api/catalog/discover', () => {
       providerIds: [8],
       watchRegion: expect.any(String),
     }))
+  })
+
+  it('maps an upstream TMDB 5xx to a 502 instead of an unhandled 500', async () => {
+    fakeClient.discover.mockRejectedValue(new TmdbApiError(500))
+
+    const response = await call(new Request('http://localhost/api/catalog/discover?kind=movie&providers=8,119'))
+
+    expect(response.status).toBe(502)
+    expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({
+      providerIds: [8, 119],
+    }))
+    const body = await response.json()
+    expect(body.statusCode).toBe(502)
+  })
+
+  it('leaves non-5xx upstream client errors untouched', async () => {
+    fakeClient.discover.mockRejectedValue(new TmdbApiError(400))
+
+    const response = await call(new Request('http://localhost/api/catalog/discover?kind=movie'))
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ statusCode: 400 })
   })
 })

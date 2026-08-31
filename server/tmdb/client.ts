@@ -67,7 +67,7 @@ export interface TmdbClient {
   topRated: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   title: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<TitleDetail | null>
   watchProviders: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<ProviderCatalog>
-  watchProviderList: (kind: Kind, language?: TmdbLanguage) => Promise<Provider[]>
+  watchProviderList: (kind: Kind, language?: TmdbLanguage, watchRegion?: string) => Promise<Provider[]>
   recommendations: (kind: Kind, tmdbId: number, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   genres: (kind: Kind, language?: TmdbLanguage) => Promise<Genre[]>
 }
@@ -222,17 +222,22 @@ export function createTmdbClient({
       })
     },
 
-    watchProviderList(kind: Kind, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Provider[]> {
+    watchProviderList(kind: Kind, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE, watchRegion?: string): Promise<Provider[]> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`provider-list:${language}:${segment}`, DETAIL_TTL_MS, async () => {
+      const cacheKey = `provider-list:${language}:${segment}:${watchRegion ?? ''}`
+      return cache.wrap(cacheKey, DETAIL_TTL_MS, async () => {
+        const params: Record<string, string> = { language }
+        if (watchRegion)
+          params.watch_region = watchRegion
         const raw = rawWatchProviderListSchema.parse(
-          await request(`/watch/providers/${segment}`, { language }),
+          await request(`/watch/providers/${segment}`, params),
         )
         return raw.results.map(entry => ({
           id: entry.provider_id,
           name: entry.provider_name,
           logoPath: entry.logo_path,
-        })).sort((a, b) => a.name.localeCompare(b.name))
+          displayPriority: entry.display_priority,
+        }))
       })
     },
 

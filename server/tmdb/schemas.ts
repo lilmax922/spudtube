@@ -38,6 +38,7 @@ export const rawProviderEntrySchema = z.object({
   provider_id: z.number(),
   provider_name: z.string(),
   logo_path: z.string().nullable(),
+  display_priority: z.number().optional(),
 })
 
 export const rawRegionAvailabilitySchema = z.object({

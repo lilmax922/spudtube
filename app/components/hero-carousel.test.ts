@@ -175,7 +175,9 @@ describe('hero-carousel', () => {
     expect(activeSlide!.querySelector('.heroOverview')?.textContent).toContain('Westeros')
     expect(activeSlide!.querySelector('.heroStrip')?.textContent).toContain('2011')
     expect(activeSlide!.querySelector('.heroActions')).toBeTruthy()
-    expect(activeSlide!.querySelectorAll('.heroActions .heroBtn').length).toBeGreaterThanOrEqual(4)
+    // Detail-parity: primary link + RatingTrio + TitleStatusToggle (3 interactive controls: 1 NuxtLink + 1 RatingTrio trigger + 2 status buttons)
+    expect(activeSlide!.querySelector('.heroActions .heroBtnPrimary')).toBeTruthy()
+    expect(activeSlide!.querySelectorAll('.heroActions button').length).toBeGreaterThanOrEqual(3)
 
     wrapper.unmount()
   })

@@ -14,6 +14,10 @@
     "ratingHigh": "7+",
     "ratingTop": "8+",
     "providersLabel": "Providers",
+    "providersSearchPlaceholder": "Search providers",
+    "providersSearchEmpty": "No providers found",
+    "providersPopular": "Popular",
+    "providersSearchResults": "Results",
     "minutesShort": "{minutes} min"
   },
   "hero": {
@@ -199,6 +203,10 @@
       "kindLabel": "Type",
       "monetizationLabel": "Watch on",
       "providersLabel": "Providers",
+      "providersSearchPlaceholder": "Search providers",
+      "providersSearchEmpty": "No providers found",
+      "providersPopular": "Popular",
+      "providersSearchResults": "Results",
       "sortLabel": "Sort by",
       "recent": "Recent",
       "titleAsc": "A–Z",

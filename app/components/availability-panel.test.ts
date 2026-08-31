@@ -101,7 +101,7 @@ describe('availability panel', () => {
     expect(groupLabels(wrapper)).toEqual(['訂閱', '免費', '租借', '購買'])
   })
 
-  it('renders provider logos as image-only 50px with 20% radius and CDN urls', async () => {
+  it('renders provider logos as image-only 40px with 20% radius and CDN urls', async () => {
     setCatalog(PROVIDER_CATALOG_MULTI_GROUP)
     const wrapper = await renderPanel()
 
@@ -118,10 +118,10 @@ describe('availability panel', () => {
 
     // image-only: no visible provider name text outside alt/title
     expect(wrapper.text()).not.toContain('Google Play Movies')
-    // 50x50 with 20% radius, no pill text
+    // 40x40 with 20% radius, no pill text
     for (const img of images) {
-      expect(img.classes().join(' ')).toContain('h-[50px]')
-      expect(img.classes().join(' ')).toContain('w-[50px]')
+      expect(img.classes().join(' ')).toContain('h-[40px]')
+      expect(img.classes().join(' ')).toContain('w-[40px]')
       expect(img.classes().join(' ')).toContain('rounded-[20%]')
     }
   })
@@ -171,7 +171,7 @@ describe('availability panel', () => {
       expect(row.attributes('role')).toBe('list')
       expect(row.attributes('tabindex')).toBe('0')
     }
-    // provider icons stay 50px 20% radius and do not shrink, snap-start for scroll
+    // provider icons stay 40px 20% radius and do not shrink, snap-start for scroll
     for (const img of wrapper.findAll('img')) {
       expect(img.classes().join(' ')).toContain('shrink-0')
       expect(img.classes().join(' ')).toContain('snap-start')
@@ -299,7 +299,7 @@ describe('availability panel', () => {
     expect(wrapper.text()).toContain('暫時無法取得串流資訊。')
   })
 
-  it('falls back to initials when a provider has no logo (no image, 50px rounded 20% box)', async () => {
+  it('falls back to initials when a provider has no logo (no image, 40px rounded 20% box)', async () => {
     const logoLess: ProviderCatalog = {
       TW: {
         link: null,
@@ -318,8 +318,8 @@ describe('availability panel', () => {
     const fallback = wrapper.find('[data-testid="provider-fallback"]')
     expect(fallback.exists()).toBe(true)
     expect(fallback.text()).toBe('CA')
-    expect(fallback.classes().join(' ')).toContain('h-[50px]')
-    expect(fallback.classes().join(' ')).toContain('w-[50px]')
+    expect(fallback.classes().join(' ')).toContain('h-[40px]')
+    expect(fallback.classes().join(' ')).toContain('w-[40px]')
     expect(fallback.classes().join(' ')).toContain('rounded-[20%]')
   })
 

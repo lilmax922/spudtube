@@ -150,10 +150,8 @@ const failed = computed(() => {
           :paths="detail.data.value.backdrops"
           :initial-index="mediaLightboxIndex"
         />
-        <div class="mt-8 border-t border-border pt-8">
-          <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
-        </div>
       </div>
+      <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
     </template>
   </div>
 </template>

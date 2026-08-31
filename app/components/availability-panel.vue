@@ -123,33 +123,33 @@ function onRegionUpdate(value: unknown): void {
               <img
                 :src="providerLogoUrl(provider.logoPath) ?? undefined"
                 :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
-                sizes="50px"
+                sizes="40px"
                 :alt="provider.name"
-                width="50"
-                height="50"
+                width="40"
+                height="40"
                 loading="lazy"
-                class="h-[50px] w-[50px] rounded-[20%] object-cover"
+                class="h-[40px] w-[40px] rounded-[20%] object-cover"
               >
             </a>
             <img
               v-else-if="provider.logoPath"
               :src="providerLogoUrl(provider.logoPath) ?? undefined"
               :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
-              sizes="50px"
+              sizes="40px"
               :alt="provider.name"
               :title="provider.name"
-              width="50"
-              height="50"
+              width="40"
+              height="40"
               loading="lazy"
               data-testid="provider-image"
-              class="h-[50px] w-[50px] shrink-0 snap-start rounded-[20%] object-cover"
+              class="h-[40px] w-[40px] shrink-0 snap-start rounded-[20%] object-cover"
             >
             <span
               v-else
               :title="provider.name"
               :aria-label="provider.name"
               data-testid="provider-fallback"
-              class="flex h-[50px] w-[50px] shrink-0 snap-start items-center justify-center rounded-[20%] bg-muted text-caption-sm font-bold leading-none text-muted-foreground"
+              class="flex h-[40px] w-[40px] shrink-0 snap-start items-center justify-center rounded-[20%] bg-muted text-caption-sm font-bold leading-none text-muted-foreground"
             >
               {{ provider.name.slice(0, 2).toUpperCase() }}
             </span>

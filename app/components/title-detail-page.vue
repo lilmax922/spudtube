@@ -3,18 +3,20 @@ import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from '#imports'
+import { useMediaLightboxState } from '../composables/use-media-lightbox'
 import { useTitleDetail } from '../composables/use-title-detail'
 import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
+import { useTrailerState } from '../composables/use-trailer'
 import { authClient, signIn } from '../lib/auth-client'
 import AvailabilityPanel from './availability-panel.vue'
 import CastList from './cast-list.vue'
+import MediaLightbox from './media-lightbox.vue'
 import MediaStrip from './media-strip.vue'
 import RecommendationsStrip from './recommendations-strip.vue'
-import TitleFactsPanel from './title-facts-panel.vue'
 import TitleIdentityBlock from './title-identity-block.vue'
 import TitleNotFound from './title-not-found.vue'
 import TitleTrailer from './title-trailer.vue'
@@ -37,10 +39,32 @@ const signedIn = computed(() => session.value.data?.user != null)
 const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(props.kind, titleId, signedIn)
 const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(props.kind, titleId, signedIn)
 
-const trailerOpen = ref(false)
+const trailerOpen = shallowRef(false)
+const { open: openTrailerGlobal, close: closeTrailerGlobal } = useTrailerState()
+
+watch(trailerOpen, (value) => {
+  if (value)
+    openTrailerGlobal()
+  else closeTrailerGlobal()
+})
+
+const mediaLightboxOpen = shallowRef(false)
+const mediaLightboxIndex = shallowRef(0)
+const { open: openMediaGlobal, close: closeMediaGlobal } = useMediaLightboxState()
+
+watch(mediaLightboxOpen, (value) => {
+  if (value)
+    openMediaGlobal()
+  else closeMediaGlobal()
+})
 
 function onPlayTrailer(): void {
   trailerOpen.value = true
+}
+
+function onOpenMedia(index: number): void {
+  mediaLightboxIndex.value = index
+  mediaLightboxOpen.value = true
 }
 
 function onSelectRating(label: RatingLabel): void {
@@ -118,14 +142,16 @@ const failed = computed(() => {
       />
 
       <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
-        <TitleFactsPanel :detail="detail.data.value" />
         <AvailabilityPanel :kind="detail.data.value.kind" :tmdb-id="detail.data.value.tmdbId" />
         <CastList :cast="detail.data.value.cast" :crew="detail.data.value.crew" />
-        <MediaStrip :paths="detail.data.value.backdrops" />
-        <div class="mt-8 border-t border-border pt-8">
-          <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
-        </div>
+        <MediaStrip :paths="detail.data.value.backdrops" @open="onOpenMedia" />
+        <MediaLightbox
+          v-model:open="mediaLightboxOpen"
+          :paths="detail.data.value.backdrops"
+          :initial-index="mediaLightboxIndex"
+        />
       </div>
+      <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
     </template>
   </div>
 </template>

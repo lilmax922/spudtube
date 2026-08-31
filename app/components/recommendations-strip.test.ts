@@ -29,35 +29,52 @@ describe('recommendations strip', () => {
     expect(wrapper.findAll('a')).toHaveLength(0)
   })
 
-  it('keeps poster shape at 2:3 / var(--radius) and Title→Title routing', async () => {
+  it('renders recommendations via BrowseCarousel + TitleCard with responsive card widths', async () => {
     const wrapper = await mountSuspended(RecommendationsStrip, {
       props: { titles: RECOMMENDATIONS_PAGE.results },
       route: '/?probe=3',
     })
 
-    const cards = wrapper.findAll('a')
-    expect(cards.length).toBe(2)
-    for (const card of cards) {
-      expect(card.classes().join(' ')).toContain('rounded-[var(--radius)]')
-      const poster = card.find('div.aspect-\\[2\\/3\\]')
-      expect(poster.exists()).toBe(true)
-      expect(poster.classes().join(' ')).toContain('rounded-[var(--radius)]')
-    }
-    const hrefs = cards.map(link => link.attributes('href'))
+    // No longer a manual flex overflow strip
+    expect(wrapper.html()).not.toContain('overflow-x-auto')
+    // Uses BrowseCarousel
+    expect(wrapper.find('.browse-carousel-outer').exists()).toBe(true)
+    expect(wrapper.find('.browse-carousel-viewport').exists()).toBe(true)
+    expect(wrapper.find('[data-carousel-state]').exists()).toBe(true)
+    // TitleCard renders via NuxtLink to detail routes
+    const hrefs = wrapper.findAll('a').map(link => link.attributes('href'))
     expect(hrefs).toContain('/movie/693134')
     expect(hrefs).toContain('/tv/135431')
+    // Each card sits in a CarouselItem with responsive widths 180/168/152
+    const items = wrapper.findAll('[data-slot="carousel-item"]')
+    expect(items).toHaveLength(2)
+    for (const item of items) {
+      const cls = item.classes().join(' ')
+      expect(cls).toContain('w-[180px]')
+      expect(cls).toContain('max-[880px]:w-[168px]')
+      expect(cls).toContain('max-[560px]:w-[152px]')
+      expect(cls).toContain('shrink-0')
+      expect(cls).toContain('snap-start')
+    }
+    // Posters keep 2:3 shape via TitleCard rounded-xl art
+    const arts = wrapper.findAll('.title-card-art')
+    expect(arts).toHaveLength(2)
+    for (const art of arts) {
+      expect(art.classes().join(' ')).toContain('aspect-[2/3]')
+      expect(art.classes().join(' ')).toContain('rounded-xl')
+    }
   })
 
-  it('keeps section heading at heading-lg 20/700 foreground and body at 14/400/1.7', async () => {
+  it('keeps section heading at heading-lg 20/700 foreground', async () => {
     const wrapper = await mountSuspended(RecommendationsStrip, {
       props: { titles: RECOMMENDATIONS_PAGE.results },
       route: '/?probe=4',
     })
 
     const heading = wrapper.find('h2')
+    expect(heading.exists()).toBe(true)
     expect(heading.classes().join(' ')).toContain('text-heading-lg')
     expect(heading.classes().join(' ')).toContain('text-foreground')
-    const body = wrapper.find('p.truncate')
-    expect(body.classes().join(' ')).toContain('text-body-md')
+    expect(heading.text()).toContain('你可能也會喜歡')
   })
 })

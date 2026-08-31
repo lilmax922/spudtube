@@ -160,7 +160,12 @@
       "heading": "Top billed cast"
     },
     "media": {
-      "heading": "Media"
+      "heading": "Media",
+      "open": "Open image {index} of {total}",
+      "close": "Close",
+      "previous": "Previous image",
+      "next": "Next image",
+      "counter": "{current} / {total}"
     },
     "crew": {
       "director": "Director",

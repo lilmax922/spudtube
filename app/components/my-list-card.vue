@@ -272,7 +272,7 @@ const extraProviderCount = computed(() => Math.max(0, props.entry.providers.leng
           :disabled="statusPending"
           @click.stop="toggleStatus('WATCHED')"
         >
-          <Check :size="14" :stroke-width="1.75" aria-hidden="true" />
+          <Check :size="14" :stroke-width="1.75" fill="none" aria-hidden="true" />
         </button>
 
         <RatingTrio

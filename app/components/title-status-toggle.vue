@@ -28,6 +28,7 @@ interface StatusAction {
   icon: Component
   labelAdd: string
   labelRemove: string
+  fillWhenActive: boolean
 }
 
 const ACTIONS: StatusAction[] = [
@@ -36,12 +37,14 @@ const ACTIONS: StatusAction[] = [
     icon: Bookmark,
     labelAdd: 'watchStatus.watchlistAdd',
     labelRemove: 'watchStatus.watchlistRemove',
+    fillWhenActive: true,
   },
   {
     status: 'WATCHED',
     icon: Check,
     labelAdd: 'watchStatus.watchedMark',
     labelRemove: 'watchStatus.watchedClear',
+    fillWhenActive: false,
   },
 ]
 
@@ -99,7 +102,7 @@ function onActionClick(action: StatusAction): void {
         :is="action.icon"
         :size="16"
         :stroke-width="1.75"
-        :fill="status === action.status ? 'currentColor' : 'none'"
+        :fill="action.fillWhenActive && status === action.status ? 'currentColor' : 'none'"
         aria-hidden="true"
       />
     </button>

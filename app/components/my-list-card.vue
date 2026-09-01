@@ -6,7 +6,6 @@ import { Bookmark, Check, Clapperboard } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { $fetch, useFetch } from '#imports'
-import { useToast } from '../composables/use-toast'
 import { authClient } from '../lib/auth-client'
 import { posterSrcSet, posterUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
 import { kindLabelKey, titleDetailPath, toMediaSegment } from '../lib/kind'
@@ -19,11 +18,10 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  updated: []
+  updated: [payload: { kind: MyListEntry['kind'], tmdbId: number, previous: WatchStatus | RatingLabel | null, next: WatchStatus | RatingLabel | null, type: 'status' | 'rating' }]
 }>()
 
 const { t } = useI18n()
-const { showToast } = useToast()
 
 const detailPath = computed(() => titleDetailPath(props.entry.kind, props.entry.tmdbId))
 
@@ -59,41 +57,13 @@ watch(() => props.entry.ratingLabel, (v) => {
 const statusPending = ref(false)
 const ratingPending = ref(false)
 
-function statusToastMessage(next: WatchStatus | null, target: WatchStatus): string {
-  if (target === 'WATCHLISTED')
-    return next ? t('watchStatus.toast.watchlistAdded') : t('watchStatus.toast.watchlistRemoved')
-  return next ? t('watchStatus.toast.watchedAdded') : t('watchStatus.toast.watchedRemoved')
-}
-
-async function revertStatus(previous: WatchStatus | null, target: WatchStatus): Promise<void> {
-  if (statusPending.value)
-    return
-  const segment = toMediaSegment(props.entry.kind)
-  const url = `/api/status/${segment}/${props.entry.tmdbId}`
-  const nextToRevert: WatchStatus | null = previous
-  localStatus.value = nextToRevert
-  statusPending.value = true
-  try {
-    if (nextToRevert == null)
-      await $fetch(url, { method: 'DELETE' })
-    else
-      await $fetch(url, { method: 'PUT', body: { status: nextToRevert } })
-    emit('updated')
-  }
-  catch {
-    localStatus.value = target === previous ? null : target
-  }
-  finally {
-    statusPending.value = false
-  }
-}
-
 async function toggleStatus(target: WatchStatus): Promise<void> {
   if (statusPending.value)
     return
   const next: WatchStatus | null = localStatus.value === target ? null : target
   const previous = localStatus.value
   localStatus.value = next
+  emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'status' })
   statusPending.value = true
   const segment = toMediaSegment(props.entry.kind)
   const url = `/api/status/${segment}/${props.entry.tmdbId}`
@@ -102,17 +72,10 @@ async function toggleStatus(target: WatchStatus): Promise<void> {
       await $fetch(url, { method: 'DELETE' })
     else
       await $fetch(url, { method: 'PUT', body: { status: next } })
-    emit('updated')
-    showToast({
-      message: statusToastMessage(next, target),
-      actionLabel: t('watchStatus.toast.undo'),
-      onAction: () => {
-        void revertStatus(previous, target)
-      },
-    })
   }
   catch {
     localStatus.value = previous
+    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous: next, next: previous, type: 'status' })
   }
   finally {
     statusPending.value = false
@@ -125,6 +88,7 @@ async function toggleRating(label: RatingLabel): Promise<void> {
   const next: RatingLabel | null = localRating.value === label ? null : label
   const previous = localRating.value
   localRating.value = next
+  emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'rating' })
   ratingPending.value = true
   const segment = toMediaSegment(props.entry.kind)
   const url = `/api/ratings/${segment}/${props.entry.tmdbId}`
@@ -133,10 +97,10 @@ async function toggleRating(label: RatingLabel): Promise<void> {
       await $fetch(url, { method: 'DELETE' })
     else
       await $fetch(url, { method: 'PUT', body: { label: next } })
-    emit('updated')
   }
   catch {
     localRating.value = previous
+    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous: next, next: previous, type: 'rating' })
   }
   finally {
     ratingPending.value = false

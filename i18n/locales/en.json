@@ -102,7 +102,10 @@
   },
   "auth": {
     "signIn": "Sign in",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "requiredTitle": "Sign in required",
+    "requiredDescription": "You need to sign in to perform this action.",
+    "cancel": "Cancel"
   },
   "watchStatus": {
     "watchlist": "Watchlist",

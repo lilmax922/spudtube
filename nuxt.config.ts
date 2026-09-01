@@ -1,9 +1,38 @@
+/* eslint-disable node/prefer-global/process */
 import tailwindcss from '@tailwindcss/vite'
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-08-23',
-  modules: ['@nuxt/eslint', '@nuxt/image', '@nuxtjs/i18n', '@nuxt/test-utils/module', 'motion-v/nuxt'],
+  ssr: true,
+  modules: ['@nuxt/eslint', '@nuxt/image', '@nuxtjs/i18n', '@nuxt/test-utils/module', 'motion-v/nuxt', '@nuxtjs/seo'],
+  site: {
+    url: process.env.NUXT_PUBLIC_SITE_URL ?? process.env.NUXT_SITE_URL ?? 'https://spudtube.pages.dev',
+    name: 'SpudTube',
+  },
+  runtimeConfig: {
+    public: {
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? process.env.NUXT_SITE_URL ?? 'https://spudtube.pages.dev',
+    },
+  },
+  sitemap: {
+    exclude: ['/search', '/search/**', '/my-list', '/my-list/**'],
+    excludeAppSources: true,
+    urls: ['/'],
+  },
+  robots: {
+    disallow: ['/search', '/my-list'],
+    sitemap: '/sitemap.xml',
+  },
+  ogImage: {
+    enabled: true,
+  },
+  routeRules: {
+    '/search': { robots: 'noindex, nofollow' },
+    '/search/**': { robots: 'noindex, nofollow' },
+    '/my-list': { robots: 'noindex, nofollow' },
+    '/my-list/**': { robots: 'noindex, nofollow' },
+  },
   css: ['~/assets/css/tailwind.css'],
   vite: {
     plugins: [tailwindcss()],

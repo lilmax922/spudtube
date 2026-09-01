@@ -55,7 +55,7 @@ describe('title-status-toggle', () => {
   it('emits clearStatus when clicking the active action', async () => {
     const wrapper = await render({ signedIn: true, status: 'WATCHED' })
 
-    await findButton(wrapper, 'Watched — click to clear')!.trigger('click')
+    await findButton(wrapper, 'Watched - click to clear')!.trigger('click')
 
     expect(wrapper.emitted('clearStatus')).toHaveLength(1)
   })
@@ -63,7 +63,7 @@ describe('title-status-toggle', () => {
   it('marks the active action as pressed and renders the remove label', async () => {
     const wrapper = await render({ signedIn: true, status: 'WATCHLISTED' })
 
-    const active = findButton(wrapper, 'In watchlist — click to remove')
+    const active = findButton(wrapper, 'In watchlist - click to remove')
     expect(active).toBeDefined()
     expect(active!.attributes('aria-pressed')).toBe('true')
     expect(findButton(wrapper, 'Mark as watched')!.attributes('aria-pressed')).toBe('false')

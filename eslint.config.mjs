@@ -23,4 +23,10 @@ export default withNuxt(
       'unicorn/filename-case': 'off',
     },
   },
+  {
+    files: ['app/components/OgImage/**/*.{js,mjs,ts,vue}'],
+    rules: {
+      'unicorn/filename-case': 'off',
+    },
+  },
 )

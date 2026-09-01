@@ -108,9 +108,9 @@
     "watchlist": "Watchlist",
     "watched": "Watched",
     "watchlistAdd": "Add to watchlist",
-    "watchlistRemove": "In watchlist — click to remove",
+    "watchlistRemove": "In watchlist - click to remove",
     "watchedMark": "Mark as watched",
-    "watchedClear": "Watched — click to clear",
+    "watchedClear": "Watched - click to clear",
     "toast": {
       "watchlistAdded": "Added to Watchlist",
       "watchlistRemoved": "Removed from Watchlist",

@@ -5,13 +5,15 @@ import type { Filters, KindFilter, MonetizationFilter } from '../components/my-l
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { definePageMeta, useFetch } from '#imports'
+import { definePageMeta, useFetch, useHead, useSeoMeta } from '#imports'
 import MyListCard from '../components/my-list-card.vue'
 import MyListFilter from '../components/my-list-filter.vue'
 import { authClient } from '../lib/auth-client'
 
-// Only signed-in Users may browse the list; the my-list middleware bounces everyone else home.
 definePageMeta({ middleware: 'my-list' })
+
+useSeoMeta({ robots: 'noindex, nofollow' })
+useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
 
 type MyListTab = 'watchlist' | 'watched' | 'rated'
 

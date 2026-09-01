@@ -1,17 +1,21 @@
 <script setup lang="ts">
+/* eslint-disable style/quote-props */
 import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
 import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from '#imports'
+import { useHead, useRoute, useSiteConfig } from '#imports'
+import * as _imports from '#imports'
 import { useMediaLightboxState } from '../composables/use-media-lightbox'
 import { useTitleDetail } from '../composables/use-title-detail'
 import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
 import { useTrailerState } from '../composables/use-trailer'
 import { authClient, signIn } from '../lib/auth-client'
+import { backdropUrl, posterUrl } from '../lib/images'
+import { buildCanonicalUrl, buildDetailDescription, buildDetailTitle, extractYear, getOgLocale, getOgLocaleAlternate } from '../lib/seo'
 import AvailabilityPanel from './availability-panel.vue'
 import CastList from './cast-list.vue'
 import MediaLightbox from './media-lightbox.vue'
@@ -27,11 +31,118 @@ interface Props {
 const props = defineProps<Props>()
 
 const route = useRoute()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const titleId = computed(() => route.params.id ?? '')
 
 const { detail, recommendations } = useTitleDetail(props.kind, titleId)
+
+const siteConfig = useSiteConfig()
+
+const detailData = computed(() => detail.data.value ?? null)
+const seoTitle = computed(() => {
+  const d = detailData.value
+  if (d == null)
+    return undefined
+  return buildDetailTitle(d.name, d.releaseDate)
+})
+const seoDescription = computed(() => {
+  const d = detailData.value
+  if (d == null)
+    return undefined
+  return buildDetailDescription(d.overview, d.name, d.releaseDate, (locale.value as 'zh-TW' | 'en'))
+})
+const ogLocale = computed(() => getOgLocale(locale.value))
+const ogLocaleAlternate = computed(() => getOgLocaleAlternate(locale.value))
+const canonicalUrl = computed(() => buildCanonicalUrl(siteConfig.url as string | undefined, route.path))
+
+const schemaImage = computed(() => {
+  const d = detailData.value
+  if (d == null)
+    return undefined
+  if (d.posterPath)
+    return posterUrl(d.posterPath) ?? undefined
+  if (d.backdropPath)
+    return backdropUrl(d.backdropPath) ?? undefined
+  return undefined
+})
+
+const ldJsonContent = computed(() => {
+  const d = detailData.value
+  if (d == null)
+    return null
+  const base: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': props.kind === 'MOVIE' ? 'Movie' : 'TVSeries',
+    name: d.name,
+    genre: d.genres.map(g => g.name),
+  }
+  if (schemaImage.value)
+    base.image = schemaImage.value
+  if (d.releaseDate)
+    base.datePublished = d.releaseDate
+  if (d.voteAverage != null) {
+    base.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: d.voteAverage,
+      bestRating: 10,
+      worstRating: 0,
+    }
+  }
+  return JSON.stringify(base)
+})
+
+useHead(() => {
+  if (detailData.value == null) {
+    return {
+      meta: [
+        { property: 'og:locale', content: ogLocale.value },
+        { property: 'og:locale:alternate', content: ogLocaleAlternate.value },
+      ],
+    }
+  }
+  const head: Record<string, unknown> = {
+    title: seoTitle.value,
+    titleTemplate: '%s',
+    link: [{ rel: 'canonical', href: canonicalUrl.value }],
+    meta: [
+      { name: 'description', content: seoDescription.value },
+      { property: 'og:title', content: seoTitle.value },
+      { property: 'og:description', content: seoDescription.value },
+      { property: 'og:locale', content: ogLocale.value },
+      { property: 'og:locale:alternate', content: ogLocaleAlternate.value },
+    ],
+  }
+  if (ldJsonContent.value) {
+    ;(head as { script?: unknown[] }).script = [
+      { key: 'schema-org', type: 'application/ld+json', innerHTML: ldJsonContent.value },
+    ]
+  }
+  return head
+})
+
+const ogImageTitle = computed(() => seoTitle.value ?? detailData.value?.name ?? 'SpudTube')
+const ogImageDescription = computed(() => seoDescription.value ?? undefined)
+const ogImageYear = computed(() => {
+  const d = detailData.value
+  if (d == null || d.releaseDate == null)
+    return undefined
+  return extractYear(d.releaseDate) ?? undefined
+})
+
+watch([ogImageTitle, ogImageDescription, ogImageYear], ([title, description, year]) => {
+  try {
+    const _defineOgImage = (_imports as unknown as { defineOgImage?: (component: string, props?: Record<string, unknown>) => void }).defineOgImage
+    if (typeof _defineOgImage === 'function') {
+      _defineOgImage('SpudTube', {
+        title,
+        description,
+        year,
+      } as unknown as Record<string, unknown>)
+    }
+  }
+  catch {}
+}, { immediate: true })
 
 const session = authClient.useSession()
 const signedIn = computed(() => session.value.data?.user != null)

@@ -114,7 +114,7 @@ describe('title identity block', () => {
       props: { detail: MOVIE_DETAIL, status: 'WATCHED', signedIn: true },
     })
 
-    const watchedButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '已看過 — 點擊清除')
+    const watchedButton = wrapper.findAll('button').find(button => button.attributes('aria-label') === '已看過 - 點擊清除')
     expect(watchedButton).toBeDefined()
     expect(watchedButton!.attributes('aria-pressed')).toBe('true')
     await watchedButton!.trigger('click')

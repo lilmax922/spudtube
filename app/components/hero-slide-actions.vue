@@ -2,10 +2,11 @@
 import type { RatingLabel } from '#server/db/schema/rating'
 import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind } from '#server/tmdb/types'
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
-import { authClient, signIn } from '../lib/auth-client'
+import { authClient } from '../lib/auth-client'
+import AuthRequiredModal from './auth-required-modal.vue'
 import RatingTrio from './rating-trio.vue'
 import TitleStatusToggle from './title-status-toggle.vue'
 
@@ -38,8 +39,10 @@ function onSetStatus(next: WatchStatus): void {
 function onClearStatus(): void {
   void clearStatus()
 }
+const authModalOpen = shallowRef(false)
+
 function onSignInRequested(): void {
-  void signIn.social({ provider: 'google' })
+  authModalOpen.value = true
 }
 </script>
 
@@ -61,5 +64,6 @@ function onSignInRequested(): void {
       @clear-status="onClearStatus"
       @sign-in-requested="onSignInRequested"
     />
+    <AuthRequiredModal v-model:open="authModalOpen" />
   </div>
 </template>

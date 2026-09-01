@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import type { MonetizationTag, MyList, MyListEntry } from '#server/api/my-list.get'
+import type { RatingLabel } from '#server/db/schema/rating'
+import type { WatchStatus } from '#server/db/schema/title-status'
 import type { Kind, Provider } from '#server/tmdb/types'
 import type { Filters, KindFilter, MonetizationFilter } from '../components/my-list-filter.vue'
 import { AnimatePresence, motion } from 'motion-v'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { definePageMeta, useFetch, useSeoMeta } from '#imports'
+import { $fetch, definePageMeta, useFetch, useSeoMeta } from '#imports'
 import MyListCard from '../components/my-list-card.vue'
 import MyListFilter from '../components/my-list-filter.vue'
+import { useToast } from '../composables/use-toast'
 import { authClient } from '../lib/auth-client'
+import { toMediaSegment } from '../lib/kind'
 
 definePageMeta({ middleware: 'my-list' })
 
@@ -17,38 +21,263 @@ useSeoMeta({ robots: 'noindex, nofollow' })
 type MyListTab = 'watchlist' | 'watched' | 'rated'
 
 const { t, locale } = useI18n()
+const { showToast } = useToast()
 
 const { data: session } = await authClient.useSession(useFetch)
 const signedIn = computed(() => session.value?.user != null)
 
 const activeTab = ref<MyListTab>('watchlist')
 
-const { data: list, pending, error, refresh: refreshList } = useFetch<MyList>('/api/my-list', {
+const { data: list, pending, error } = useFetch<MyList>('/api/my-list', {
   query: { language: locale },
   // Only fetch once signed in; the session flipping true re-triggers the fetch.
   immediate: signedIn.value,
   watch: [signedIn, locale],
 })
 
-let refreshTimer: ReturnType<typeof setTimeout> | null = null
+const removedByKey = ref<Map<string, { entry: MyListEntry, tab: MyListTab }>>(new Map())
 
-function scheduleRefresh(): void {
-  if (refreshTimer)
-    clearTimeout(refreshTimer)
-  refreshTimer = setTimeout(() => {
-    refreshTimer = null
-    void refreshList()
-  }, 3800)
+function entryKey(kind: string, tmdbId: number): string {
+  return `${kind}:${tmdbId}`
 }
 
-function onCardUpdated(): void {
-  scheduleRefresh()
+function bumpList(): void {
+  if (!list.value)
+    return
+  list.value = {
+    ...list.value,
+    watchlist: [...list.value.watchlist],
+    watched: [...list.value.watched],
+    rated: [...list.value.rated],
+  }
 }
 
-onBeforeUnmount(() => {
-  if (refreshTimer)
-    clearTimeout(refreshTimer)
-})
+function findEntryByKey(key: string): { entry: MyListEntry, tab: MyListTab } | null {
+  if (!list.value)
+    return null
+  for (const tab of (['watchlist', 'watched', 'rated'] as MyListTab[])) {
+    const found = list.value[tab].find(entry => entryKey(entry.kind, entry.tmdbId) === key)
+    if (found)
+      return { entry: found, tab }
+  }
+  const removed = removedByKey.value.get(key)
+  if (removed)
+    return removed
+  return null
+}
+
+function applyOptimisticStatusChange(
+  key: string,
+  previous: WatchStatus | null,
+  next: WatchStatus | null,
+): void {
+  if (!list.value)
+    return
+
+  const existing = findEntryByKey(key)
+
+  const removeFromTab = (tab: MyListTab): MyListEntry | undefined => {
+    const idx = list.value![tab].findIndex(e => entryKey(e.kind, e.tmdbId) === key)
+    if (idx === -1)
+      return undefined
+    const [removed] = list.value![tab].splice(idx, 1)
+    return removed
+  }
+
+  const addToTab = (tab: MyListTab, entry: MyListEntry): void => {
+    if (list.value![tab].some(e => entryKey(e.kind, e.tmdbId) === key))
+      return
+    list.value![tab].unshift(entry)
+  }
+
+  // Undo / redo case where entry is currently stashed
+  const stashed = removedByKey.value.get(key)
+  if (!existing && !stashed)
+    return
+
+  // If entry is stashed and we are restoring it
+  if (stashed && next != null) {
+    const updatedEntry: MyListEntry = { ...stashed.entry, status: next }
+    if (next === 'WATCHLISTED')
+      addToTab('watchlist', updatedEntry)
+    else if (next === 'WATCHED')
+      addToTab('watched', updatedEntry)
+    removedByKey.value.delete(key)
+    removedByKey.value = new Map(removedByKey.value)
+    bumpList()
+    return
+  }
+
+  if (!existing)
+    return
+
+  const { entry: original } = existing
+  const baseEntry: MyListEntry = stashed?.entry ?? original
+  const updatedEntry: MyListEntry = { ...baseEntry, status: next }
+
+  if (previous === 'WATCHLISTED')
+    removeFromTab('watchlist')
+  else if (previous === 'WATCHED')
+    removeFromTab('watched')
+
+  if (next === 'WATCHLISTED') {
+    addToTab('watchlist', updatedEntry)
+    removedByKey.value.delete(key)
+  }
+  else if (next === 'WATCHED') {
+    addToTab('watched', updatedEntry)
+    removedByKey.value.delete(key)
+  }
+  else if (next == null && previous != null) {
+    const inRated = list.value!.rated.some(e => entryKey(e.kind, e.tmdbId) === key)
+    const stillInStatus = (['watchlist', 'watched'] as MyListTab[]).some(
+      tab => list.value![tab].some(e => entryKey(e.kind, e.tmdbId) === key),
+    )
+    if (!stillInStatus && !inRated) {
+      if (!removedByKey.value.has(key))
+        removedByKey.value.set(key, { entry: baseEntry, tab: previous === 'WATCHLISTED' ? 'watchlist' : 'watched' })
+    }
+    else {
+      for (const tab of (['watchlist', 'watched', 'rated'] as MyListTab[])) {
+        const idx = list.value![tab].findIndex(e => entryKey(e.kind, e.tmdbId) === key)
+        if (idx !== -1)
+          list.value![tab][idx] = { ...list.value![tab][idx]!, status: next }
+      }
+      removedByKey.value.delete(key)
+    }
+  }
+
+  removedByKey.value = new Map(removedByKey.value)
+  bumpList()
+}
+
+function applyOptimisticRatingChange(
+  key: string,
+  previous: RatingLabel | null,
+  next: RatingLabel | null,
+): void {
+  if (!list.value)
+    return
+  const existing = findEntryByKey(key)
+  if (!existing)
+    return
+  const baseEntry = removedByKey.value.get(key)?.entry ?? existing.entry
+
+  if (previous == null && next != null) {
+    // Adding rating -> should appear in rated
+    if (!list.value.rated.some(e => entryKey(e.kind, e.tmdbId) === key)) {
+      list.value.rated.unshift({ ...baseEntry, ratingLabel: next })
+    }
+    else {
+      const idx = list.value.rated.findIndex(e => entryKey(e.kind, e.tmdbId) === key)
+      list.value.rated[idx] = { ...list.value.rated[idx]!, ratingLabel: next }
+    }
+    // Also patch status tabs if entry is there
+    for (const tab of (['watchlist', 'watched'] as MyListTab[])) {
+      const idx = list.value[tab].findIndex(e => entryKey(e.kind, e.tmdbId) === key)
+      if (idx !== -1)
+        list.value[tab][idx] = { ...list.value[tab][idx]!, ratingLabel: next }
+    }
+    removedByKey.value.delete(key)
+    removedByKey.value = new Map(removedByKey.value)
+    bumpList()
+  }
+  else if (previous != null && next == null) {
+    // Removing rating -> drop from rated if active tab is rated; keep for other tabs
+    const idx = list.value.rated.findIndex(e => entryKey(e.kind, e.tmdbId) === key)
+    let removedEntry: MyListEntry | undefined
+    if (idx !== -1)
+      [removedEntry] = list.value.rated.splice(idx, 1)
+    // Patch other tabs
+    for (const tab of (['watchlist', 'watched'] as MyListTab[])) {
+      const j = list.value[tab].findIndex(e => entryKey(e.kind, e.tmdbId) === key)
+      if (j !== -1)
+        list.value[tab][j] = { ...list.value[tab][j]!, ratingLabel: next }
+    }
+    const stillInStatusTabs = (['watchlist', 'watched'] as MyListTab[]).some(
+      tab => list.value![tab].some(e => entryKey(e.kind, e.tmdbId) === key),
+    )
+    if (!stillInStatusTabs && removedEntry) {
+      // Entry only lived in rated -> stash for undo if needed
+      if (!removedByKey.value.has(key))
+        removedByKey.value.set(key, { entry: { ...baseEntry, ratingLabel: previous }, tab: 'rated' })
+      removedByKey.value = new Map(removedByKey.value)
+    }
+    bumpList()
+  }
+  else if (previous != null && next != null) {
+    // Switching rating label
+    for (const tab of (['watchlist', 'watched', 'rated'] as MyListTab[])) {
+      const idx = list.value[tab].findIndex(e => entryKey(e.kind, e.tmdbId) === key)
+      if (idx !== -1)
+        list.value[tab][idx] = { ...list.value[tab][idx]!, ratingLabel: next }
+    }
+    bumpList()
+  }
+}
+
+function statusToastMessage(next: WatchStatus | null, target: WatchStatus): string {
+  if (target === 'WATCHLISTED')
+    return next ? t('watchStatus.toast.watchlistAdded') : t('watchStatus.toast.watchlistRemoved')
+  return next ? t('watchStatus.toast.watchedAdded') : t('watchStatus.toast.watchedRemoved')
+}
+
+function resolveStatusTarget(previous: WatchStatus | null, next: WatchStatus | null): WatchStatus {
+  // When toggling off, next is null, target is the status being removed (previous)
+  // When toggling on, next is the target itself
+  if (next != null)
+    return next
+  return previous ?? 'WATCHLISTED'
+}
+
+async function revertStatusFromPage(
+  kind: MyListEntry['kind'],
+  tmdbId: number,
+  previous: WatchStatus | null,
+): Promise<void> {
+  const key = entryKey(kind, tmdbId)
+  const stashed = removedByKey.value.get(key)
+  // Current status is null (after removal), we want to go back to `previous`
+  // Re-apply optimistic reverse
+  applyOptimisticStatusChange(key, null, previous)
+  const segment = toMediaSegment(kind)
+  const url = `/api/status/${segment}/${tmdbId}`
+  try {
+    if (previous == null)
+      await $fetch(url, { method: 'DELETE' })
+    else
+      await $fetch(url, { method: 'PUT', body: { status: previous } })
+  }
+  catch {
+    // Roll back optimistic undo on failure
+    const afterFailKey = entryKey(kind, tmdbId)
+    // Previous was restored, now need to remove again
+    applyOptimisticStatusChange(afterFailKey, previous, null)
+    // Re-stash if lost
+    if (stashed && !removedByKey.value.has(key))
+      removedByKey.value = new Map(removedByKey.value.set(key, stashed))
+  }
+}
+
+function onCardUpdated(payload: { kind: MyListEntry['kind'], tmdbId: number, previous: WatchStatus | RatingLabel | null, next: WatchStatus | RatingLabel | null, type: 'status' | 'rating' }): void {
+  const key = entryKey(payload.kind, payload.tmdbId)
+  if (payload.type === 'status') {
+    const prev = payload.previous as WatchStatus | null
+    const nxt = payload.next as WatchStatus | null
+    applyOptimisticStatusChange(key, prev, nxt)
+    const target = resolveStatusTarget(prev, nxt)
+    showToast({
+      message: statusToastMessage(nxt, target),
+      actionLabel: t('watchStatus.toast.undo'),
+      onAction: () => {
+        void revertStatusFromPage(payload.kind, payload.tmdbId, prev)
+      },
+    })
+  }
+  else {
+    applyOptimisticRatingChange(key, payload.previous as RatingLabel | null, payload.next as RatingLabel | null)
+  }
+}
 
 const TABS: Array<{ key: MyListTab, label: string }> = [
   { key: 'watchlist', label: t('myList.tabs.watchlist') },

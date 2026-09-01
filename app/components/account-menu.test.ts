@@ -14,6 +14,7 @@ describe('account menu', () => {
     const signIn = findButton(wrapper, 'Sign in')
     expect(signIn).toBeDefined()
     expect(findButton(wrapper, 'Sign out')).toBeUndefined()
+    expect(wrapper.find('svg').exists()).toBe(false)
   })
 
   it('emits signIn when a signed-out visitor clicks the button', async () => {
@@ -29,10 +30,20 @@ describe('account menu', () => {
       props: { user: { name: 'Max', image: 'https://example.com/avatar.png' } },
     })
 
-    expect(wrapper.text()).toContain('Max')
     expect(wrapper.find('img').attributes('src')).toBe('https://example.com/avatar.png')
-    expect(findButton(wrapper, 'Sign out')).toBeDefined()
+    expect(wrapper.find('[data-slot="avatar"]').exists()).toBe(true)
+    expect(wrapper.find('svg').exists()).toBe(false)
     expect(findButton(wrapper, 'Sign in')).toBeUndefined()
+    expect(wrapper.text()).not.toContain('Max')
+
+    await findButton(wrapper, 'Max')!.trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(document.body.textContent).toContain('Max')
+    expect(document.body.textContent).toContain('Sign out')
+    expect(document.body.querySelector('[data-slot="dropdown-menu-label"]')?.textContent).toContain('Max')
+    wrapper.unmount()
+    document.querySelectorAll('[data-slot="dropdown-menu-content"]').forEach(el => el.remove())
   })
 
   it('emits signOut when a signed-in user clicks the sign-out button', async () => {
@@ -40,8 +51,17 @@ describe('account menu', () => {
       props: { user: { name: 'Max', image: null } },
     })
 
-    await findButton(wrapper, 'Sign out')!.trigger('click')
+    await findButton(wrapper, 'Max')!.trigger('click')
+    await wrapper.vm.$nextTick()
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const item = document.body.querySelector('[data-slot="dropdown-menu-item"]') as HTMLElement | null
+    expect(item).not.toBeNull()
+    expect(item!.textContent).toContain('Sign out')
+    item!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('signOut')).toHaveLength(1)
+    wrapper.unmount()
+    document.querySelectorAll('[data-slot="dropdown-menu-content"]').forEach(el => el.remove())
   })
 })

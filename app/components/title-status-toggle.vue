@@ -28,6 +28,7 @@ interface StatusAction {
   icon: Component
   labelAdd: string
   labelRemove: string
+  fillWhenActive: boolean
 }
 
 const ACTIONS: StatusAction[] = [
@@ -36,12 +37,14 @@ const ACTIONS: StatusAction[] = [
     icon: Bookmark,
     labelAdd: 'watchStatus.watchlistAdd',
     labelRemove: 'watchStatus.watchlistRemove',
+    fillWhenActive: true,
   },
   {
     status: 'WATCHED',
     icon: Check,
     labelAdd: 'watchStatus.watchedMark',
     labelRemove: 'watchStatus.watchedClear',
+    fillWhenActive: false,
   },
 ]
 
@@ -85,7 +88,7 @@ function onActionClick(action: StatusAction): void {
       v-for="action in ACTIONS"
       :key="action.status"
       type="button"
-      class="inline-flex h-[38px] items-center gap-1.5 rounded-full border border-input bg-muted px-3 text-button-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex size-[38px] items-center justify-center rounded-full border border-input bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       :class="status === action.status
         ? 'text-foreground hover:bg-secondary'
         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'"
@@ -97,9 +100,9 @@ function onActionClick(action: StatusAction): void {
     >
       <component
         :is="action.icon"
-        :size="16"
+        :size="18"
         :stroke-width="1.75"
-        :fill="status === action.status ? 'currentColor' : 'none'"
+        :fill="action.fillWhenActive && status === action.status ? 'currentColor' : 'none'"
         aria-hidden="true"
       />
     </button>

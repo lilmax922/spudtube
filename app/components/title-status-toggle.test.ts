@@ -75,4 +75,21 @@ describe('title-status-toggle', () => {
     expect(findButton(wrapper, 'Add to watchlist')!.attributes('disabled')).toBeDefined()
     expect(findButton(wrapper, 'Mark as watched')!.attributes('disabled')).toBeDefined()
   })
+
+  it('fills Bookmark when active but never fills Check (outline icon)', async () => {
+    const wl = await render({ signedIn: true, status: 'WATCHLISTED' })
+    const wlSvgs = wl.findAll('svg')
+    expect(wlSvgs[0]!.attributes('fill')).toBe('currentColor')
+    expect(wlSvgs[1]!.attributes('fill')).toBe('none')
+
+    const wd = await render({ signedIn: true, status: 'WATCHED' })
+    const wdSvgs = wd.findAll('svg')
+    expect(wdSvgs[0]!.attributes('fill')).toBe('none')
+    expect(wdSvgs[1]!.attributes('fill')).toBe('none')
+
+    const idle = await render({ signedIn: true, status: null })
+    const idleSvgs = idle.findAll('svg')
+    expect(idleSvgs[0]!.attributes('fill')).toBe('none')
+    expect(idleSvgs[1]!.attributes('fill')).toBe('none')
+  })
 })

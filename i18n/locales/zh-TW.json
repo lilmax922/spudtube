@@ -102,7 +102,10 @@
   },
   "auth": {
     "signIn": "登入",
-    "signOut": "登出"
+    "signOut": "登出",
+    "requiredTitle": "需要登入",
+    "requiredDescription": "請先登入才能執行此操作。",
+    "cancel": "取消"
   },
   "watchStatus": {
     "watchlist": "待看清單",

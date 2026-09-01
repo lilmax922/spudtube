@@ -12,9 +12,10 @@ import { useTitleDetail } from '../composables/use-title-detail'
 import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'
 import { useTrailerState } from '../composables/use-trailer'
-import { authClient, signIn } from '../lib/auth-client'
+import { authClient } from '../lib/auth-client'
 import { backdropUrl, posterUrl } from '../lib/images'
 import { buildCanonicalUrl, buildDetailDescription, buildDetailTitle, extractYear, getOgLocale, getOgLocaleAlternate } from '../lib/seo'
+import AuthRequiredModal from './auth-required-modal.vue'
 import AvailabilityPanel from './availability-panel.vue'
 import CastList from './cast-list.vue'
 import MediaLightbox from './media-lightbox.vue'
@@ -181,8 +182,10 @@ function onClearStatus(): void {
   void clearStatus()
 }
 
+const authModalOpen = shallowRef(false)
+
 function onSignInRequested(): void {
-  void signIn.social({ provider: 'google' })
+  authModalOpen.value = true
 }
 
 const notFound = computed(() => {
@@ -251,5 +254,6 @@ const failed = computed(() => {
       </div>
       <RecommendationsStrip :titles="recommendations.data.value?.results ?? []" />
     </template>
+    <AuthRequiredModal v-model:open="authModalOpen" />
   </div>
 </template>

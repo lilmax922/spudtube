@@ -116,4 +116,30 @@ describe('myListCard', () => {
       expect(wrapper.emitted('updated')).toBeTruthy()
     })
   })
+
+  it('check is outline only (fill none always), Bookmark filled only when WATCHLISTED', async () => {
+    const watchlisted = makeEntry({ status: 'WATCHLISTED' })
+    const w1 = await mountSuspended(MyListCard, { props: { entry: watchlisted } })
+    const w1Svgs = w1.findAll('svg')
+    const w1Bookmark = w1Svgs.find(s => (s.attributes('class') ?? '').includes('lucide-bookmark')) ?? w1Svgs[0]
+    const w1Check = w1Svgs.find(s => (s.attributes('class') ?? '').includes('lucide-check')) ?? w1Svgs[1]
+    expect(w1Bookmark!.attributes('fill')).toBe('currentColor')
+    expect(w1Check!.attributes('fill')).toBe('none')
+
+    const watched = makeEntry({ status: 'WATCHED' })
+    const w2 = await mountSuspended(MyListCard, { props: { entry: watched } })
+    const w2Svgs = w2.findAll('svg')
+    const w2Bookmark = w2Svgs.find(s => (s.attributes('class') ?? '').includes('lucide-bookmark')) ?? w2Svgs[0]
+    const w2Check = w2Svgs.find(s => (s.attributes('class') ?? '').includes('lucide-check')) ?? w2Svgs[1]
+    expect(w2Bookmark!.attributes('fill')).toBe('none')
+    expect(w2Check!.attributes('fill')).toBe('none')
+
+    const idle = makeEntry({ status: null })
+    const w3 = await mountSuspended(MyListCard, { props: { entry: idle } })
+    const w3Svgs = w3.findAll('svg')
+    const w3Bookmark = w3Svgs.find(s => (s.attributes('class') ?? '').includes('lucide-bookmark')) ?? w3Svgs[0]
+    const w3Check = w3Svgs.find(s => (s.attributes('class') ?? '').includes('lucide-check')) ?? w3Svgs[1]
+    expect(w3Bookmark!.attributes('fill')).toBe('none')
+    expect(w3Check!.attributes('fill')).toBe('none')
+  })
 })

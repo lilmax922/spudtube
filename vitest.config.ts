@@ -26,6 +26,13 @@ export default defineConfig({
           name: 'happy-dom',
           include: ['app/**/*.test.ts'],
           setupFiles: ['vitest.happy-dom.setup.ts'],
+          environmentOptions: {
+            // The test nuxt forces ssr:false, which breaks nuxt-og-image's real
+            // defineOgImage in the harness. Disabling the module makes it register
+            // a no-op defineOgImage instead, so the SFCs' '#imports' named import
+            // still compiles here (dev keeps the real renderer).
+            nuxt: { overrides: { ogImage: { enabled: false } } },
+          },
         },
       }),
     ],

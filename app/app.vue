@@ -3,7 +3,7 @@ import { Search } from '@lucide/vue'
 import { onKeyStroke } from '@vueuse/core'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { navigateTo, useFetch, useHead, useRoute } from '#imports'
+import { defineOgImage, navigateTo, useFetch, useHead, useRoute, useSiteConfig } from '#imports'
 import AccountMenu from './components/account-menu.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import SearchOverlay from './components/search-overlay.vue'
@@ -13,10 +13,33 @@ import { useBrowseGrid } from './composables/use-browse-grid'
 import { useMediaLightboxState } from './composables/use-media-lightbox'
 import { useTrailerState } from './composables/use-trailer'
 import { authClient, signIn, signOut } from './lib/auth-client'
+import { buildCanonicalUrl, getOgLocale, getOgLocaleAlternate, SEO_DESCRIPTIONS, SEO_TITLES } from './lib/seo'
 
 const { locale, t } = useI18n()
 const route = useRoute()
 const { kind: browseKind, setKind } = useBrowseGrid()
+
+const siteConfig = useSiteConfig()
+const localeTitle = computed(() => locale.value === 'zh-TW' ? SEO_TITLES['zh-TW'] : SEO_TITLES.en)
+const localeDescription = computed(() => locale.value === 'zh-TW' ? SEO_DESCRIPTIONS['zh-TW'] : SEO_DESCRIPTIONS.en)
+const ogLocale = computed(() => getOgLocale(locale.value))
+const ogLocaleAlternate = computed(() => getOgLocaleAlternate(locale.value))
+const canonicalUrl = computed(() => buildCanonicalUrl(siteConfig.url as string | undefined, '/'))
+
+useHead(() => ({
+  title: localeTitle.value,
+  titleTemplate: '%s',
+  htmlAttrs: { lang: locale.value },
+  link: [{ rel: 'canonical', href: canonicalUrl.value }],
+  meta: [
+    { name: 'description', content: localeDescription.value },
+    { property: 'og:title', content: localeTitle.value },
+    { property: 'og:description', content: localeDescription.value },
+    { property: 'og:locale', content: ogLocale.value },
+    { property: 'og:locale:alternate', content: ogLocaleAlternate.value },
+  ],
+}))
+defineOgImage('SpudTube', { title: localeTitle, description: localeDescription })
 
 const { data: session } = await authClient.useSession(useFetch)
 
@@ -100,8 +123,6 @@ async function onSignOut(): Promise<void> {
   await signOut()
   await navigateTo('/')
 }
-
-useHead(() => ({ htmlAttrs: { lang: locale.value } }))
 </script>
 
 <template>

@@ -8,6 +8,10 @@ minimumReleaseAgeExclude:
   - '@vue/language-core@3.3.11'
   - eslint@10.9.0
   - vue-tsc@3.3.11
+publicHoistPattern:
+  - '@nuxtjs/*'
+  - 'nuxt-*'
+  - '@takumi-rs/*'
 shellEmulator: true
 trustPolicy: no-downgrade
 trustPolicyExclude:

@@ -19,6 +19,11 @@
       "binding": "HYPERDRIVE",
       "id": "58dd30fac53f459bab7b2108c3d1d0e9",
       "localConnectionString": "postgresql://spudtube:spudtube@localhost:5432/spudtube"
+      // The spudtube-db Hyperdrive config has query caching DISABLED (caching.disabled=true).
+      // Keep it that way: Hyperdrive's default 60s max_age + 15s stale_while_revalidate caches
+      // SELECT results and is NOT invalidated by writes, so every user-state read (auth session,
+      // watch status, ratings, my-list) would go stale for up to 75s after a toggle. Enabling the
+      // cache here silently reintroduces that bug. Apply via: wrangler hyperdrive update <id> --caching-disabled
     }
   ]
 }

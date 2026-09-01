@@ -14,3 +14,7 @@ trustPolicyExclude:
   - semver@6.3.1
   - fastq
   - fastq@1.20.2
+publicHoistPattern:
+  - '@nuxtjs/*'
+  - 'nuxt-*'
+  - '@takumi-rs/*'

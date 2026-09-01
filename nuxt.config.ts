@@ -26,6 +26,12 @@ export default defineNuxtConfig({
   },
   ogImage: {
     enabled: true,
+    defaults: {
+      renderer: 'takumi',
+      component: 'SpudTube',
+      width: 1200,
+      height: 630,
+    },
   },
   routeRules: {
     '/search': { robots: 'noindex, nofollow' },

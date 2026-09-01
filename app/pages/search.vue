@@ -2,13 +2,12 @@
 import { LoaderCircle, Search } from '@lucide/vue'
 import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useHead, useRoute, useSeoMeta } from '#imports'
+import { useRoute, useSeoMeta } from '#imports'
 import TitleCard from '../components/title-card.vue'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
 import { useSearchState } from '../composables/use-search-state'
 
 useSeoMeta({ robots: 'noindex, nofollow' })
-useHead({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
 
 const { t } = useI18n()
 const route = useRoute()

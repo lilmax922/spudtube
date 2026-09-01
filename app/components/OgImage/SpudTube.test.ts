@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import SpudTubeOgImage from '../OgImage/SpudTube.takumi.vue'
+import SpudTubeOgImage from './SpudTube.takumi.vue'
 
 describe('ogImage SpudTube', () => {
   it('renders title text', async () => {

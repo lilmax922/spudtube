@@ -1,5 +1,7 @@
 import type { Ref } from 'vue'
 import type { TitleDetail } from '#server/tmdb/types'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
@@ -281,5 +283,41 @@ describe('title-detail-page SEO', () => {
     await vi.waitFor(() => expect(metaContent('og:locale')).toBe('en_US'))
     // og:title should also update with locale-specific description fallback
     expect(metaContent('og:description')).toBeTruthy()
+  })
+})
+
+describe('title-detail-page ogImage best practices', () => {
+  it('imports defineOgImage via #imports (wildcard extraction allowed) and calls with reactive refs', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/components/title-detail-page.vue'), 'utf8')
+    expect(src).toContain('defineOgImage')
+    expect(src).toContain('from \'#imports\'')
+    expect(src).toContain('SpudTube')
+    expect(src).toMatch(/title:\s*ogImageTitle/)
+    expect(src).toMatch(/description:\s*ogImageDescription/)
+    expect(src).toMatch(/year:\s*ogImageYear/)
+  })
+
+  it('calls defineOgImage top-level with reactive refs (not inside watch)', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/components/title-detail-page.vue'), 'utf8')
+    expect(src).toContain('defineOgImage')
+    expect(src).toContain('SpudTube')
+    expect(src).not.toMatch(/watch\(\[ogImageTitle/)
+  })
+
+  it('passes ogImage refs directly without .value unwrapping', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/components/title-detail-page.vue'), 'utf8')
+    expect(src).toContain('title: ogImageTitle')
+    expect(src).not.toContain('title: ogImageTitle.value')
+  })
+})
+
+describe('nuxt ogImage config best practices', () => {
+  it('does not contain dead renderer/component keys in ogImage defaults', () => {
+    const src = readFileSync(resolve(process.cwd(), 'nuxt.config.ts'), 'utf8')
+    expect(src).not.toMatch(/renderer:\s*['"]takumi['"]/)
+    // defaults should only contain width/height per v6 types (component/renderer omitted)
+    expect(src).toContain('width: 1200')
+    expect(src).toContain('height: 630')
+    expect(src).toMatch(/ogImage:\s*\{\s*enabled:\s*true/)
   })
 })

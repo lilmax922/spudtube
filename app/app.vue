@@ -3,8 +3,7 @@ import { Search } from '@lucide/vue'
 import { onKeyStroke } from '@vueuse/core'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { navigateTo, useFetch, useHead, useRoute, useSiteConfig } from '#imports'
-import * as _imports from '#imports'
+import { defineOgImage, navigateTo, useFetch, useHead, useRoute, useSiteConfig } from '#imports'
 import AccountMenu from './components/account-menu.vue'
 import LanguageSwitcher from './components/language-switcher.vue'
 import SearchOverlay from './components/search-overlay.vue'
@@ -40,19 +39,7 @@ useHead(() => ({
     { property: 'og:locale:alternate', content: ogLocaleAlternate.value },
   ],
 }))
-
-watch([localeTitle, localeDescription], ([title, description]) => {
-  try {
-    const _defineOgImage = (_imports as unknown as { defineOgImage?: (component: string, props?: Record<string, unknown>) => void }).defineOgImage
-    if (typeof _defineOgImage === 'function') {
-      _defineOgImage('SpudTube', {
-        title,
-        description,
-      })
-    }
-  }
-  catch {}
-}, { immediate: true })
+defineOgImage('SpudTube', { title: localeTitle, description: localeDescription })
 
 const { data: session } = await authClient.useSession(useFetch)
 

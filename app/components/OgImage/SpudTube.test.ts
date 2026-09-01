@@ -67,4 +67,38 @@ describe('ogImage SpudTube', () => {
     expect(html).toContain('width: 1200px')
     expect(html).toContain('height: 630px')
   })
+
+  it('does not render year parens when year absent', async () => {
+    const wrapper = mount(SpudTubeOgImage, { props: { title: 'Dune' } })
+    expect(wrapper.text()).not.toContain('(')
+    expect(wrapper.text()).not.toContain(')')
+    // year span should not exist
+    expect(wrapper.html()).not.toContain('(2021)')
+  })
+
+  it('handles year null without crash', async () => {
+    const wrapper = mount(SpudTubeOgImage, { props: { title: 'Dune', year: null as unknown as string } })
+    expect(wrapper.text()).toContain('Dune')
+    expect(wrapper.text()).not.toContain('null')
+  })
+
+  it('renders placeholder when description absent', async () => {
+    const wrapper = mount(SpudTubeOgImage, { props: { title: 'Dune' } })
+    expect(wrapper.find('p').exists()).toBe(false)
+    expect(wrapper.html()).toContain('height: 24px')
+  })
+
+  it('renders clamped description with two-line limit style', async () => {
+    const wrapper = mount(SpudTubeOgImage, { props: { title: 'Dune', description: 'Epic sci-fi description' } })
+    const p = wrapper.find('p')
+    expect(p.exists()).toBe(true)
+    // clamped via overflow hidden and max-width in rendered style
+    expect(p.attributes('style') ?? wrapper.html()).toContain('overflow: hidden')
+    // source guarantees -webkit clamp for Takumi renderer
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const src = readFileSync(resolve(process.cwd(), 'app/components/OgImage/SpudTube.takumi.vue'), 'utf8')
+    expect(src).toContain('-webkit-line-clamp: 2')
+    expect(src).toContain('-webkit-box-orient: vertical')
+  })
 })

@@ -6,8 +6,7 @@ import type { Kind } from '#server/tmdb/types'
 import { ArrowLeft } from '@lucide/vue'
 import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useHead, useRoute, useSiteConfig } from '#imports'
-import * as _imports from '#imports'
+import { defineOgImage, useHead, useRoute, useSiteConfig } from '#imports'
 import { useMediaLightboxState } from '../composables/use-media-lightbox'
 import { useTitleDetail } from '../composables/use-title-detail'
 import { useTitleRating } from '../composables/use-title-rating'
@@ -130,19 +129,7 @@ const ogImageYear = computed(() => {
   return extractYear(d.releaseDate) ?? undefined
 })
 
-watch([ogImageTitle, ogImageDescription, ogImageYear], ([title, description, year]) => {
-  try {
-    const _defineOgImage = (_imports as unknown as { defineOgImage?: (component: string, props?: Record<string, unknown>) => void }).defineOgImage
-    if (typeof _defineOgImage === 'function') {
-      _defineOgImage('SpudTube', {
-        title,
-        description,
-        year,
-      } as unknown as Record<string, unknown>)
-    }
-  }
-  catch {}
-}, { immediate: true })
+defineOgImage('SpudTube', { title: ogImageTitle, description: ogImageDescription, year: ogImageYear })
 
 const session = authClient.useSession()
 const signedIn = computed(() => session.value.data?.user != null)

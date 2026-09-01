@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDetailDescription, buildDetailTitle, extractYear, getOgLocale, truncate } from './seo'
+import { buildCanonicalUrl, buildDetailDescription, buildDetailTitle, extractYear, getOgLocale, getOgLocaleAlternate, truncate } from './seo'
 
 const ZH_TITLE = 'SpudTube - 拯救劇荒，快速找到今晚想看的電影與影集'
 const ZH_DESC = '探索電影與影集，查看台灣串流上架資訊，收藏你的待看清單。從此告別「今晚看什麼」的選擇困難。'
@@ -125,44 +125,48 @@ describe('seo utils - buildDetailDescription', () => {
 
 describe('seo utils - getOgLocale', () => {
   it('returns zh_TW for zh-TW', () => {
-    const result = getOgLocale('zh-TW') as unknown
-    if (typeof result === 'string') {
-      expect(result).toBe('zh_TW')
-    }
-    else {
-      expect(result).toEqual(expect.objectContaining({ locale: 'zh_TW' }))
-    }
+    expect(getOgLocale('zh-TW')).toBe('zh_TW')
   })
 
   it('returns en_US for en', () => {
-    const result = getOgLocale('en') as unknown
-    if (typeof result === 'string') {
-      expect(result).toBe('en_US')
-    }
-    else {
-      expect(result).toEqual(expect.objectContaining({ locale: 'en_US' }))
-    }
+    expect(getOgLocale('en')).toBe('en_US')
   })
 
-  it('alternate mirrors other locale', () => {
-    const zh = getOgLocale('zh-TW') as unknown as { alternate?: string, locale?: string } | string
-    const en = getOgLocale('en') as unknown as { alternate?: string, locale?: string } | string
-    if (typeof zh === 'string' && typeof en === 'string') {
-      expect(zh).toBe('zh_TW')
-      expect(en).toBe('en_US')
-    }
-    else if (typeof zh === 'object' && typeof en === 'object') {
-      expect(zh.alternate).toBe('en_US')
-      expect(en.alternate).toBe('zh_TW')
-    }
-    else {
-      // if object form, check alternate field
-      const zhObj = zh as { alternate?: string }
-      const enObj = en as { alternate?: string }
-      if (zhObj.alternate)
-        expect(zhObj.alternate).toBe('en_US')
-      if (enObj.alternate)
-        expect(enObj.alternate).toBe('zh_TW')
-    }
+  it('returns en_US for unknown locale', () => {
+    expect(getOgLocale('fr')).toBe('en_US')
+  })
+})
+
+describe('seo utils - getOgLocaleAlternate', () => {
+  it('returns en_US alternate for zh-TW', () => {
+    expect(getOgLocaleAlternate('zh-TW')).toBe('en_US')
+  })
+
+  it('returns zh_TW alternate for en', () => {
+    expect(getOgLocaleAlternate('en')).toBe('zh_TW')
+  })
+
+  it('returns zh_TW alternate for unknown locale', () => {
+    expect(getOgLocaleAlternate('fr')).toBe('zh_TW')
+  })
+})
+
+describe('seo utils - buildCanonicalUrl', () => {
+  it('builds canonical with siteUrl and path', () => {
+    expect(buildCanonicalUrl('https://spudtube.pages.dev', '/')).toBe('https://spudtube.pages.dev/')
+    expect(buildCanonicalUrl('https://spudtube.pages.dev', '/movie/123')).toBe('https://spudtube.pages.dev/movie/123')
+  })
+
+  it('normalizes trailing slash on siteUrl', () => {
+    expect(buildCanonicalUrl('https://spudtube.pages.dev/', '/')).toBe('https://spudtube.pages.dev/')
+  })
+
+  it('adds leading slash when path missing', () => {
+    expect(buildCanonicalUrl('https://spudtube.pages.dev', 'movie/123')).toBe('https://spudtube.pages.dev/movie/123')
+  })
+
+  it('falls back to SEO_SITE_URL when siteUrl undefined', () => {
+    expect(buildCanonicalUrl(undefined, '/')).toBe('https://spudtube.pages.dev/')
+    expect(buildCanonicalUrl(undefined, '/tv/456')).toBe('https://spudtube.pages.dev/tv/456')
   })
 })

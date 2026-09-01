@@ -1,4 +1,6 @@
 import type { Genre, TitleSummary } from '#server/tmdb/types'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
@@ -205,5 +207,41 @@ describe('global SEO head', () => {
     localeRef.value = 'en'
     await vi.waitFor(() => expect(metaContent('og:title')).toBe(EN_TITLE))
     expect(metaContent('og:description')).toBe(EN_DESC)
+  })
+
+  it('sets html lang attribute via useHead', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/app.vue'), 'utf8')
+    expect(src).toContain('htmlAttrs')
+    expect(src).toContain('lang: locale.value')
+  })
+})
+
+describe('global ogImage best practices', () => {
+  it('imports defineOgImage via #imports (wildcard allowed) and calls with reactive refs', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/app.vue'), 'utf8')
+    expect(src).toContain('defineOgImage')
+    expect(src).toContain('from \'#imports\'')
+    // should call with localeTitle / localeDescription refs, not plain strings inside watch
+    expect(src).toContain('SpudTube')
+    expect(src).toMatch(/title:\s*localeTitle/)
+    expect(src).toMatch(/description:\s*localeDescription/)
+  })
+
+  it('calls defineOgImage top-level with reactive refs (not inside watch)', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/app.vue'), 'utf8')
+    expect(src).toContain('defineOgImage')
+    expect(src).toContain('SpudTube')
+    expect(src).not.toMatch(/watch\(\[localeTitle/)
+    // must not be inside a watch callback with destructured [title, description]
+    expect(src).not.toMatch(/watch\(\[localeTitle,\s*localeDescription\]/)
+  })
+
+  it('passes locale refs directly (no .value unwrapping in call)', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/app.vue'), 'utf8')
+    const defCall = src.match(/_def\([\s\S]*?\)/)?.[0] ?? src.match(/defineOgImage\([\s\S]*?\)/)?.[0] ?? ''
+    expect(defCall).toContain('localeTitle')
+    expect(defCall).toContain('localeDescription')
+    expect(defCall).not.toContain('localeTitle.value')
+    expect(defCall).not.toContain('localeDescription.value')
   })
 })

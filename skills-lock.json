@@ -67,12 +67,6 @@
       "skillPath": "skills/motion/SKILL.md",
       "computedHash": "45d0803ea76f82fa40af91858472fb4528a8ce4c2a9a710b785e796cd5b3fe98"
     },
-    "nuxt-seo": {
-      "source": "onmax/nuxt-skills",
-      "sourceType": "github",
-      "skillPath": "skills/nuxt-seo/SKILL.md",
-      "computedHash": "bffc66809f3a21055d2fd39d0bfa32eefdc681d2e93f4613fc3360addb3d3677"
-    },
     "organization-best-practices": {
       "source": "better-auth/skills",
       "sourceType": "github",

@@ -1,6 +1,6 @@
 # SpudTube
 
-Decide what to watch. SpudTube helps you discover movies and TV shows, shows you where each title streams in your region, and keeps your private ratings and lists — so a "what should I watch tonight" moment ends in front of something good, not another tab of tabs.
+Discover movies and TV shows, check streaming availability, and manage your watchlists and ratings. No more "what to watch tonight" fatigue.
 
 ## Features
 
@@ -9,7 +9,7 @@ Decide what to watch. SpudTube helps you discover movies and TV shows, shows you
 - **Title pages** — overview, genres, year, runtime, trailer, and a recommendations strip to queue up what's next
 - **Streaming availability** — which providers carry a title in a given region, grouped subscription → free → rent → buy; defaults to the region detected from your IP, switchable across a curated list of 14 regions; regions never hide titles from you
 - **Private tracking** (Google sign-in) — rate any title awesome / good / sucks, one verdict per title, editable forever; maintain a Watchlist and a watched history that never contradict each other
-- **Traditional Chinese first** — UI and catalog data in zh-TW for visitors from Taiwan (English otherwise), with English fallback for untranslated overviews
+- **i18n** — zh-TW / English interface via @nuxtjs/i18n; defaults from the visitor's country signal (TW → zh-TW, else English), overridable per browser, and never affects catalog content or streaming availability, which follow Region
 
 ## Tech stack
 
@@ -82,9 +82,3 @@ pnpm build
 | [`docs/agents/code-standard.md`](./docs/agents/code-standard.md) | Implementation rules and conventions |
 | [`docs/agents/design-system.md`](./docs/agents/design-system.md) | Approved UI baseline — tokens, type scale, binding rules |
 | [`docs/design/prototype.html`](./docs/design/prototype.html) | Interactive design prototype (open in a browser) |
-| [`.scratch/spudtube-v1/spec.md`](./.scratch/spudtube-v1/spec.md) | v1 specification |
-| [`.scratch/spudtube-v1/issues/`](./.scratch/spudtube-v1/issues/) | Implementation tickets with blocking edges |
-
-## Status
-
-Scaffold landed (ticket 01): Nuxt + toolchain green on all four gates. Next unblocked: tickets 02 (i18n), 03 (TMDB client), 08 (auth), 11 (design system baseline) — see the issues directory for the current frontier.

@@ -1,6 +1,6 @@
 # SpudTube
 
-SpudTube helps people decide what to watch: discover movies and TV shows, find where a title streams in a given region, and keep personal ratings and lists.
+Discover movies and TV shows, check streaming availability, and manage your watchlists and ratings. No more "what to watch tonight" fatigue.
 
 ## Language
 

@@ -6,8 +6,8 @@ export const SEO_TITLES = {
 } as const
 
 export const SEO_DESCRIPTIONS = {
-  'zh-TW': '探索電影與影集，查看台灣串流上架資訊，收藏你的待看清單。從此告別「今晚看什麼」的選擇困難。',
-  'en': 'Discover movies and TV shows, check streaming availability, and manage your watchlists. No more "what to watch tonight" fatigue.',
+  'zh-TW': '探索電影與影集，查看台灣串流上架資訊，收藏你的待看清單和評分。從此告別「今晚看什麼」的選擇困難。',
+  'en': 'Discover movies and TV shows, check streaming availability, and manage your watchlists and ratings. No more "what to watch tonight" fatigue.',
 } as const
 
 export type AppSeoLocale = 'zh-TW' | 'en'

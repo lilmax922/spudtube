@@ -1,4 +1,6 @@
 import type { DiscoveryBadges, ProviderCatalog, TitleSummary } from '#server/tmdb/types'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PROVIDER_CATALOG } from '../lib/availability-fixtures'
@@ -198,5 +200,17 @@ describe('title-card hover content', () => {
     await wrapper.find('a').trigger('focusin')
 
     expect(availabilityMock.loadCatalog).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('title-card responsive hover — <=560px with mouse still shows overlay', () => {
+  it('does not hide hover-overlay-content with bare max-width:560px; requires hover/pointer capability', () => {
+    const source = readFileSync(resolve(import.meta.dirname, './title-card.vue'), 'utf8')
+    // Bare "@media (max-width: 560px)" with display:none would hide overlay even on fine-pointer desktops.
+    // Fix gates it on (hover: none) / (pointer: coarse) so narrow desktop + mouse still shows hover.
+    const bareMaxWidthHide = /@media\s*\(\s*max-width\s*:\s*560px\s*\)\s*\{[^}]*\.hover-overlay-content[^}]*display\s*:\s*none/
+    expect(source).not.toMatch(bareMaxWidthHide)
+    expect(source).toMatch(/@media\s*\(max-width:\s*560px\)\s*and\s*\(hover:\s*none\)/)
+    expect(source).toMatch(/\.hover-overlay-content[\s\S]*?display:\s*none/)
   })
 })

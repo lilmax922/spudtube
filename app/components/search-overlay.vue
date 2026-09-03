@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { Clock, Search as SearchIcon, Star, TrendingUp, X } from '@lucide/vue'
+import { Clock, Flame, Search as SearchIcon, Star, X } from '@lucide/vue'
 import { useDebounceFn, useStorage } from '@vueuse/core'
 import { ListboxFilter } from 'reka-ui'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from '#imports'
 import { useKeywordSearch } from '../composables/use-keyword-search'
+import { useTrendingNames } from '../composables/use-trending-names'
 import { posterUrl } from '../lib/images'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from './ui/command'
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
 
 interface Props {
   query: string
@@ -32,22 +34,12 @@ const panelRef = shallowRef<HTMLElement | null>(null)
 const searchSentinel = shallowRef<HTMLElement | null>(null)
 // ListboxFilter exposes its root input via querySelector; keep generic ref
 const inputRef = shallowRef<any>(null)
-const activeTab = shallowRef<'all' | 'movie' | 'tv'>('all')
+const activeTab = shallowRef<string>('all')
 const STORAGE_KEY = 'spudtube:recent'
 const recents = useStorage<string[]>(STORAGE_KEY, [])
 
-const TRENDING = [
-  'Toy Story 5',
-  'Mutiny',
-  'Spider-Man: Brand New Day',
-  'The Odyssey',
-  'Obsession',
-  'Insidious: Out of the Further',
-  'Minions & Monsters',
-  'The End of Oak Street',
-]
-
 const overlaySearch = useKeywordSearch()
+const trendingNames = useTrendingNames()
 
 const debouncedOverlaySearch = useDebounceFn((q: string) => {
   void overlaySearch.search(q)
@@ -307,11 +299,10 @@ watch(activeTab, () => {
                   v-for="item in recents"
                   :key="item"
                   :value="item"
-                  class="recentItem flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-left text-body-md text-foreground hover:bg-muted data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                  class="recentItem flex items-center gap-2.5 rounded-lg px-2 py-2.5 text-left text-body-md text-foreground hover:bg-muted data-[highlighted]:bg-muted data-[highlighted]:text-foreground [&_svg]:hidden"
                   :data-q="item"
                   @select="onSelectRecent(item)"
                 >
-                  <Clock :size="16" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
                   {{ item }}
                 </CommandItem>
               </CommandGroup>
@@ -322,39 +313,39 @@ watch(activeTab, () => {
                 {{ t('search.noRecent') }}
               </p>
             </div>
-            <div class="searchSection border-t border-border p-[18px_16px]">
+            <div v-if="trendingNames.names.value.length > 0" class="searchSection border-t border-border p-[18px_16px]">
               <h4 class="flex items-center gap-1.5 text-caption-md font-bold text-foreground">
-                <TrendingUp :size="14" :stroke-width="1.75" class="text-primary" aria-hidden="true" />
+                <Flame :size="14" :stroke-width="1.75" class="text-primary" aria-hidden="true" />
                 {{ t('search.trendingSearches') }}
               </h4>
               <CommandGroup class="trendingChips mt-3 flex flex-wrap gap-2 p-0 bg-transparent">
                 <CommandItem
-                  v-for="trend in TRENDING"
+                  v-for="trend in trendingNames.names.value"
                   :key="trend"
                   :value="trend"
                   :data-q="trend"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 text-caption-md font-medium text-muted-foreground transition-colors hover:border-ring hover:text-foreground data-[highlighted]:border-ring data-[highlighted]:text-foreground data-[highlighted]:bg-muted"
+                  class="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 text-caption-md font-medium text-muted-foreground transition-colors hover:border-ring hover:text-foreground data-[highlighted]:border-ring data-[highlighted]:text-foreground data-[highlighted]:bg-muted [&_svg]:hidden"
                   @select="onSelectTrending(trend)"
                 >
-                  <SearchIcon :size="12" :stroke-width="1.75" aria-hidden="true" />
                   {{ trend }}
                 </CommandItem>
               </CommandGroup>
             </div>
           </template>
           <template v-else>
-            <div class="searchTabs flex gap-2 border-b border-border p-3">
-              <button
-                v-for="tab in tabs"
-                :key="tab.id"
-                type="button"
-                :data-tab="tab.id"
-                class="inline-flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-caption-md font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-                :class="activeTab === tab.id ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground hover:text-foreground'"
-                @click="activeTab = tab.id"
-              >
-                {{ tab.label }}
-              </button>
+            <div class="searchTabs border-b border-border p-3">
+              <Tabs v-model:model-value="activeTab">
+                <TabsList>
+                  <TabsTrigger
+                    v-for="tab in tabs"
+                    :key="tab.id"
+                    :value="tab.id"
+                    :data-tab="tab.id"
+                  >
+                    {{ tab.label }}123
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
             <div
               v-if="overlaySearch.loading.value && filteredItems.length === 0"

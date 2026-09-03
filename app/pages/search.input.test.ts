@@ -11,13 +11,15 @@ describe('search page input', () => {
     expect(file).toMatch(/max-w-\[var\(--max-content-width\)\]/)
   })
 
-  it('keeps original layout without trending or recent sections', async () => {
+  it('renders default landing with recommended grid and no recent or trending sections', async () => {
     const fs = await import('node:fs')
     const path = await import('node:path')
     const file = fs.readFileSync(path.resolve(process.cwd(), 'app/pages/search.vue'), 'utf-8')
+    expect(file).toMatch(/useDefaultTrending/)
+    expect(file).toMatch(/isEmptyQuery/)
+    expect(file).toMatch(/data-testid="search-default"/)
     expect(file).not.toMatch(/useTrendingNames/)
     expect(file).not.toMatch(/spudtube:recent/)
-    expect(file).not.toMatch(/isEmptyQuery/)
   })
 
   it('preserves header and grid structure from original', async () => {

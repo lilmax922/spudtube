@@ -5,6 +5,8 @@ import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo, useRoute, useSeoMeta } from '#imports'
 import TitleCard from '../components/title-card.vue'
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { useDefaultTrending } from '../composables/use-default-trending'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
 import { useSearchState } from '../composables/use-search-state'
 
@@ -27,6 +29,7 @@ const queryParam = computed(() => {
   const raw = route.query.q
   return typeof raw === 'string' ? raw.trim() : ''
 })
+const isEmptyQuery = computed(() => queryParam.value === '')
 
 watch(queryParam, (q) => {
   if (q === '') {
@@ -95,6 +98,24 @@ const emptyMessage = computed(() =>
 )
 
 const displayQuery = computed(() => searchedQuery.value || queryParam.value)
+
+// Default landing state, shown only when no query was entered.
+const defaultTrending = useDefaultTrending()
+const defaultTab = shallowRef<string>('all')
+
+const tabs = computed<Array<{ id: string, label: string }>>(() => [
+  { id: 'all', label: t('search.tabs.all') },
+  { id: 'movie', label: t('search.tabs.movies') },
+  { id: 'tv', label: t('search.tabs.tvShows') },
+])
+
+const landingTitles = computed(() => {
+  if (defaultTab.value === 'movie')
+    return defaultTrending.movieTitles.value
+  if (defaultTab.value === 'tv')
+    return defaultTrending.tvTitles.value
+  return defaultTrending.allTitles.value
+})
 </script>
 
 <template>
@@ -142,7 +163,63 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
         </template>
       </span>
     </div>
-    <section class="flex flex-col gap-6" :aria-label="t('search.sectionLabel')">
+    <section
+      v-if="isEmptyQuery"
+      class="flex flex-col gap-6"
+      :aria-label="t('search.sectionLabel')"
+      data-testid="search-default"
+    >
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <h2 class="text-heading-lg font-bold text-foreground">
+            {{ t('search.recommended') }}
+          </h2>
+          <Tabs v-model:model-value="defaultTab" class="ml-auto">
+            <TabsList :aria-label="t('search.sectionLabel')">
+              <TabsTrigger
+                v-for="tab in tabs"
+                :key="tab.id"
+                :value="tab.id"
+              >
+                {{ tab.label }}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <p
+          v-if="defaultTrending.error.value && landingTitles.length === 0"
+          class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+        >
+          {{ t('search.error') }}
+        </p>
+
+        <div
+          v-else-if="defaultTrending.loading.value && landingTitles.length === 0"
+          class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 max-[880px]:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]"
+          aria-busy="true"
+        >
+          <div
+            v-for="index in 12"
+            :key="index"
+            class="aspect-[16/9] animate-pulse rounded-lg bg-muted"
+          />
+        </div>
+
+        <div
+          v-else
+          class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 max-[880px]:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] max-[560px]:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]"
+        >
+          <TitleCard
+            v-for="title in landingTitles"
+            :key="`${title.kind}-${title.tmdbId}`"
+            :title="title"
+            :show-kind="true"
+          />
+        </div>
+      </div>
+    </section>
+    <section v-else class="flex flex-col gap-6" :aria-label="t('search.sectionLabel')">
       <p
         v-if="error && items.length === 0"
         class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]"

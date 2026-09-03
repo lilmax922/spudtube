@@ -125,9 +125,9 @@ vi.mock('./lib/auth-client', () => ({
 }))
 
 const ZH_TITLE = 'SpudTube - 拯救劇荒，快速找到今晚想看的電影與影集'
-const ZH_DESC = '探索電影與影集，查看台灣串流上架資訊，收藏你的待看清單。從此告別「今晚看什麼」的選擇困難。'
+const ZH_DESC = '探索電影與影集，查看台灣串流上架資訊，收藏你的待看清單和評分。從此告別「今晚看什麼」的選擇困難。'
 const EN_TITLE = 'SpudTube - Discover Movies & TV Shows Worth Watching'
-const EN_DESC = 'Discover movies and TV shows, check streaming availability, and manage your watchlists. No more "what to watch tonight" fatigue.'
+const EN_DESC = 'Discover movies and TV shows, check streaming availability, and manage your watchlists and ratings. No more "what to watch tonight" fatigue.'
 
 function metaContent(nameOrProperty: string): string | null {
   const el = document.head.querySelector(`meta[name="${nameOrProperty}"], meta[property="${nameOrProperty}"]`)

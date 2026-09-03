@@ -618,6 +618,127 @@ describe('tmdb client — genres', () => {
   })
 })
 
+describe('tmdb client — genre localization regression (zh-TW simplified -> traditional)', () => {
+  it('converts simplified upstream genre names to traditional for zh-TW via genres', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/genre/movie/list': {
+        genres: [
+          { id: 28, name: '动作' },
+          { id: 12, name: '冒险' },
+          { id: 16, name: '动画' },
+          { id: 35, name: '喜剧' },
+          { id: 878, name: '科幻' },
+        ],
+      },
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const genres = await client.genres('MOVIE', 'zh-TW')
+
+    expect(requests[0]?.params.language).toBe('zh-TW')
+    expect(genres).toEqual([
+      { id: 28, name: '動作' },
+      { id: 12, name: '冒險' },
+      { id: 16, name: '動畫' },
+      { id: 35, name: '喜劇' },
+      { id: 878, name: '科幻' },
+    ])
+  })
+
+  it('keeps english genre names unchanged for en', async () => {
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/genre/movie/list': {
+        genres: [
+          { id: 28, name: 'Action' },
+          { id: 12, name: 'Adventure' },
+          { id: 878, name: 'Science Fiction' },
+        ],
+      },
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const genres = await client.genres('MOVIE', 'en')
+
+    expect(requests[0]?.params.language).toBe('en')
+    expect(genres).toEqual([
+      { id: 28, name: 'Action' },
+      { id: 12, name: 'Adventure' },
+      { id: 878, name: 'Science Fiction' },
+    ])
+  })
+
+  it('localizes title detail genres to traditional for zh-TW', async () => {
+    const detailWithSimplifiedGenres = {
+      ...MOVIE_DETAIL,
+      genres: [
+        { id: 28, name: '动作' },
+        { id: 12, name: '冒险' },
+        { id: 878, name: '科幻' },
+      ],
+    }
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/movie/419430': detailWithSimplifiedGenres,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const detail = await client.title('MOVIE', 419430, 'zh-TW')
+
+    expect(requests[0]?.params.language).toBe('zh-TW')
+    expect(detail?.genres).toEqual([
+      { id: 28, name: '動作' },
+      { id: 12, name: '冒險' },
+      { id: 878, name: '科幻' },
+    ])
+  })
+
+  it('preserves upstream genre names for en title detail (no zh-TW localization)', async () => {
+    const detailWithSimplifiedGenres = {
+      ...MOVIE_DETAIL,
+      genres: [
+        { id: 28, name: '动作' },
+        { id: 12, name: '冒险' },
+      ],
+    }
+    const { fetchJson: fetchJsonZh } = createFakeTransport({
+      '/3/movie/419430': detailWithSimplifiedGenres,
+    })
+    const clientZh = createTmdbClient({ token: 'test-token', fetchJson: fetchJsonZh })
+    const zhDetail = await clientZh.title('MOVIE', 419430, 'zh-TW')
+    expect(zhDetail?.genres).toEqual([
+      { id: 28, name: '動作' },
+      { id: 12, name: '冒險' },
+    ])
+
+    const detailWithEnglishGenres = {
+      ...MOVIE_DETAIL,
+      genres: [
+        { id: 28, name: 'Action' },
+        { id: 12, name: 'Adventure' },
+      ],
+    }
+    const { fetchJson: fetchJsonEn, requests: requestsEn } = createFakeTransport({
+      '/3/movie/419430': detailWithEnglishGenres,
+    })
+    const clientEn = createTmdbClient({ token: 'test-token', fetchJson: fetchJsonEn })
+    const enDetail = await clientEn.title('MOVIE', 419430, 'en')
+    expect(requestsEn[0]?.params.language).toBe('en')
+    expect(enDetail?.genres).toEqual([
+      { id: 28, name: 'Action' },
+      { id: 12, name: 'Adventure' },
+    ])
+
+    const { fetchJson: fetchJsonEnSimplified } = createFakeTransport({
+      '/3/movie/419430': detailWithSimplifiedGenres,
+    })
+    const clientEnSimplified = createTmdbClient({ token: 'test-token', fetchJson: fetchJsonEnSimplified })
+    const enSimplifiedDetail = await clientEnSimplified.title('MOVIE', 419430, 'en')
+    expect(enSimplifiedDetail?.genres).toEqual([
+      { id: 28, name: '动作' },
+      { id: 12, name: '冒险' },
+    ])
+  })
+})
+
 describe('tmdb client — language support', () => {
   it('sends the requested language for search and isolates cache per language', async () => {
     const { fetchJson, requests } = createFakeTransport({

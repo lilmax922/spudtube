@@ -9,6 +9,7 @@ import type {
   rawTvSummarySchema,
 } from './schemas'
 import type { CastMember, CrewMember, Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
+import { localizeGenres } from './genres'
 
 export function toKind(mediaType: string): Kind | null {
   if (mediaType === 'movie')
@@ -74,8 +75,9 @@ function orNull(value: string | null | undefined): string | null {
   return value
 }
 
-export function mapGenres(raw: z.infer<typeof rawGenreSchema>[]): Genre[] {
-  return raw.map(genre => ({ id: genre.id, name: genre.name }))
+export function mapGenres(raw: z.infer<typeof rawGenreSchema>[], language: TmdbLanguage = 'zh-TW'): Genre[] {
+  const genres = raw.map(genre => ({ id: genre.id, name: genre.name }))
+  return localizeGenres(genres, language)
 }
 
 export function pickTrailerKey(
@@ -193,7 +195,7 @@ export function mapMovieDetail(
     originalName: raw.original_title ?? null,
     originalLanguage: raw.original_language ?? null,
     status: raw.status ?? null,
-    genres: mapGenres(raw.genres),
+    genres: mapGenres(raw.genres, language),
     runtimeMinutes: raw.runtime,
     trailerKey: pickTrailerKey(raw.videos, language),
     budget: raw.budget ?? null,
@@ -222,7 +224,7 @@ export function mapTvDetail(
     originalName: raw.original_name ?? null,
     originalLanguage: raw.original_language ?? null,
     status: raw.status ?? null,
-    genres: mapGenres(raw.genres),
+    genres: mapGenres(raw.genres, language),
     runtimeMinutes: raw.episode_run_time[0] ?? null,
     trailerKey: pickTrailerKey(raw.videos, language),
     budget: null,

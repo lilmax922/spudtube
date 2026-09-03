@@ -8,6 +8,7 @@ import {
   SEARCH_TTL_MS,
   TMDB_BASE_URL,
 } from './constants'
+import { localizeGenres } from './genres'
 import {
   mapMovieDetail,
   mapMovieSummary,
@@ -262,7 +263,8 @@ export function createTmdbClient({
       const segment = toMediaSegment(kind)
       return cache.wrap(`genres:${language}:${segment}`, DETAIL_TTL_MS, async () => {
         const raw = rawGenreListSchema.parse(await request(`/genre/${segment}/list`, { language }))
-        return raw.genres.map(genre => ({ id: genre.id, name: genre.name }))
+        const genres = raw.genres.map(genre => ({ id: genre.id, name: genre.name }))
+        return localizeGenres(genres, language)
       })
     },
   }

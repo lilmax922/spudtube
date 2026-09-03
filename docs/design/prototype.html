@@ -76,12 +76,12 @@ a{color:inherit;text-decoration:none}
 #langMenu button{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--foreground);background:none;border:none}
 #langMenu button:hover{background:var(--muted)}
 #langMenu .check{display:inline-flex;color:var(--foreground)}
-/* Prime Video 式主導覽：Movies / TV shows 緊貼 brand */
-#primeNav{display:flex;gap:2px;align-items:center;margin-left:4px}
-.primeNavBtn{height:32px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:600;color:rgba(255,255,255,.72);transition:background .16s,color .16s}
-.primeNavBtn:hover{color:#fff;background:rgba(255,255,255,.08)}
-.primeNavBtn.on{background:rgba(255,255,255,.16);color:#fff}
-#siteHeader.scrolled .primeNavBtn.on{background:rgba(255,255,255,.14)}
+/* Kind switch：Movies / TV shows 緊貼 brand */
+#kindSwitch{display:flex;gap:2px;align-items:center;margin-left:4px}
+.kindSwitchBtn{height:32px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:600;color:rgba(255,255,255,.72);transition:background .16s,color .16s}
+.kindSwitchBtn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.kindSwitchBtn.on{background:rgba(255,255,255,.16);color:#fff}
+#siteHeader.scrolled .kindSwitchBtn.on{background:rgba(255,255,255,.14)}
 /* ---------- Search Overlay ---------- */
 #searchOverlay{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;padding:72px 16px 24px;background:color-mix(in oklab, var(--background) 72%, transparent);backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);overflow:auto}
 #searchOverlay[hidden]{display:none !important}
@@ -396,9 +396,9 @@ input[type='search']::-webkit-search-decoration{-webkit-appearance:none}
       </span>
       SpudTube
     </span>
-    <nav id="primeNav" aria-label="影片類型">
-      <button type="button" class="primeNavBtn" data-kind="movie">Movies</button>
-      <button type="button" class="primeNavBtn" data-kind="tv">TV shows</button>
+    <nav id="kindSwitch" aria-label="影片類型">
+      <button type="button" class="kindSwitchBtn" data-kind="movie">Movies</button>
+      <button type="button" class="kindSwitchBtn" data-kind="tv">TV shows</button>
     </nav>
     <nav id="appnav" aria-label="主要導覽">
       <button id="searchOpenBtn" aria-label="搜尋" class="ghost" style="width:38px;height:38px;border-radius:999px;padding:0;justify-content:center;margin-right:2px">
@@ -623,11 +623,11 @@ function syncFilterBar(){
    if(h.provider)list=list.filter(x=>getAllProviders(x).includes(h.provider));
    countEl.textContent=`篩選結果 · ${list.length} 部`;
  }
- syncPrimeNav();
+ syncKindSwitch();
 }
-function syncPrimeNav(){
+function syncKindSwitch(){
   const isHome=store.screen.name==="home";
-  document.querySelectorAll("#primeNav [data-kind]").forEach(b=>{
+  document.querySelectorAll("#kindSwitch [data-kind]").forEach(b=>{
     const on=isHome&&b.dataset.kind===store.home.kind;
     b.classList.toggle("on",on);
     b.setAttribute("aria-pressed",on);
@@ -776,7 +776,7 @@ function renderHero(){
  carousel?.addEventListener("mouseenter",()=>{if(heroTimer){clearInterval(heroTimer);heroTimer=null;}});
  carousel?.addEventListener("mouseleave",()=>{if(!heroTimer) heroTimer=setInterval(()=>go(heroIdx+1),5000);});
  // 確保 header Movies/TV 與 hero 同步
- syncPrimeNav();
+ syncKindSwitch();
 }
 function renderRows(area){
   const k=store.home.kind,kl=KLABEL[k];
@@ -1133,7 +1133,7 @@ function render(){
  else if(store.screen.name==="topic")renderTopic();
  else if(store.screen.name==="list")renderList();
  else buildHomeShell();
- syncPrimeNav();
+ syncKindSwitch();
  // header mode (detail hidden vs home transparent)
  requestAnimationFrame(()=>{syncHeaderMode();});
  window.scrollTo({top:0,behavior:"instant"});
@@ -1277,8 +1277,8 @@ document.querySelectorAll("#appnav [data-nav]").forEach(a=>a.addEventListener("c
  if(a.dataset.nav==="list"){store.screen={name:"list"};render();}
  else toast("登入為示意");
 }));
-// Prime 式 Header：Movies / TV shows（Image1），移除篩選列的電影/影集
-document.querySelectorAll("#primeNav [data-kind]").forEach(b=>b.addEventListener("click",()=>{
+// Kind switch header：Movies / TV shows（Image1），移除篩選列的電影/影集
+document.querySelectorAll("#kindSwitch [data-kind]").forEach(b=>b.addEventListener("click",()=>{
  if(store.home.kind===b.dataset.kind) return;
  store.home.kind=b.dataset.kind;
  store.home.genres.clear();
@@ -1288,7 +1288,7 @@ document.querySelectorAll("#primeNav [data-kind]").forEach(b=>b.addEventListener
  // 若在 detail/list/topic，先回首頁再套用篩選
  if(store.screen.name!=="home") store.screen={name:"home"};
  syncFilterBar();
- syncPrimeNav();
+ syncKindSwitch();
  render();
  toast("已切換："+ (b.dataset.kind==="movie"?"電影":"影集"));
 }));
@@ -1312,7 +1312,7 @@ document.querySelectorAll("#primeNav [data-kind]").forEach(b=>b.addEventListener
 
 // init
 render();
-syncPrimeNav();
+syncKindSwitch();
 onScroll();
 })();
 </script>

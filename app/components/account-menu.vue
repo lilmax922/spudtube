@@ -6,8 +6,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
@@ -60,10 +58,6 @@ const initials = computed(() => {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" class="w-48">
-        <DropdownMenuLabel class="truncate">
-          {{ user.name }}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         <DropdownMenuItem @click="emit('signOut')">
           {{ t('auth.signOut') }}
         </DropdownMenuItem>

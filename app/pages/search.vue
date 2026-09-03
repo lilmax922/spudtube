@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { LoaderCircle, Search } from '@lucide/vue'
+import { LoaderCircle, Search as SearchIcon, X } from '@lucide/vue'
+import { useDebounceFn } from '@vueuse/core'
 import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useSeoMeta } from '#imports'
+import { navigateTo, useRoute, useSeoMeta } from '#imports'
 import TitleCard from '../components/title-card.vue'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
 import { useSearchState } from '../composables/use-search-state'
@@ -36,6 +37,51 @@ watch(queryParam, (q) => {
   }
 }, { immediate: true })
 
+const draft = shallowRef(queryParam.value)
+watch(queryParam, (q) => {
+  draft.value = q
+})
+
+const debouncedNavigate = useDebounceFn((value: string) => {
+  const trimmed = value.trim()
+  const current = queryParam.value
+  if (trimmed === current)
+    return
+  if (trimmed === '') {
+    void navigateTo({ path: '/search', query: {} })
+  }
+  else {
+    void navigateTo({ path: '/search', query: { q: trimmed } })
+  }
+}, 350)
+
+watch(draft, (value) => {
+  debouncedNavigate(value)
+})
+
+function onSubmit(): void {
+  debouncedNavigate.cancel()
+  const trimmed = draft.value.trim()
+  const current = queryParam.value
+  if (trimmed === current) {
+    if (trimmed !== '')
+      void search(trimmed)
+    return
+  }
+  if (trimmed === '') {
+    void navigateTo({ path: '/search', query: {} })
+  }
+  else {
+    void navigateTo({ path: '/search', query: { q: trimmed } })
+  }
+}
+
+function onClear(): void {
+  debouncedNavigate.cancel()
+  draft.value = ''
+  void navigateTo({ path: '/search', query: {} })
+}
+
 const sentinel = shallowRef<HTMLElement | null>(null)
 
 useInfiniteScroll(sentinel, () => {
@@ -53,13 +99,38 @@ const displayQuery = computed(() => searchedQuery.value || queryParam.value)
 
 <template>
   <div class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)] pb-10 pt-6">
+    <form
+      role="search"
+      class="mb-6 flex items-center gap-3 rounded-[12px] border border-input bg-card px-3 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.25)] focus-within:border-ring focus-within:shadow-[0_0_0_2px_color-mix(in_oklab,var(--ring)_20%,transparent)]"
+      @submit.prevent="onSubmit"
+    >
+      <SearchIcon :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+      <input
+        :value="draft"
+        type="search"
+        :aria-label="t('search.label')"
+        :placeholder="t('search.placeholder')"
+        class="h-10 w-full bg-transparent text-body-md text-foreground outline-none placeholder:text-muted-foreground"
+        @input="draft = ($event.target as HTMLInputElement).value"
+      >
+      <button
+        v-if="draft !== ''"
+        type="button"
+        :aria-label="t('search.clear')"
+        class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        @click="onClear"
+      >
+        <X :size="16" :stroke-width="1.75" aria-hidden="true" />
+      </button>
+    </form>
+
     <div
       v-if="displayQuery"
       class="mb-6 flex items-center gap-3 border-b border-border pb-5"
       data-testid="search-header"
     >
       <h1 class="flex items-center gap-2 text-heading-xl font-bold tracking-tight text-foreground">
-        <Search :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+        <SearchIcon :size="18" :stroke-width="1.75" class="shrink-0 text-muted-foreground" aria-hidden="true" />
         <span>{{ t('search.related', { query: displayQuery }) }}</span>
       </h1>
       <span class="text-caption-sm font-medium text-muted-foreground">

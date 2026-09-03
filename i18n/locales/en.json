@@ -18,6 +18,9 @@
     "providersSearchEmpty": "No providers found",
     "providersPopular": "Popular",
     "providersSearchResults": "Results",
+    "filterTitle": "Filters",
+    "filterPlaceholder": "No filters",
+    "done": "Done",
     "minutesShort": "{minutes} min"
   },
   "hero": {
@@ -66,6 +69,10 @@
   },
   "language": {
     "label": "Language"
+  },
+  "menu": {
+    "browse": "Browse",
+    "language": "Language"
   },
   "region": {
     "label": "Region",

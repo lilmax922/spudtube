@@ -285,7 +285,6 @@ input[type='search']::-webkit-search-cancel-button {
     line-height: var(--leading-heading-xs);
     letter-spacing: var(--tracking-heading-xs);
     font-weight: var(--weight-heading-xs);
-    text-transform: uppercase;
   }
   .text-body-lg {
     font-size: var(--text-body-lg);
@@ -363,6 +362,5 @@ input[type='search']::-webkit-search-cancel-button {
     line-height: var(--leading-heading-xs);
     letter-spacing: var(--tracking-heading-xs);
     font-weight: var(--weight-heading-xs);
-    text-transform: uppercase;
   }
 }

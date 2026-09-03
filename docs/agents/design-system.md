@@ -78,7 +78,7 @@ Provider 識別使用 icon，不以固定色塊作為系統色。
 | `heading-xl` | `{text.heading-xl}` | `24/700/1.25/-0.015em` | 頁面主標 `my-list/search/not-found` `h1` | `22@880` → `20@560` |
 | `heading-lg` | `{text.heading-lg}` | `20/700/1.3/-0.01em` | 區塊標題 `content-row h3` + detail 5 區 `facts/cast/recommendations/media/availability h2`（正常大小寫 `foreground`） | `18@880` → `16.5@560` |
 | `heading-sm` | `{text.heading-sm}` | `16.5/700/1.3/-0.01em` | 次級區塊 / 備用（`h3` 預設映射保留） | 固定 |
-| `heading-xs` | `{text.heading-xs}` | `13/700/1.4/0.06em uppercase` | 僅標籤 / badge `TV-MA` 等（`h4` 預設映射保留，不用於章節標題） | 固定 |
+| `heading-xs` | `{text.heading-xs}` | `13/700/1.4/0.06em` | 僅標籤 / badge `TV-MA` 等（`h4` 預設映射保留，不用於章節標題） | 固定 |
 | `body-lg` | `{text.body-lg}` | `16/400/1.6/0` | 放大內文 `detail overview` / `facts dd` | `14@560` |
 | `body-md` | `{text.body-md}` | `14/400/1.7/0` | 預設內文錨點 | 固定 |
 | `body-sm-strong` | `{text.body-sm-strong}` | `14/500/1.6/0.2px` | 強內文 / meta 強 | 固定 |
@@ -92,7 +92,7 @@ Provider 識別使用 icon，不以固定色塊作為系統色。
 ### Hierarchy Principles
 
 - **同一 Outfit 字族貫穿**，僅以 `800→400` 字重落差與負字距建立層級。
-- **大標負字距**（`display -0.02em / heading -0.015~-0.01em`），`body` 保持 `0`，`heading-xs` 以 `0.06em uppercase` 區分。
+- **大標負字距**（`display -0.02em / heading -0.015~-0.01em`），`body` 保持 `0`，`heading-xs` 以 `0.06em` 字距區分。
 - **僅 `display` 啟用 `text-wrap:balance`**，其餘 `pretty/normal`；`tabular-nums` 僅數據行另加，不寫入 token。
 
 ### Note on Font Substitutes
@@ -219,9 +219,10 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 
 ### Collapsing Strategy
 
-- **Header**：保持可見，不折疊為漢堡；僅文字縮減。
+- **Header**：`>=880` 維持 inline 版面；`<880` 左漢堡（`Sheet side="left"`）/ 中品牌 / 右語言與帳號，導覽（Movies / TV Shows）與 Search 收合至 Sheet，`My List` 收合至帳號選單。
 - **Grid**：維持網格，僅卡寬縮小。
-- **彈層**：窄視口仍置中，不轉全屏抽屜。
+- **Filter**：`>=880` 維持 inline Ratings / Genres 捲動 + Providers Popover；`<880` 呈摘要列（縮影 + `+N`、總數徽章、占位）+ 單一 Drawer 三區（Ratings / Genres / Providers），內捲動 + 底部固定操作區。
+- **彈層**：窄視口仍置中，不轉全屏抽屜（篩選除外，篩選使用 Drawer）。
 
 ### Image Behavior
 

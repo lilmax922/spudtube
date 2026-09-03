@@ -525,8 +525,11 @@ describe('homeFilterBar', () => {
     expect(barZ).toBeGreaterThan(cardZ)
     expect(barZ).toBeGreaterThanOrEqual(45)
     // header must remain highest
-    const appFile = fs.readFileSync(path.resolve(process.cwd(), 'app/app.vue'), 'utf-8')
-    const headerMatch = appFile.match(/#siteHeader\s*\{[^}]*z-index:\s*(\d+)/)
+    const headerSources = [
+      fs.readFileSync(path.resolve(process.cwd(), 'app/components/the-header.vue'), 'utf-8'),
+      fs.readFileSync(path.resolve(process.cwd(), 'app/app.vue'), 'utf-8'),
+    ].join('\n')
+    const headerMatch = headerSources.match(/#siteHeader\s*\{[^}]*z-index:\s*(\d+)/)
     const headerZ = headerMatch ? Number(headerMatch[1]) : 0
     expect(headerZ).toBeGreaterThan(barZ)
   })

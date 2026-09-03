@@ -33,6 +33,8 @@ interface RatingOption {
   icon: Component
 }
 
+const HOVER_GRACE_MS = 150
+
 const RATING_OPTIONS: RatingOption[] = [
   { label: 'SUCKS', icon: ThumbsDown },
   { label: 'GOOD', icon: ThumbsUp },
@@ -44,6 +46,7 @@ const hovered = ref(false)
 const hoveredOption = ref<RatingLabel | null>(null)
 const bouncing = ref<RatingLabel | null>(null)
 let bounceTimer: ReturnType<typeof setTimeout> | null = null
+let closeTimer: ReturnType<typeof setTimeout> | null = null
 
 const showFlyout = computed(() => open.value || hovered.value)
 const selectedIcon = computed(() => RATING_OPTIONS.find(option => option.label === props.label)?.icon ?? ThumbsUp)
@@ -63,7 +66,41 @@ watch(showFlyout, (visible) => {
 onBeforeUnmount(() => {
   if (bounceTimer)
     clearTimeout(bounceTimer)
+  if (closeTimer)
+    clearTimeout(closeTimer)
 })
+
+function cancelClose(): void {
+  if (closeTimer !== null) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
+}
+
+function armClose(ms = HOVER_GRACE_MS): void {
+  cancelClose()
+  closeTimer = setTimeout(() => {
+    hovered.value = false
+    closeTimer = null
+  }, ms)
+}
+
+function onTriggerEnter(): void {
+  cancelClose()
+  hovered.value = true
+}
+
+function onTriggerLeave(): void {
+  armClose()
+}
+
+function onRegionEnter(): void {
+  cancelClose()
+}
+
+function onRegionLeave(): void {
+  armClose()
+}
 
 const BOUNCE_KEYFRAMES: Record<RatingLabel, { y: number[], scale: number[], rotate: number[] }> = {
   SUCKS: { y: [0, 10, -3, 0], scale: [1, 1.08, 1.02, 1], rotate: [0, 6, -3, 0] },
@@ -122,11 +159,7 @@ function onOptionClick(option: RatingLabel): void {
         <span class="ml-1 font-medium text-muted-foreground">{{ t('rating.average') }}</span>
       </span>
 
-      <div
-        class="relative inline-flex"
-        @mouseenter="hovered = true"
-        @mouseleave="hovered = false"
-      >
+      <div class="relative inline-flex">
         <Tooltip>
           <TooltipTrigger as-child>
             <button
@@ -136,6 +169,8 @@ function onOptionClick(option: RatingLabel): void {
               :aria-label="triggerLabel"
               :disabled="pending"
               @click="onTriggerClick"
+              @mouseenter="onTriggerEnter"
+              @mouseleave="onTriggerLeave"
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -170,6 +205,8 @@ function onOptionClick(option: RatingLabel): void {
             :exit="{ opacity: 0, scale: 0.85 }"
             :transition="{ type: 'spring', stiffness: 320, damping: 26, mass: 0.9 }"
             class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            @mouseenter="onRegionEnter"
+            @mouseleave="onRegionLeave"
           >
             <div
               role="group"

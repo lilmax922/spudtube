@@ -229,10 +229,15 @@ const hoverProviders = computed(() => {
   display: none;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 560px) and (hover: none) {
   .title-card-root:hover {
     box-shadow: none;
   }
+  .hover-overlay-content {
+    display: none;
+  }
+}
+@media (max-width: 560px) and (pointer: coarse) {
   .hover-overlay-content {
     display: none;
   }

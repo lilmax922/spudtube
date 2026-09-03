@@ -63,10 +63,10 @@ describe('rating trio', () => {
     expect(options(wrapper)).toHaveLength(0)
   })
 
-  it('idle anonymous: hovering reveals the trio and clicking an option requests sign-in', async () => {
+  it('idle anonymous: hovering the trigger reveals the trio and clicking an option requests sign-in', async () => {
     const wrapper = await render({ label: null, signedIn: false })
 
-    await wrapper.find('div.relative').trigger('mouseenter')
+    await findButton(wrapper, '評價這部片')!.trigger('mouseenter')
     expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['不行', '不錯', '超棒'])
 
     await findButton(wrapper, '超棒')!.trigger('click')
@@ -74,6 +74,40 @@ describe('rating trio', () => {
     expect(wrapper.emitted('signInRequested')).toHaveLength(1)
     expect(wrapper.emitted('select')).toBeUndefined()
     expect(wrapper.emitted('clear')).toBeUndefined()
+  })
+
+  it('hovering the trigger alone opens the trio, and leaving the whole control closes it again', async () => {
+    const wrapper = await render({ label: null, signedIn: true })
+    const trigger = findButton(wrapper, '評價這部片')!
+
+    await trigger.trigger('mouseenter')
+    expect(options(wrapper)).toHaveLength(3)
+
+    await trigger.trigger('mouseleave')
+    await new Promise(resolve => setTimeout(resolve, 300))
+    expect(options(wrapper)).toHaveLength(0)
+
+    await trigger.trigger('mouseenter')
+    expect(options(wrapper)).toHaveLength(3)
+    await trigger.trigger('mouseleave')
+    await new Promise(resolve => setTimeout(resolve, 300))
+    expect(options(wrapper)).toHaveLength(0)
+  })
+
+  it('moving away across the flyout keeps it open only until the flyout is fully left', async () => {
+    const wrapper = await render({ label: null, signedIn: true })
+    const trigger = findButton(wrapper, '評價這部片')!
+
+    await trigger.trigger('mouseenter')
+    const flyout = wrapper.find('[role="group"]')
+    expect(flyout.exists()).toBe(true)
+
+    await trigger.trigger('mouseleave')
+    await flyout.trigger('mouseenter')
+    await flyout.trigger('mouseleave')
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    expect(options(wrapper)).toHaveLength(0)
   })
 
   it('hovering the average-rating label alone never reveals the trio', async () => {
@@ -101,7 +135,7 @@ describe('rating trio', () => {
   it('rated: the flyout marks the active option, selecting another re-rates', async () => {
     const wrapper = await render({ label: 'GOOD', signedIn: true })
 
-    await wrapper.find('div.relative').trigger('mouseenter')
+    await findButton(wrapper, '已評價：不錯')!.trigger('mouseenter')
     const good = findButton(wrapper, '不錯')!
     expect(good.attributes('aria-pressed')).toBe('true')
     await findButton(wrapper, '超棒')!.trigger('click')

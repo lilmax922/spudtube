@@ -5,15 +5,15 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBrowseGrid } from '../composables/use-browse-grid'
+import { useBrowseSections } from '../composables/use-browse-sections'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
 import { useSearchState } from '../composables/use-search-state'
-import ContentRow from './content-row.vue'
 import HomeFilterBar from './home-filter-bar.vue'
 import TitleCard from './title-card.vue'
+import TitleCarouselSection from './title-carousel-section.vue'
 
 const { t } = useI18n()
 const {
-  kind,
   selectedGenreIds,
   minRating,
   selectedProviderIds,
@@ -37,6 +37,11 @@ const {
   clearProviderSearch,
 } = useBrowseGrid()
 const safeMinRating = computed(() => (minRating as unknown as { value: number | null } | undefined)?.value ?? null)
+const {
+  sections,
+  loading: sectionsLoading,
+  refresh: refreshSections,
+} = useBrowseSections()
 const {
   mode,
   searchedQuery,
@@ -71,11 +76,6 @@ const isUnfilteredBrowse = computed(() =>
   && !gridError.value,
 )
 
-const isRowsMode = computed(() =>
-  isUnfilteredBrowse.value
-  && gridItems.value.length > 0,
-)
-
 interface BrowseRow {
   key: string
   label: string
@@ -83,66 +83,29 @@ interface BrowseRow {
 }
 
 const rows = computed<BrowseRow[]>(() => {
-  if (!isRowsMode.value)
+  if (mode.value !== 'browse')
     return []
-
-  const all = gridItems.value
-  if (all.length === 0)
-    return []
-
-  const kindLabel = kind.value === 'MOVIE' ? t('browse.kindMovies') : t('browse.kindTvShows')
-
-  const byPopular = [...all]
-  const byRating = [...all].sort((a, b) => (b.voteAverage ?? 0) - (a.voteAverage ?? 0))
-  const byRecent = [...all].slice().sort((a, b) => {
-    const da = a.releaseDate ?? ''
-    const db = b.releaseDate ?? ''
-    return db.localeCompare(da)
-  })
-
-  const freq: Record<number, number> = {}
-  for (const item of all) {
-    for (const gid of item.genreIds ?? [])
-      freq[gid] = (freq[gid] ?? 0) + 1
-  }
-  const topGenreIds = Object.entries(freq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([id]) => Number(id))
-
-  const genreRows: BrowseRow[] = topGenreIds
-    .map((gid) => {
-      const genre = genres.value.find(g => g.id === gid)
-      const label = genre ? `精選：${genre.name}${kindLabel}` : `精選${kindLabel}`
-      const filtered = all.filter(item => (item.genreIds ?? []).includes(gid))
-      return { key: `genre-${gid}`, label, items: filtered }
-    })
-    .filter(row => row.items.length > 0)
-
-  const fallbackGenreRows: BrowseRow[] = genreRows.length > 0
-    ? genreRows
-    : genres.value.slice(0, 3).map(g => ({
-        key: `genre-${g.id}`,
-        label: `精選：${g.name}${kindLabel}`,
-        items: byPopular.filter(item => (item.genreIds ?? []).includes(g.id)).slice(0, 8) || byPopular.slice(0, 6),
-      })).filter(r => r.items.length > 0)
-
-  return [
-    { key: 'trending', label: `本週熱門${kindLabel}`, items: byPopular },
-    { key: 'top-rated', label: `高評價${kindLabel}`, items: byRating },
-    { key: 'recent', label: kind.value === 'MOVIE' ? '現正熱映' : '本季播映中', items: byRecent },
-    ...fallbackGenreRows,
-  ]
+  return sections.value.map(section => ({
+    key: section.key,
+    label: t(section.titleKey),
+    items: section.titles,
+  }))
 })
 
+const isRowsMode = computed(() =>
+  isUnfilteredBrowse.value
+  && rows.value.length > 0,
+)
+
 function handleSeeMore(key: string): void {
-  if (key.startsWith('genre-')) {
-    const gid = Number(key.slice(6))
-    if (!Number.isNaN(gid)) {
-      clearFilters()
+  const section = sections.value.find(entry => entry.key === key)
+  if (section && section.genres.length > 0) {
+    clearFilters()
+    if (section.minRating != null)
+      setMinRating(section.minRating)
+    for (const gid of section.genres)
       toggleGenre(gid)
-      return
-    }
+    return
   }
   void loadMore()
 }
@@ -164,6 +127,7 @@ watch(() => searchedQuery.value, (value) => {
 })
 
 void refresh()
+void refreshSections()
 </script>
 
 <template>
@@ -195,7 +159,7 @@ void refresh()
       </div>
 
       <div
-        v-else-if="gridLoading && gridItems.length === 0"
+        v-else-if="(gridLoading || sectionsLoading) && gridItems.length === 0 && rows.length === 0"
         aria-busy="true"
       >
         <div
@@ -206,7 +170,7 @@ void refresh()
           <div
             v-for="rowIndex in 3"
             :key="rowIndex"
-            class="content-row relative"
+            class="title-carousel-section relative"
           >
             <div class="mx-auto flex w-full max-w-[var(--max-content-width)] items-baseline gap-3.5 px-[var(--content-gutter)] pb-3">
               <Skeleton class="h-6 w-32 rounded bg-muted" />
@@ -232,7 +196,7 @@ void refresh()
         </div>
       </div>
 
-      <div v-else-if="gridItems.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
+      <div v-else-if="gridItems.length === 0 && rows.length === 0" class="mx-auto w-full max-w-[var(--max-content-width)] px-[var(--content-gutter)]">
         <p class="rounded-lg bg-card p-8 text-center text-body-md text-muted-foreground shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
           {{ emptyMessage }}
         </p>
@@ -277,7 +241,7 @@ void refresh()
             :transition="{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }"
             class="rows flex flex-col gap-10 pt-2"
           >
-            <ContentRow
+            <TitleCarouselSection
               v-for="row in rows"
               :key="row.key"
               :title="row.label"

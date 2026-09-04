@@ -3,8 +3,8 @@ import type { TitleSummary } from '#server/tmdb/types'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CarouselItem } from '@/components/ui/carousel'
-import BrowseCarousel from './browse-carousel.vue'
 import TitleCard from './title-card.vue'
+import TitleCarousel from './title-carousel.vue'
 
 interface Props {
   titles: TitleSummary[]
@@ -50,7 +50,7 @@ onBeforeUnmount(() => {
       </h2>
     </div>
 
-    <BrowseCarousel :aria-label="t('detail.recommendations')" :breakout="true" :padding-left="gutter">
+    <TitleCarousel :aria-label="t('detail.recommendations')" :breakout="true" :padding-left="gutter">
       <CarouselItem
         v-for="title in props.titles"
         :key="`${title.kind}-${title.tmdbId}`"
@@ -58,15 +58,15 @@ onBeforeUnmount(() => {
       >
         <TitleCard :title="title" />
       </CarouselItem>
-    </BrowseCarousel>
+    </TitleCarousel>
   </section>
 </template>
 
 <style scoped>
-.recommendations-strip :deep(.browse-carousel-viewport) {
+.recommendations-strip :deep(.title-carousel-viewport) {
   z-index: 1;
 }
-.recommendations-strip:hover :deep(.browse-carousel-viewport) {
+.recommendations-strip:hover :deep(.title-carousel-viewport) {
   z-index: 5;
 }
 </style>

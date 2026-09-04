@@ -21,7 +21,23 @@
     "filterTitle": "Filters",
     "filterPlaceholder": "No filters",
     "done": "Done",
-    "minutesShort": "{minutes} min"
+    "minutesShort": "{minutes} min",
+    "seeMore": "See more",
+    "seeMoreAria": "See more {title}",
+    "sections": {
+      "movieTrending": "Trending Right Now",
+      "movieHorror": "You Like Being Scared?",
+      "movieTwist": "What Did I Just Watch?",
+      "movieCrowd": "Movie Night With Friends",
+      "movieMood": "Emotional Damage",
+      "movieGems": "Hidden Gems",
+      "tvTrending": "What Everyone's Watching",
+      "tvObsessed": "Your Next Obsession",
+      "tvBinge": "One More Episode",
+      "tvTheories": "Theories Welcome",
+      "tvWorlds": "Enter Another World",
+      "tvWordOfMouth": "Why Didn't Anyone Tell Me?"
+    }
   },
   "hero": {
     "viewDetails": "View details",

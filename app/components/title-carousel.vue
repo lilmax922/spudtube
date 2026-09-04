@@ -125,8 +125,8 @@ const outerStyle = computed(() => ({
 <template>
   <div
     ref="outerRef"
-    class="group/carousel browse-carousel-outer relative"
-    :class="breakout ? 'browse-carousel-outer--breakout' : ''"
+    class="group/carousel title-carousel-outer relative"
+    :class="breakout ? 'title-carousel-outer--breakout' : ''"
     :style="outerStyle"
     :data-carousel-state="state"
     :data-peek-width="peekWidth"
@@ -134,14 +134,14 @@ const outerStyle = computed(() => ({
   >
     <Carousel
       :opts="carouselOpts"
-      class="browse-carousel-root"
+      class="title-carousel-root"
       :data-carousel-state="state"
       @init-api="onInitApi"
     >
       <CarouselContent
-        class="browse-carousel-viewport"
+        class="title-carousel-viewport"
         :style="contentStyle"
-        :data-testid="`browse-carousel-viewport-${state}`"
+        :data-testid="`title-carousel-viewport-${state}`"
         :aria-label="ariaLabel"
         role="region"
         tabindex="0"
@@ -175,23 +175,23 @@ const outerStyle = computed(() => ({
 </template>
 
 <style scoped>
-.browse-carousel-outer {
+.title-carousel-outer {
   /* allow hover-card to overflow vertically */
   overflow: visible;
 }
 
-.browse-carousel-outer--breakout {
+.title-carousel-outer--breakout {
   width: 100vw;
   margin-left: calc(50% - 50vw);
 }
 
-.browse-carousel-root {
+.title-carousel-root {
   overflow: visible;
 }
 
 /* Trailing gutter: Embla reads the last slide's margin-right as endGap,
    so the atEnd snap parks the last item one gutter short of the right edge. */
-.browse-carousel-outer :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:last-child) {
+.title-carousel-outer :deep([data-slot="carousel-content"] > div > [data-slot="carousel-item"]:last-child) {
   margin-right: var(--browse-gutter);
 }
 

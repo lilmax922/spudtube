@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
-import { ChevronRight } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CarouselItem } from '@/components/ui/carousel'
-import BrowseCarousel from './browse-carousel.vue'
+import SectionHeader from './section-header.vue'
 import TitleCard from './title-card.vue'
+import TitleCarousel from './title-carousel.vue'
 
 interface Props {
   title: string
@@ -50,24 +50,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="content-row relative z-[1] hover:z-[20]">
-    <div class="mx-auto flex w-full max-w-[var(--max-content-width)] items-baseline gap-3.5 px-[var(--content-gutter)] pb-3">
-      <h3 class="text-heading-lg text-foreground">
-        {{ title }}
-      </h3>
-      <button
-        v-if="displayItems.length > 0"
-        type="button"
-        class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-button-md font-bold text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-        :aria-label="`查看更多 ${title}`"
-        @click="emit('seeMore')"
-      >
-        See more
-        <ChevronRight :size="14" :stroke-width="2.2" aria-hidden="true" class="opacity-90" />
-      </button>
-    </div>
+  <section class="title-carousel-section relative z-[1] hover:z-[20]">
+    <SectionHeader
+      :title="title"
+      :show-see-more="displayItems.length > 0"
+      @see-more="emit('seeMore')"
+    />
 
-    <BrowseCarousel :aria-label="ariaLabel ?? title" :breakout="true" :padding-left="gutter">
+    <TitleCarousel :aria-label="ariaLabel ?? title" :breakout="true" :padding-left="gutter">
       <CarouselItem
         v-for="(item, idx) in displayItems"
         :key="`${item.kind}-${item.tmdbId}-${idx}`"
@@ -75,15 +65,15 @@ onBeforeUnmount(() => {
       >
         <TitleCard :title="item" />
       </CarouselItem>
-    </BrowseCarousel>
+    </TitleCarousel>
   </section>
 </template>
 
 <style scoped>
-.content-row :deep(.browse-carousel-viewport) {
+.title-carousel-section :deep(.title-carousel-viewport) {
   z-index: 1;
 }
-.content-row:hover :deep(.browse-carousel-viewport) {
+.title-carousel-section:hover :deep(.title-carousel-viewport) {
   z-index: 5;
 }
 </style>

@@ -42,6 +42,9 @@ const mock = vi.hoisted(() => ({
   search: {
     loadMore: vi.fn(),
   },
+  sections: {
+    refresh: vi.fn(),
+  },
 }))
 
 // Refs are created here (not hoisted) so they are real Vue refs; the vi.mock factories
@@ -67,6 +70,25 @@ const searchState = {
   loadingMore: shallowRef(false),
   error: shallowRef(false),
 }
+
+interface SectionsMockState {
+  sections: { value: { key: string, titleKey: string, genres: number[], minRating: number | null, titles: TitleSummary[] }[] }
+  loading: { value: boolean }
+  error: { value: boolean }
+}
+
+const sectionsState = {
+  sections: shallowRef<SectionsMockState['sections']['value']>([]),
+  loading: shallowRef(false),
+  error: shallowRef(false),
+}
+
+vi.mock('../composables/use-browse-sections', () => ({
+  useBrowseSections: () => ({
+    ...sectionsState,
+    refresh: mock.sections.refresh,
+  }),
+}))
 
 vi.mock('../composables/use-browse-grid', () => ({
   useBrowseGrid: () => ({
@@ -178,6 +200,13 @@ beforeEach(() => {
   searchMock.loading.value = false
   searchMock.loadingMore.value = false
   searchMock.error.value = false
+
+  const sectionsMock = sectionsState as unknown as SectionsMockState
+  sectionsMock.sections.value = [
+    { key: 'movie.trending', titleKey: 'browse.sections.movieTrending', genres: [], minRating: null, titles },
+  ]
+  sectionsMock.loading.value = false
+  sectionsMock.error.value = false
 })
 
 const mountedWrappers: VueWrapper[] = []
@@ -195,6 +224,7 @@ afterEach(() => {
   mock.browse.clearProviders.mockReset()
   mock.browse.clearFilters.mockReset()
   mock.search.loadMore.mockReset()
+  mock.sections.refresh.mockReset()
   FakeIntersectionObserver.instances = []
   vi.unstubAllGlobals()
 })
@@ -206,8 +236,8 @@ describe('browse-grid', () => {
 
     expect(wrapper.text()).toContain('沙丘')
     expect(wrapper.text()).toContain('沙丘：第二部')
-    // In browse mode without filters the grid becomes rows — each row duplicates for peek
-    expect(wrapper.text()).toContain('本週熱門')
+    // In browse mode without filters the grid becomes server-driven rows with i18n titles (test env resolves en)
+    expect(wrapper.text()).toContain('Trending Right Now')
     const links = wrapper.findAll('a').filter(link => link.attributes('href')?.startsWith('/movie/'))
     expect(links.length).toBeGreaterThanOrEqual(2)
     expect(links.map(link => link.attributes('href'))).toEqual(expect.arrayContaining(['/movie/419430', '/movie/693134']))

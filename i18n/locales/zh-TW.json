@@ -21,7 +21,23 @@
     "filterTitle": "篩選",
     "filterPlaceholder": "尚未套用篩選",
     "done": "完成",
-    "minutesShort": "{minutes} 分鐘"
+    "minutesShort": "{minutes} 分鐘",
+    "seeMore": "查看更多",
+    "seeMoreAria": "查看更多{title}",
+    "sections": {
+      "movieTrending": "本週熱門電影",
+      "movieHorror": "想被嚇嗎？",
+      "movieTwist": "燒腦神作",
+      "movieCrowd": "電影之夜首選",
+      "movieMood": "情緒滿點",
+      "movieGems": "冷門神作",
+      "tvTrending": "大家都在追",
+      "tvObsessed": "高分必追",
+      "tvBinge": "再看一集",
+      "tvTheories": "燒腦推理",
+      "tvWorlds": "異世界漫遊",
+      "tvWordOfMouth": "口碑遺珠"
+    }
   },
   "hero": {
     "viewDetails": "查看詳情",

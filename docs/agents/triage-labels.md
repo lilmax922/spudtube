@@ -1,6 +1,6 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+The skills speak in terms of five canonical triage roles. This file maps those roles to the GitHub label strings used in this repo's issue tracker. All five labels exist on the GitHub repo; when a skill mentions a role (e.g. "apply the AFK-ready triage label"), apply the corresponding GitHub label.
 
 | Label in mattpocock/skills | Label in our tracker | Meaning                                  |
 | -------------------------- | -------------------- | ---------------------------------------- |

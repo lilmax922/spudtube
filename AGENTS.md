@@ -1,12 +1,12 @@
 # spudtube
 
-A dummy repo.
+Discover movies and TV shows, check streaming availability, and manage your watchlists and ratings. No more "what to watch tonight" fatigue.
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues live as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+Issues live as GitHub Issues on `lilmax922/spudtube`, operated via the `gh-axi` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

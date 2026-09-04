@@ -59,20 +59,32 @@ The set of Titles a User has marked `WATCHLISTED`.
 
 ### Browse & Discovery
 
-**ContentRow**:
-A single horizontal section on the browse surface — title, an optional "See more" action, and one BrowseCarousel of TitleCards. Rows are derived as slices of the same Title collection (e.g., by popularity, rating, recency, or Genre).
-_Avoid_: rails, shelf, lane
+**TitleCarouselSection**:
+A single horizontal section on the browse surface — one SectionHeader and one TitleCarousel of TitleCards. Each section renders the result of its own server-side query, configured by static values (never by component logic).
+_Avoid_: rails, shelf, lane, content row
 
-**BrowseCarousel**:
-The horizontally scrollable viewport inside a ContentRow that presents TitleCards. It owns peek, gap, row padding, breakout/full-bleed behavior, and page-by-page scrolling. Exactly one per ContentRow.
+**SectionHeader**:
+The head of a TitleCarouselSection — one SectionTitle plus an optional SeeMoreButton.
+_Avoid_: row header
+
+**SectionTitle**:
+The localized title of a TitleCarouselSection, resolved from its i18n key.
+_Avoid_: row title
+
+**SeeMoreButton**:
+The action in a SectionHeader that explores a TitleCarouselSection beyond its visible cards.
+_Avoid_: more button
+
+**TitleCarousel**:
+The horizontally scrollable viewport inside a TitleCarouselSection that presents TitleCards. It owns peek, gap, row padding, breakout/full-bleed behavior, and page-by-page scrolling. Exactly one per TitleCarouselSection.
 _Avoid_: slider, scroller, vega carousel
 
 **TitleCard**:
-The card representing a single Title inside a BrowseCarousel (or grid). It shows the Title's artwork, year, and rating, and reveals additional detail on hover/focus. It does not encode Availability; that belongs to the Title detail surface.
+The card representing a single Title inside a TitleCarousel (or grid). It shows the Title's artwork, year, and rating, and reveals additional detail on hover/focus. It does not encode Availability; that belongs to the Title detail surface.
 _Avoid_: tile, poster, video, thumbnail
 
 ### Layout
 
 **MaxContentWidth**:
-The maximum inline size of every centered page surface (header inner, BrowseGrid, ContentRow head, footers, detail/my-list/search shells) before side gutters take over. A single CSS variable (`--max-content-width`) is the source of truth; all `max-width` and gutter math derive from it.
+The maximum inline size of every centered page surface (header inner, BrowseGrid, TitleCarouselSection head, footers, detail/my-list/search shells) before side gutters take over. A single CSS variable (`--max-content-width`) is the source of truth; all `max-width` and gutter math derive from it.
 _Avoid_: container width, page width, max-width, ContentMaxWidth

@@ -52,9 +52,39 @@ export interface TmdbClientDeps {
   now?: () => number
 }
 
+export const DISCOVER_SORT_BY_WHITELIST = [
+  'popularity.asc',
+  'popularity.desc',
+  'vote_average.asc',
+  'vote_average.desc',
+  'vote_count.asc',
+  'vote_count.desc',
+  'primary_release_date.asc',
+  'primary_release_date.desc',
+  'first_air_date.asc',
+  'first_air_date.desc',
+  'original_title.asc',
+  'original_title.desc',
+] as const
+
+export type DiscoverSortBy = typeof DISCOVER_SORT_BY_WHITELIST[number]
+
+export const DEFAULT_DISCOVER_SORT_BY: DiscoverSortBy = 'popularity.desc'
+
+export type TrendingWindow = 'day' | 'week'
+
+export const DEFAULT_TRENDING_WINDOW: TrendingWindow = 'week'
+
 export interface DiscoverOptions {
   genreIds?: number[]
+  keywordIds?: number[]
   minRating?: number
+  minVoteCount?: number
+  sortBy?: DiscoverSortBy
+  releaseDateGte?: string
+  releaseDateLte?: string
+  firstAirDateGte?: string
+  firstAirDateLte?: string
   providerIds?: number[]
   watchRegion?: string
   page?: number
@@ -64,8 +94,13 @@ export interface DiscoverOptions {
 export interface TmdbClient {
   searchMulti: (query: string, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   discover: (kind: Kind, options?: DiscoverOptions) => Promise<Page<TitleSummary>>
-  trending: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  trending: (kind: Kind, page?: number, language?: TmdbLanguage, window?: TrendingWindow) => Promise<Page<TitleSummary>>
   topRated: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  popular: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  nowPlaying: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  upcoming: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  airingToday: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
+  onTheAir: (kind: Kind, page?: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
   title: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<TitleDetail | null>
   watchProviders: (kind: Kind, tmdbId: number, language?: TmdbLanguage) => Promise<ProviderCatalog>
   watchProviderList: (kind: Kind, language?: TmdbLanguage, watchRegion?: string) => Promise<Provider[]>
@@ -79,6 +114,28 @@ const defaultFetchJson: FetchJson = async (url, init) => {
     throw new TmdbApiError(response.status, `TMDB request failed: ${response.status}`)
   }
   return await response.json()
+}
+
+async function readListPath(
+  kind: Kind,
+  path: string,
+  page: number,
+  language: TmdbLanguage,
+  cache: ReturnType<typeof createTtlCache>,
+  request: (path: string, params: Record<string, string>) => Promise<unknown>,
+): Promise<Page<TitleSummary>> {
+  const segment = toMediaSegment(kind)
+  return cache.wrap(`list:${language}:${segment}:${path}:${page}`, SEARCH_TTL_MS, async () => {
+    const raw = rawListPageSchema.parse(await request(path, {
+      page: String(page),
+      language,
+    }))
+    return mapPage(raw, raw.results.map(item =>
+      kind === 'MOVIE'
+        ? mapMovieSummary(rawMovieSummarySchema.parse(item))
+        : mapTvSummary(rawTvSummarySchema.parse(item)),
+    ))
+  })
 }
 
 export function createTmdbClient({
@@ -127,24 +184,56 @@ export function createTmdbClient({
       })
     },
 
-    discover(kind: Kind, options: DiscoverOptions = {}): Promise<Page<TitleSummary>> {
-      const { genreIds, minRating, providerIds, watchRegion, page = 1, language = DEFAULT_TMDB_LANGUAGE } = options
+    async discover(kind: Kind, options: DiscoverOptions = {}): Promise<Page<TitleSummary>> {
+      const { genreIds, keywordIds, minRating, minVoteCount, sortBy = DEFAULT_DISCOVER_SORT_BY, releaseDateGte, releaseDateLte, firstAirDateGte, firstAirDateLte, providerIds, watchRegion, page = 1, language = DEFAULT_TMDB_LANGUAGE } = options
+      if (!(DISCOVER_SORT_BY_WHITELIST as readonly string[]).includes(sortBy)) {
+        throw new TmdbApiError(400, `Unsupported discover sort_by: ${sortBy}`)
+      }
       const params: Record<string, string> = {
-        sort_by: 'popularity.desc',
+        sort_by: sortBy,
         page: String(page),
         language,
       }
       if (genreIds && genreIds.length > 0)
         params.with_genres = genreIds.join('|')
+      if (keywordIds && keywordIds.length > 0)
+        params.with_keywords = keywordIds.join('|')
       if (minRating != null)
         params['vote_average.gte'] = String(minRating)
+      if (minVoteCount != null)
+        params['vote_count.gte'] = String(minVoteCount)
+      if (releaseDateGte != null)
+        params['primary_release_date.gte'] = releaseDateGte
+      if (releaseDateLte != null)
+        params['primary_release_date.lte'] = releaseDateLte
+      if (firstAirDateGte != null)
+        params['first_air_date.gte'] = firstAirDateGte
+      if (firstAirDateLte != null)
+        params['first_air_date.lte'] = firstAirDateLte
       if (providerIds && providerIds.length > 0) {
         params.with_watch_providers = providerIds.join('|')
         if (watchRegion)
           params.watch_region = watchRegion
       }
       const segment = toMediaSegment(kind)
-      return cache.wrap(`discover:${language}:${segment}:${params.with_genres ?? ''}:${params['vote_average.gte'] ?? ''}:${params.with_watch_providers ?? ''}:${params.watch_region ?? ''}:${page}`, SEARCH_TTL_MS, async () => {
+      const cacheKey = [
+        'discover',
+        language,
+        segment,
+        params.with_genres ?? '',
+        params.with_keywords ?? '',
+        params['vote_average.gte'] ?? '',
+        params['vote_count.gte'] ?? '',
+        params.sort_by,
+        params['primary_release_date.gte'] ?? '',
+        params['primary_release_date.lte'] ?? '',
+        params['first_air_date.gte'] ?? '',
+        params['first_air_date.lte'] ?? '',
+        params.with_watch_providers ?? '',
+        params.watch_region ?? '',
+        String(page),
+      ].join(':')
+      return cache.wrap(cacheKey, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(await request(`/discover/${segment}`, params))
         return mapPage(raw, raw.results.map(item =>
           kind === 'MOVIE'
@@ -154,11 +243,14 @@ export function createTmdbClient({
       })
     },
 
-    trending(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+    async trending(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE, window: TrendingWindow = DEFAULT_TRENDING_WINDOW): Promise<Page<TitleSummary>> {
+      if (window !== 'day' && window !== 'week') {
+        throw new TmdbApiError(400, `Unsupported trending window: ${String(window)}`)
+      }
       const segment = toMediaSegment(kind)
-      return cache.wrap(`trending:${language}:${segment}:${page}`, SEARCH_TTL_MS, async () => {
+      return cache.wrap(`trending:${language}:${segment}:${window}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(
-          await request(`/trending/${segment}/week`, {
+          await request(`/trending/${segment}/${window}`, {
             page: String(page),
             language,
           }),
@@ -169,6 +261,34 @@ export function createTmdbClient({
             : mapTvSummary(rawTvSummarySchema.parse(item)),
         ))
       })
+    },
+
+    popular(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      return readListPath(kind, `/${toMediaSegment(kind)}/popular`, page, language, cache, request)
+    },
+
+    nowPlaying(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      if (kind !== 'MOVIE')
+        throw new TmdbApiError(400, 'nowPlaying is only available for movies')
+      return readListPath(kind, '/movie/now_playing', page, language, cache, request)
+    },
+
+    upcoming(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      if (kind !== 'MOVIE')
+        throw new TmdbApiError(400, 'upcoming is only available for movies')
+      return readListPath(kind, '/movie/upcoming', page, language, cache, request)
+    },
+
+    airingToday(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      if (kind !== 'TV_SHOW')
+        throw new TmdbApiError(400, 'airingToday is only available for tv shows')
+      return readListPath(kind, '/tv/airing_today', page, language, cache, request)
+    },
+
+    onTheAir(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
+      if (kind !== 'TV_SHOW')
+        throw new TmdbApiError(400, 'onTheAir is only available for tv shows')
+      return readListPath(kind, '/tv/on_the_air', page, language, cache, request)
     },
 
     topRated(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {

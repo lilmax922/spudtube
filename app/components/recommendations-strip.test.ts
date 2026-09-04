@@ -29,7 +29,7 @@ describe('recommendations strip', () => {
     expect(wrapper.findAll('a')).toHaveLength(0)
   })
 
-  it('renders recommendations via BrowseCarousel + TitleCard with responsive card widths', async () => {
+  it('renders recommendations via TitleCarousel + TitleCard with responsive card widths', async () => {
     const wrapper = await mountSuspended(RecommendationsStrip, {
       props: { titles: RECOMMENDATIONS_PAGE.results },
       route: '/?probe=3',
@@ -37,9 +37,9 @@ describe('recommendations strip', () => {
 
     // No longer a manual flex overflow strip
     expect(wrapper.html()).not.toContain('overflow-x-auto')
-    // Uses BrowseCarousel
-    expect(wrapper.find('.browse-carousel-outer').exists()).toBe(true)
-    expect(wrapper.find('.browse-carousel-viewport').exists()).toBe(true)
+    // Uses TitleCarousel
+    expect(wrapper.find('.title-carousel-outer').exists()).toBe(true)
+    expect(wrapper.find('.title-carousel-viewport').exists()).toBe(true)
     expect(wrapper.find('[data-carousel-state]').exists()).toBe(true)
     // TitleCard renders via NuxtLink to detail routes
     const hrefs = wrapper.findAll('a').map(link => link.attributes('href'))

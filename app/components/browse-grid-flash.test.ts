@@ -42,6 +42,9 @@ const mock = vi.hoisted(() => ({
   search: {
     loadMore: vi.fn(),
   },
+  sections: {
+    refresh: vi.fn(),
+  },
 }))
 
 const browseState = {
@@ -116,6 +119,25 @@ const genres: Genre[] = [
   { id: 878, name: 'Sci-Fi' },
 ]
 
+interface SectionsMockState {
+  sections: { value: { key: string, titleKey: string, genres: number[], minRating: number | null, titles: TitleSummary[] }[] }
+  loading: { value: boolean }
+  error: { value: boolean }
+}
+
+const sectionsState = {
+  sections: shallowRef<SectionsMockState['sections']['value']>([]),
+  loading: shallowRef(false),
+  error: shallowRef(false),
+}
+
+vi.mock('../composables/use-browse-sections', () => ({
+  useBrowseSections: () => ({
+    ...sectionsState,
+    refresh: mock.sections.refresh,
+  }),
+}))
+
 const mountedWrappers: VueWrapper[] = []
 
 beforeEach(() => {
@@ -138,6 +160,13 @@ beforeEach(() => {
   searchMock.loading.value = false
   searchMock.loadingMore.value = false
   searchMock.error.value = false
+
+  const sectionsMock = sectionsState as unknown as SectionsMockState
+  sectionsMock.sections.value = [
+    { key: 'movie.trending', titleKey: 'browse.sections.movieTrending', genres: [], minRating: null, titles },
+  ]
+  sectionsMock.loading.value = false
+  sectionsMock.error.value = false
 })
 
 afterEach(() => {
@@ -153,6 +182,7 @@ afterEach(() => {
   mock.browse.clearProviders.mockReset()
   mock.browse.clearFilters.mockReset()
   mock.search.loadMore.mockReset()
+  mock.sections.refresh.mockReset()
   vi.unstubAllGlobals()
 })
 

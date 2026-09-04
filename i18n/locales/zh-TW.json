@@ -25,18 +25,18 @@
     "seeMore": "查看更多",
     "seeMoreAria": "查看更多{title}",
     "sections": {
-      "movieTrending": "本週熱門電影",
-      "movieHorror": "想被嚇嗎？",
-      "movieTwist": "燒腦神作",
-      "movieCrowd": "電影之夜首選",
-      "movieMood": "情緒滿點",
-      "movieGems": "冷門神作",
+      "movieTrending": "近期熱門",
+      "movieHorror": "膽量夠大嗎？",
+      "movieTwist": "燒腦神片",
+      "movieCrowd": "好友電影夜",
+      "movieMood": "催淚虐心",
+      "movieGems": "影迷私藏",
       "tvTrending": "大家都在追",
-      "tvObsessed": "高分必追",
+      "tvObsessed": "下一部入坑神劇",
       "tvBinge": "再看一集",
-      "tvTheories": "燒腦推理",
-      "tvWorlds": "異世界漫遊",
-      "tvWordOfMouth": "口碑遺珠"
+      "tvTheories": "歡迎推理",
+      "tvWorlds": "踏入另一個世界",
+      "tvWordOfMouth": "私藏好劇"
     }
   },
   "hero": {

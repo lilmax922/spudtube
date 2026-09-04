@@ -494,4 +494,32 @@ describe('browse-grid', () => {
     expect(indicator).toBeTruthy()
     expect(indicator!.className).toMatch(/pt-8/)
   })
+
+  it('shows See more on a genre-bound row and drives the filter path on click', async () => {
+    const sectionsMock = sectionsState as unknown as SectionsMockState
+    sectionsMock.sections.value = [
+      { key: 'movie.horror', titleKey: 'browse.sections.movieHorror', genres: [27], minRating: null, titles },
+    ]
+
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+
+    const seeMore = wrapper.findAll('button').find(button => button.text().includes('See more'))
+    expect(seeMore).toBeTruthy()
+    await seeMore!.trigger('click')
+
+    expect(mock.browse.clearFilters).toHaveBeenCalledTimes(1)
+    expect(mock.browse.toggleGenre).toHaveBeenCalledWith(27)
+    expect(mock.browse.loadMore).not.toHaveBeenCalled()
+  })
+
+  it('hides See more on a genre-less row', async () => {
+    // Default fixture is movie.trending with genres: [].
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+
+    expect(wrapper.text()).toContain('Trending Right Now')
+    const seeMore = wrapper.findAll('button').find(button => button.text().includes('See more'))
+    expect(seeMore).toBeUndefined()
+  })
 })

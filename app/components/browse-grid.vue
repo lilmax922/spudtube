@@ -80,6 +80,7 @@ interface BrowseRow {
   key: string
   label: string
   items: typeof gridItems.value
+  canSeeMore: boolean
 }
 
 const rows = computed<BrowseRow[]>(() => {
@@ -89,6 +90,7 @@ const rows = computed<BrowseRow[]>(() => {
     key: section.key,
     label: t(section.titleKey),
     items: section.titles,
+    canSeeMore: section.genres.length > 0,
   }))
 })
 
@@ -99,15 +101,14 @@ const isRowsMode = computed(() =>
 
 function handleSeeMore(key: string): void {
   const section = sections.value.find(entry => entry.key === key)
-  if (section && section.genres.length > 0) {
-    clearFilters()
-    if (section.minRating != null)
-      setMinRating(section.minRating)
-    for (const gid of section.genres)
-      toggleGenre(gid)
+  // Genre-less rows hide their See more button, so reaching here without genres is defensive.
+  if (!section || section.genres.length === 0)
     return
-  }
-  void loadMore()
+  clearFilters()
+  if (section.minRating != null)
+    setMinRating(section.minRating)
+  for (const gid of section.genres)
+    toggleGenre(gid)
 }
 
 const sentinel = ref<HTMLElement | null>(null)
@@ -246,6 +247,7 @@ void refreshSections()
               :key="row.key"
               :title="row.label"
               :items="row.items"
+              :show-see-more="row.canSeeMore"
               :aria-label="row.label"
               @see-more="handleSeeMore(row.key)"
             />

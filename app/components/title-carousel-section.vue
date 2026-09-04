@@ -10,10 +10,12 @@ interface Props {
   title: string
   items: TitleSummary[]
   ariaLabel?: string
+  showSeeMore?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   ariaLabel: undefined,
+  showSeeMore: true,
 })
 
 const emit = defineEmits<{ seeMore: [] }>()
@@ -53,7 +55,7 @@ onBeforeUnmount(() => {
   <section class="title-carousel-section relative z-[1] hover:z-[20]">
     <SectionHeader
       :title="title"
-      :show-see-more="displayItems.length > 0"
+      :show-see-more="props.showSeeMore && displayItems.length > 0"
       @see-more="emit('seeMore')"
     />
 

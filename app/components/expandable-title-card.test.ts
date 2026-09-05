@@ -158,6 +158,17 @@ describe('expandable-title-card', () => {
     expect(logos.map(img => img.attributes('alt'))).toEqual(['CATCHPLAY+', 'Netflix'])
   })
 
+  it('exposes the expanded panel with its opening direction', async () => {
+    const wrapper = await render()
+
+    const panel = wrapper.find('.expandable-panel')
+    expect(panel.exists()).toBe(true)
+    // happy-dom reports no layout, so the unmeasured fallback opens rightward.
+    expect(panel.attributes('data-expand-direction')).toBe('right')
+    expect(panel.attributes('style')).toContain('left:')
+    expect(panel.find('[data-testid="expandable-backdrop"]').exists()).toBe(true)
+  })
+
   it('triggers the provider load at most once per card', async () => {
     const wrapper = await render()
 

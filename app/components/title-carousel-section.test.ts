@@ -202,10 +202,10 @@ describe('title-carousel-section expandable second row', () => {
 })
 
 describe('title-carousel-section expandable styling', () => {
-  it('widens the hovered card to roughly three times its rest width on desktop fine pointers only', () => {
+  it('never resizes carousel items: expansion is an overlay panel inside the card', () => {
     const source = readFileSync(resolve(import.meta.dirname, './title-carousel-section.vue'), 'utf8')
-    expect(source).toMatch(/@media\s*\(min-width:\s*881px\)\s*and\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)/)
-    expect(source).toMatch(/\.expandable-carousel-item:hover[\s\S]*?width:\s*540px/)
-    expect(source).toMatch(/transition:\s*width\s+0\.5s\s+ease-in-out/)
+    expect(source).not.toMatch(/\.expandable-carousel-item[\s\S]*?width:\s*540px/)
+    expect(source).not.toMatch(/transition:\s*width\s+0\.5s/)
+    expect(source).toMatch(/:edge-margin="gutter"/)
   })
 })

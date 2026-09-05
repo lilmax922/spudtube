@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
 import { Clapperboard } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAvailability } from '../composables/use-availability'
 import { useDiscoveryBadges } from '../composables/use-discovery-badges'
+import { EXPANDABLE_VIEWPORT_MARGIN, useExpandableGeometry } from '../composables/use-expandable-geometry'
 import { useRegion } from '../composables/use-region'
 import { backdropSrcSet, backdropUrl, posterSrcSet, posterUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
 
-const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean }>(), {
+const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean, edgeMargin?: number }>(), {
   showKind: false,
+  edgeMargin: EXPANDABLE_VIEWPORT_MARGIN,
 })
 
 const { t } = useI18n()
@@ -64,6 +66,14 @@ function markInspected(): void {
   void loadCatalog()
 }
 
+const artRef = shallowRef<HTMLElement | null>(null)
+const { direction, panelLeft, refreshGeometry } = useExpandableGeometry(artRef, () => props.edgeMargin)
+
+function onInteract(): void {
+  markInspected()
+  refreshGeometry()
+}
+
 const hoverProviders = computed(() => {
   const entry = availability.data.value?.[region.value]
   if (!entry)
@@ -80,10 +90,10 @@ const hoverProviders = computed(() => {
     data-testid="expandable-title-card"
     class="group/expandable-card expandable-title-card-root relative flex flex-col rounded-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/20"
     tabindex="0"
-    @mouseenter="markInspected"
-    @focusin="markInspected"
+    @mouseenter="onInteract"
+    @focusin="onInteract"
   >
-    <div class="expandable-title-card-art relative h-[300px] w-full overflow-hidden rounded-xl bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)] max-[880px]:aspect-[2/3] max-[880px]:h-auto">
+    <div ref="artRef" class="expandable-title-card-art relative h-[300px] w-full overflow-hidden rounded-xl bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)] max-[880px]:aspect-[2/3] max-[880px]:h-auto">
       <span
         v-if="showKind"
         data-testid="kind-badge"
@@ -109,20 +119,8 @@ const hoverProviders = computed(() => {
         loading="lazy"
         decoding="async"
         data-testid="expandable-poster"
-        class="expandable-poster absolute inset-0 h-full w-full object-cover"
+        class="absolute inset-0 h-full w-full object-cover"
         @error="posterFailed = true"
-      />
-      <NuxtImg
-        v-if="backdropSrc"
-        :src="backdropSrc"
-        :srcset="backdropSrcSet(props.title.backdropPath)"
-        sizes="540px"
-        :alt="title.name"
-        loading="lazy"
-        decoding="async"
-        data-testid="expandable-backdrop"
-        class="expandable-backdrop absolute inset-0 h-full w-full object-cover"
-        @error="backdropFailed = true"
       />
       <div
         v-if="!posterSrc && !backdropSrc"
@@ -131,6 +129,25 @@ const hoverProviders = computed(() => {
         <Clapperboard :size="24" :stroke-width="1.75" aria-hidden="true" />
         <span class="line-clamp-3 text-caption-sm leading-snug">{{ title.name }}</span>
       </div>
+    </div>
+
+    <div
+      v-if="backdropSrc"
+      class="expandable-panel"
+      :data-expand-direction="direction"
+      :style="{ left: `${panelLeft}px` }"
+    >
+      <NuxtImg
+        :src="backdropSrc"
+        :srcset="backdropSrcSet(props.title.backdropPath)"
+        sizes="540px"
+        :alt="title.name"
+        loading="lazy"
+        decoding="async"
+        data-testid="expandable-backdrop"
+        class="absolute inset-0 h-full w-full object-cover"
+        @error="backdropFailed = true"
+      />
 
       <div class="expandable-overlay-content">
         <div class="line-clamp-2 text-caption-md font-bold leading-tight tracking-tight">
@@ -168,50 +185,47 @@ const hoverProviders = computed(() => {
 .expandable-title-card-root {
   z-index: 1;
 }
+.expandable-title-card-root:hover,
+.expandable-title-card-root:focus-visible,
+.expandable-title-card-root:focus-within {
+  z-index: 5;
+}
 
-/* Inspira expandable-gallery feel adapted to a carousel card: the poster rests,
-   and hover/focus swaps to the backdrop with a half-second ease. Width growth
-   lives on the carousel item so siblings are pushed, not overlapped. */
-.expandable-poster,
-.expandable-backdrop {
+/* Overlay expansion (reference parity): the rest poster never moves and
+   siblings are never pushed, so carousel paging stays stable. The panel
+   floats above the row; useExpandableGeometry picks its side and shift so it
+   always stays inside the viewport. Width must match EXPANDABLE_WIDTH. */
+.expandable-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 540px;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
   transition: opacity 0.5s ease-in-out;
 }
-.expandable-poster {
-  opacity: 1;
-}
-.expandable-backdrop {
-  opacity: 0;
-}
-.group\/expandable-card:hover .expandable-poster,
-.group\/expandable-card:focus-visible .expandable-poster,
-.group\/expandable-card:focus-within .expandable-poster {
-  opacity: 0;
-}
-.group\/expandable-card:hover .expandable-backdrop,
-.group\/expandable-card:focus-visible .expandable-backdrop,
-.group\/expandable-card:focus-within .expandable-backdrop {
+.group\/expandable-card:hover .expandable-panel,
+.group\/expandable-card:focus-visible .expandable-panel,
+.group\/expandable-card:focus-within .expandable-panel {
   opacity: 1;
 }
 
 .expandable-title-card-art {
   isolation: isolate;
 }
-.expandable-title-card-art::before {
+.expandable-panel::before {
   content: '';
   position: absolute;
   inset: 0;
   top: auto;
   height: 60%;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0) 100%);
-  opacity: 0;
-  transition: opacity 0.5s ease-in-out;
   z-index: 2;
   pointer-events: none;
-}
-.group\/expandable-card:hover .expandable-title-card-art::before,
-.group\/expandable-card:focus-visible .expandable-title-card-art::before,
-.group\/expandable-card:focus-within .expandable-title-card-art::before {
-  opacity: 1;
 }
 
 .expandable-overlay-content {
@@ -257,46 +271,23 @@ const hoverProviders = computed(() => {
 /* Below the tablet breakpoint and on touch/coarse pointers there is no
    expansion: the row stays a scrollable poster carousel. */
 @media (max-width: 880px) {
-  .group\/expandable-card:hover .expandable-poster,
-  .group\/expandable-card:focus-visible .expandable-poster,
-  .group\/expandable-card:focus-within .expandable-poster {
-    opacity: 1;
-  }
-  .group\/expandable-card:hover .expandable-backdrop,
-  .group\/expandable-card:focus-visible .expandable-backdrop,
-  .group\/expandable-card:focus-within .expandable-backdrop,
-  .group\/expandable-card:hover .expandable-overlay-content,
-  .group\/expandable-card:focus-visible .expandable-overlay-content,
-  .group\/expandable-card:focus-within .expandable-overlay-content,
-  .group\/expandable-card:hover .expandable-title-card-art::before,
-  .group\/expandable-card:focus-visible .expandable-title-card-art::before,
-  .group\/expandable-card:focus-within .expandable-title-card-art::before {
-    opacity: 0;
+  .expandable-panel {
+    display: none;
   }
 }
 @media (hover: none) {
-  .expandable-backdrop,
-  .expandable-overlay-content {
-    display: none;
-  }
-  .expandable-title-card-art::before {
+  .expandable-panel {
     display: none;
   }
 }
 @media (pointer: coarse) {
-  .expandable-backdrop,
-  .expandable-overlay-content {
-    display: none;
-  }
-  .expandable-title-card-art::before {
+  .expandable-panel {
     display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .expandable-poster,
-  .expandable-backdrop,
-  .expandable-overlay-content,
-  .expandable-title-card-art::before {
+  .expandable-panel,
+  .expandable-overlay-content {
     transition: none;
   }
 }

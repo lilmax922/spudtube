@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
         class="pl-0 basis-auto w-[180px] shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
         :class="useExpandableCards ? 'expandable-carousel-item' : ''"
       >
-        <ExpandableTitleCard v-if="useExpandableCards" :title="item" />
+        <ExpandableTitleCard v-if="useExpandableCards" :title="item" :edge-margin="gutter" />
         <TitleCard v-else :title="item" />
       </CarouselItem>
     </TitleCarousel>
@@ -91,22 +91,7 @@ onBeforeUnmount(() => {
   z-index: 5;
 }
 
-/* Expandable row: the hovered/focused card widens to roughly three times its
-   rest width (180px -> 540px), pushing siblings instead of floating above
-   them. Desktop fine pointers only; narrower viewports and touch stay a
-   scrollable poster carousel with standard-size cards. */
-@media (min-width: 881px) and (hover: hover) and (pointer: fine) {
-  .expandable-carousel-item {
-    transition: width 0.5s ease-in-out;
-  }
-  .expandable-carousel-item:hover,
-  .expandable-carousel-item:focus-within {
-    width: 540px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .expandable-carousel-item {
-    transition: none;
-  }
-}
+/* Expandable items never change size: the card overlays an expanded panel
+   (see expandable-title-card) whose side and shift keep it inside the
+   viewport. The class stays as a hook for tests and telemetry. */
 </style>

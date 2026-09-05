@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { CSSProperties } from 'vue'
 import type { TitleSummary } from '#server/tmdb/types'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
 import { CarouselItem } from '@/components/ui/carousel'
-import { EXPANDABLE_SECTION_KEYS, MIN_EXPANDABLE_TITLES } from './constants'
+import { EXPANDABLE_SECTION_KEYS, EXPANDABLE_SHIFT_KEY, MIN_EXPANDABLE_TITLES } from './constants'
 import ExpandableTitleCard from './expandable-title-card.vue'
 import SectionHeader from './section-header.vue'
 import TitleCard from './title-card.vue'
@@ -31,6 +32,21 @@ const expandableItems = computed(() => props.items.filter(item => item.backdropP
 const useExpandableCards = computed(() => isExpandableRow.value && expandableItems.value.length >= MIN_EXPANDABLE_TITLES)
 
 const displayItems = computed(() => useExpandableCards.value ? expandableItems.value : props.items)
+
+// Row glide for push expansion: the hovered card reports how far its 540px
+// growth would overflow the viewport, and every item translates left by that
+// amount so the expanded card stays fully visible. Cleared on leave/blur.
+const expandShift = ref<number | null>(null)
+
+function setShift(px: number | null): void {
+  expandShift.value = px
+}
+
+provide(EXPANDABLE_SHIFT_KEY, setShift)
+
+const sectionStyle = computed<CSSProperties | undefined>(() =>
+  expandShift.value == null ? undefined : { '--expand-shift': `${-expandShift.value}px` } as CSSProperties,
+)
 
 const gutter = ref(24)
 
@@ -62,7 +78,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="title-carousel-section relative z-[1] hover:z-[20]">
+  <section class="title-carousel-section relative z-[1] hover:z-[20]" :style="sectionStyle">
     <SectionHeader
       :title="title"
       :show-see-more="props.showSeeMore && displayItems.length > 0"
@@ -91,7 +107,26 @@ onBeforeUnmount(() => {
   z-index: 5;
 }
 
-/* Expandable items never change size: the card overlays an expanded panel
-   (see expandable-title-card) whose side and shift keep it inside the
-   viewport. The class stays as a hook for tests and telemetry. */
+/* Expandable row: the hovered/focused card widens to roughly three times its
+   rest width (180px -> 540px), pushing siblings instead of floating above
+   them. When the growth would overflow the viewport, the whole row glides
+   left by --expand-shift so the expanded card stays fully visible.
+   Desktop fine pointers only; narrower viewports and touch stay a
+   scrollable poster carousel with standard-size cards. */
+@media (min-width: 881px) and (hover: hover) and (pointer: fine) {
+  .expandable-carousel-item {
+    transform: translateX(var(--expand-shift, 0px));
+    transition: width 0.5s ease-in-out, transform 0.5s ease-in-out;
+  }
+  .expandable-carousel-item:hover,
+  .expandable-carousel-item:focus-within {
+    /* Keep in sync with EXPANDABLE_WIDTH in use-expandable-geometry.ts */
+    width: 540px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .expandable-carousel-item {
+    transition: none;
+  }
+}
 </style>

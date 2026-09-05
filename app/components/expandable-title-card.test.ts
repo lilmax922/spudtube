@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PROVIDER_CATALOG } from '../lib/availability-fixtures'
+import { EXPANDABLE_SHIFT_KEY } from './constants'
 import ExpandableTitleCard from './expandable-title-card.vue'
 
 const badgesMock = vi.hoisted(() => ({
@@ -158,15 +159,34 @@ describe('expandable-title-card', () => {
     expect(logos.map(img => img.attributes('alt'))).toEqual(['CATCHPLAY+', 'Netflix'])
   })
 
-  it('exposes the expanded panel with its opening direction', async () => {
-    const wrapper = await render()
-
-    const panel = wrapper.find('.expandable-panel')
-    expect(panel.exists()).toBe(true)
-    // happy-dom reports no layout, so the unmeasured fallback opens rightward.
-    expect(panel.attributes('data-expand-direction')).toBe('right')
-    expect(panel.attributes('style')).toContain('left:')
-    expect(panel.find('[data-testid="expandable-backdrop"]').exists()).toBe(true)
+  it('reports its row-glide need on hover and clears it on leave', async () => {
+    const setShift = vi.fn()
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia
+    try {
+      const wrapper = await mountSuspended(ExpandableTitleCard, {
+        route: '/?probe=1',
+        props: { title: baseTitle },
+        global: { provide: { [EXPANDABLE_SHIFT_KEY]: setShift } },
+      })
+      // happy-dom reports no layout, so the unmeasured card needs no glide.
+      await wrapper.find('a').trigger('mouseenter')
+      expect(setShift).toHaveBeenCalledWith(0)
+      await wrapper.find('a').trigger('mouseleave')
+      expect(setShift).toHaveBeenLastCalledWith(null)
+    }
+    finally {
+      window.matchMedia = originalMatchMedia
+    }
   })
 
   it('triggers the provider load at most once per card', async () => {

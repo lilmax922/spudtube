@@ -1,7 +1,11 @@
 import type { VueWrapper } from '@vue/test-utils'
 import type { TitleSummary } from '#server/tmdb/types'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, describe, expect, it } from 'vitest'
+import { EXPANDABLE_SECTION_KEYS, MIN_EXPANDABLE_TITLES } from './constants'
+import TitleCard from './title-card.vue'
 import TitleCarouselSection from './title-carousel-section.vue'
 
 const items: TitleSummary[] = [
@@ -68,5 +72,140 @@ describe('title-carousel-section', () => {
     await findSeeMore(wrapper)!.trigger('click')
 
     expect(wrapper.emitted('seeMore')).toHaveLength(1)
+  })
+})
+
+function backdropTitle(tmdbId: number, name: string): TitleSummary {
+  return {
+    kind: 'MOVIE',
+    tmdbId,
+    name,
+    posterPath: `/poster-${tmdbId}.jpg`,
+    backdropPath: `/backdrop-${tmdbId}.jpg`,
+    releaseDate: '2021-10-22',
+    voteAverage: 7.8,
+    genreIds: [27],
+  }
+}
+
+const sixUsable = [1, 2, 3, 4, 5, 6].map(id => backdropTitle(id, `Usable ${id}`))
+
+function expandableCards(wrapper: VueWrapper) {
+  return wrapper.findAll('[data-testid="expandable-title-card"]')
+}
+
+describe('title-carousel-section expandable second row', () => {
+  it('covers the horror and obsessed rows and needs five usable backdrops', () => {
+    expect(EXPANDABLE_SECTION_KEYS).toContain('movie.horror')
+    expect(EXPANDABLE_SECTION_KEYS).toContain('tv.obsessed')
+    expect(MIN_EXPANDABLE_TITLES).toBe(5)
+  })
+
+  it('renders expandable cards on the horror row when enough backdrops exist', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: sixUsable, sectionKey: 'movie.horror' },
+    })
+    mountedWrappers.push(wrapper)
+
+    expect(expandableCards(wrapper)).toHaveLength(6)
+    expect(wrapper.findComponent(TitleCard).exists()).toBe(false)
+  })
+
+  it('renders standard cards on other rows even with backdrops present', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Trending', items: sixUsable, sectionKey: 'movie.trending' },
+    })
+    mountedWrappers.push(wrapper)
+
+    expect(expandableCards(wrapper)).toHaveLength(0)
+    expect(wrapper.findAllComponents(TitleCard)).toHaveLength(6)
+  })
+
+  it('renders standard cards when no section key is given', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: sixUsable },
+    })
+    mountedWrappers.push(wrapper)
+
+    expect(expandableCards(wrapper)).toHaveLength(0)
+    expect(wrapper.findAllComponents(TitleCard)).toHaveLength(6)
+  })
+
+  it('excludes titles without backdrop artwork from the expandable row', async () => {
+    const mixed = [...sixUsable, { ...backdropTitle(7, 'No Backdrop'), backdropPath: null }]
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: mixed, sectionKey: 'movie.horror' },
+    })
+    mountedWrappers.push(wrapper)
+
+    expect(expandableCards(wrapper)).toHaveLength(6)
+    expect(wrapper.text()).not.toContain('No Backdrop')
+  })
+
+  it('falls back to standard cards when fewer than five usable backdrops remain', async () => {
+    const sparse = [
+      backdropTitle(1, 'Usable 1'),
+      backdropTitle(2, 'Usable 2'),
+      { ...backdropTitle(3, 'No Backdrop 3'), backdropPath: null },
+      { ...backdropTitle(4, 'No Backdrop 4'), backdropPath: null },
+    ]
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: sparse, sectionKey: 'movie.horror' },
+    })
+    mountedWrappers.push(wrapper)
+
+    expect(expandableCards(wrapper)).toHaveLength(0)
+    expect(wrapper.findAllComponents(TitleCard)).toHaveLength(4)
+  })
+
+  it('shows the poster at rest and carries the backdrop plus overlay fields without overview', async () => {
+    const withOverview = sixUsable.map(item => ({ ...item, overview: '不該出現在卡片上的簡介。' }))
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: withOverview, sectionKey: 'movie.horror' },
+    })
+    mountedWrappers.push(wrapper)
+
+    const card = expandableCards(wrapper)[0]!
+    expect(card.find('[data-testid="expandable-poster"]').attributes('src')).toBe(
+      'https://image.tmdb.org/t/p/w500/poster-1.jpg',
+    )
+    expect(card.find('[data-testid="expandable-backdrop"]').attributes('src')).toBe(
+      'https://image.tmdb.org/t/p/w1280/backdrop-1.jpg',
+    )
+    expect(card.text()).toContain('Usable 1')
+    expect(card.text()).toContain('2021')
+    expect(card.text()).toContain('7.8')
+    expect(card.find('p').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('不該出現在卡片上的簡介。')
+  })
+
+  it('navigates an expandable card to the same detail route as a title card', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: sixUsable, sectionKey: 'movie.horror' },
+    })
+    mountedWrappers.push(wrapper)
+
+    expect(expandableCards(wrapper)[0]!.attributes('href')).toBe('/movie/1')
+  })
+
+  it('keeps SeeMore working on the expandable row', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: sixUsable, sectionKey: 'movie.horror' },
+    })
+    mountedWrappers.push(wrapper)
+
+    expect(findSeeMore(wrapper)).toBeTruthy()
+    await findSeeMore(wrapper)!.trigger('click')
+
+    expect(wrapper.emitted('seeMore')).toHaveLength(1)
+  })
+})
+
+describe('title-carousel-section expandable styling', () => {
+  it('widens the hovered card to roughly three times its rest width on desktop fine pointers only', () => {
+    const source = readFileSync(resolve(import.meta.dirname, './title-carousel-section.vue'), 'utf8')
+    expect(source).toMatch(/@media\s*\(min-width:\s*881px\)\s*and\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)/)
+    expect(source).toMatch(/\.expandable-carousel-item:hover[\s\S]*?width:\s*540px/)
+    expect(source).toMatch(/transition:\s*width\s+0\.5s\s+ease-in-out/)
   })
 })

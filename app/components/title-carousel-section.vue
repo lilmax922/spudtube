@@ -2,6 +2,8 @@
 import type { TitleSummary } from '#server/tmdb/types'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CarouselItem } from '@/components/ui/carousel'
+import { EXPANDABLE_SECTION_KEYS, MIN_EXPANDABLE_TITLES } from './constants'
+import ExpandableTitleCard from './expandable-title-card.vue'
 import SectionHeader from './section-header.vue'
 import TitleCard from './title-card.vue'
 import TitleCarousel from './title-carousel.vue'
@@ -11,16 +13,24 @@ interface Props {
   items: TitleSummary[]
   ariaLabel?: string
   showSeeMore?: boolean
+  sectionKey?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   ariaLabel: undefined,
   showSeeMore: true,
+  sectionKey: undefined,
 })
 
 const emit = defineEmits<{ seeMore: [] }>()
 
-const displayItems = computed(() => props.items)
+const isExpandableRow = computed(() => props.sectionKey != null && (EXPANDABLE_SECTION_KEYS as readonly string[]).includes(props.sectionKey))
+
+const expandableItems = computed(() => props.items.filter(item => item.backdropPath != null))
+
+const useExpandableCards = computed(() => isExpandableRow.value && expandableItems.value.length >= MIN_EXPANDABLE_TITLES)
+
+const displayItems = computed(() => useExpandableCards.value ? expandableItems.value : props.items)
 
 const gutter = ref(24)
 
@@ -64,8 +74,10 @@ onBeforeUnmount(() => {
         v-for="(item, idx) in displayItems"
         :key="`${item.kind}-${item.tmdbId}-${idx}`"
         class="pl-0 basis-auto w-[180px] shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
+        :class="useExpandableCards ? 'expandable-carousel-item' : ''"
       >
-        <TitleCard :title="item" />
+        <ExpandableTitleCard v-if="useExpandableCards" :title="item" />
+        <TitleCard v-else :title="item" />
       </CarouselItem>
     </TitleCarousel>
   </section>
@@ -77,5 +89,24 @@ onBeforeUnmount(() => {
 }
 .title-carousel-section:hover :deep(.title-carousel-viewport) {
   z-index: 5;
+}
+
+/* Expandable row: the hovered/focused card widens to roughly three times its
+   rest width (180px -> 540px), pushing siblings instead of floating above
+   them. Desktop fine pointers only; narrower viewports and touch stay a
+   scrollable poster carousel with standard-size cards. */
+@media (min-width: 881px) and (hover: hover) and (pointer: fine) {
+  .expandable-carousel-item {
+    transition: width 0.5s ease-in-out;
+  }
+  .expandable-carousel-item:hover,
+  .expandable-carousel-item:focus-within {
+    width: 540px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .expandable-carousel-item {
+    transition: none;
+  }
 }
 </style>

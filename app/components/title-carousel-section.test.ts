@@ -204,6 +204,7 @@ describe('title-carousel-section expandable second row', () => {
 describe('title-carousel-section expandable styling', () => {
   it('grows the hovered item to push siblings and glides the row into view', () => {
     const source = readFileSync(resolve(import.meta.dirname, './title-carousel-section.vue'), 'utf8')
+    expect(source).toMatch(/w-\[240px\]/)
     expect(source).toMatch(/\.expandable-carousel-item[\s\S]*?width:\s*540px/)
     expect(source).toMatch(/transition:\s*width\s+0\.5s/)
     expect(source).toMatch(/translateX\(var\(--expand-shift/)

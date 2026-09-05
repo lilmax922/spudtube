@@ -57,8 +57,8 @@ describe('browse carousel breakpoints', () => {
       { maxWidth: 447, count: 1 },
       { maxWidth: 679, count: 2 },
       { maxWidth: 879, count: 3 },
-      { maxWidth: 1399, count: 4 },
-      { maxWidth: 1799, count: 5 },
+      { maxWidth: 1399, count: 3 },
+      { maxWidth: 1799, count: 4 },
     ])
   })
 })
@@ -82,22 +82,22 @@ describe('getBrowseVisibleCount', () => {
     expect(getBrowseVisibleCount(879)).toBe(3)
   })
 
-  it('returns 4 for 880-1399', () => {
-    expect(getBrowseVisibleCount(880)).toBe(4)
-    expect(getBrowseVisibleCount(1280)).toBe(4)
-    expect(getBrowseVisibleCount(1399)).toBe(4)
+  it('returns 3 for 880-1399', () => {
+    expect(getBrowseVisibleCount(880)).toBe(3)
+    expect(getBrowseVisibleCount(1280)).toBe(3)
+    expect(getBrowseVisibleCount(1399)).toBe(3)
   })
 
-  it('returns 5 for 1400-1799', () => {
-    expect(getBrowseVisibleCount(1400)).toBe(5)
-    expect(getBrowseVisibleCount(1500)).toBe(5)
-    expect(getBrowseVisibleCount(1799)).toBe(5)
+  it('returns 4 for 1400-1799', () => {
+    expect(getBrowseVisibleCount(1400)).toBe(4)
+    expect(getBrowseVisibleCount(1500)).toBe(4)
+    expect(getBrowseVisibleCount(1799)).toBe(4)
   })
 
-  it('returns 6 for >1799', () => {
-    expect(getBrowseVisibleCount(1800)).toBe(6)
-    expect(getBrowseVisibleCount(1920)).toBe(6)
-    expect(getBrowseVisibleCount(2500)).toBe(6)
+  it('returns 5 for >1799', () => {
+    expect(getBrowseVisibleCount(1800)).toBe(5)
+    expect(getBrowseVisibleCount(1920)).toBe(5)
+    expect(getBrowseVisibleCount(2500)).toBe(5)
   })
 
   it('returns at least 1 for narrow or invalid width', () => {
@@ -112,18 +112,18 @@ describe('getVisibleCount', () => {
   const peek = 60
 
   it('aliases getBrowseVisibleCount regardless of other params', () => {
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atStart')).toBe(4)
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atMid')).toBe(4)
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atEnd')).toBe(4)
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'single')).toBe(4)
+    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atStart')).toBe(3)
+    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atMid')).toBe(3)
+    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atEnd')).toBe(3)
+    expect(getVisibleCount(1280, itemWidth, gap, peek, 'single')).toBe(3)
   })
 
   it('maps viewport table for various widths', () => {
     expect(getVisibleCount(400, itemWidth, gap, peek, 'atStart')).toBe(1)
     expect(getVisibleCount(500, itemWidth, gap, peek, 'atMid')).toBe(2)
     expect(getVisibleCount(700, itemWidth, gap, peek, 'atMid')).toBe(3)
-    expect(getVisibleCount(1500, itemWidth, gap, peek, 'atEnd')).toBe(5)
-    expect(getVisibleCount(1920, itemWidth, gap, peek, 'atStart')).toBe(6)
+    expect(getVisibleCount(1500, itemWidth, gap, peek, 'atEnd')).toBe(4)
+    expect(getVisibleCount(1920, itemWidth, gap, peek, 'atStart')).toBe(5)
   })
 
   it('returns at least 1 for narrow viewport', () => {
@@ -169,6 +169,18 @@ describe('getMidSnapShift', () => {
     }
   })
 
+  it('keeps mid peeks symmetric at the production 240px item width', () => {
+    const w = 240
+    const step = w + gap
+    for (let width = 340; width <= 2560; width += 37) {
+      const shift = getMidSnapShift(width, w, gap, 0.25)
+      const hidden = (((step - shift) % step) + step) % step
+      const visibleLeft = w - hidden
+      const visibleRight = (hidden + width) % step
+      expect(Math.abs(visibleLeft - visibleRight), `width ${width}`).toBeLessThanOrEqual(1)
+    }
+  })
+
   it('mid peek stays within half an item of the peekRatio target where geometry allows', () => {
     // 1280: achievable symmetric peek 44 vs target 45
     const shift = getMidSnapShift(1280, 180, gap, 0.25)
@@ -184,14 +196,22 @@ describe('getScrollAmount', () => {
   const peek = 45
 
   it('returns visibleCount * (itemWidth+gap) via table', () => {
-    // 1280 => 4 => 4*196=784
-    expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(784)
+    // 1280 => 3 => 3*196=588
+    expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(588)
     // 700 => 3 => 3*196=588
     expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(588)
     // 500 => 2 => 392
     expect(getScrollAmount(500, itemWidth, gap, peek, 'atEnd')).toBe(392)
-    // 1920 => 6 => 1176
-    expect(getScrollAmount(1920, itemWidth, gap, peek, 'single')).toBe(1176)
+    // 1920 => 5 => 980
+    expect(getScrollAmount(1920, itemWidth, gap, peek, 'single')).toBe(980)
+  })
+
+  it('scales with the production 240px desktop item width', () => {
+    const w = 240
+    const step = w + gap
+    // amount is always visibleCount * (itemWidth + gap); counts come from the breakpoint table
+    expect(getScrollAmount(1280, w, gap, 60, 'atStart')).toBe(getBrowseVisibleCount(1280) * step)
+    expect(getScrollAmount(1920, w, gap, 60, 'single')).toBe(getBrowseVisibleCount(1920) * step)
   })
 
   it('ignores peek and state, depends only on viewport width', () => {

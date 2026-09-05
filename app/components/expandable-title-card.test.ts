@@ -217,4 +217,10 @@ describe('expandable-title-card interaction feel — inspira adaptation', () => 
     expect(source).toMatch(/@media\s*\(hover:\s*none\)/)
     expect(source).toMatch(/@media\s*\(pointer:\s*coarse\)/)
   })
+
+  it('rests as a 16:9 backdrop card distinct from the 2:3 poster card', () => {
+    expect(source).toMatch(/height:\s*135px/)
+    expect(source).toMatch(/text-heading-sm/)
+    expect(source).toMatch(/text-body-sm-strong/)
+  })
 })

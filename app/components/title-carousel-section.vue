@@ -89,7 +89,7 @@ onBeforeUnmount(() => {
       <CarouselItem
         v-for="(item, idx) in displayItems"
         :key="`${item.kind}-${item.tmdbId}-${idx}`"
-        class="pl-0 basis-auto w-[180px] shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
+        class="pl-0 basis-auto w-[240px] shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
         :class="useExpandableCards ? 'expandable-carousel-item' : ''"
       >
         <ExpandableTitleCard v-if="useExpandableCards" :title="item" :edge-margin="gutter" />
@@ -107,8 +107,8 @@ onBeforeUnmount(() => {
   z-index: 5;
 }
 
-/* Expandable row: the hovered/focused card widens to roughly three times its
-   rest width (180px -> 540px), pushing siblings instead of floating above
+/* Expandable row: the hovered/focused card widens to roughly twice its
+   rest width (240px -> 540px), pushing siblings instead of floating above
    them. When the growth would overflow the viewport, the whole row glides
    left by --expand-shift so the expanded card stays fully visible.
    Desktop fine pointers only; narrower viewports and touch stay a

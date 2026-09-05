@@ -16,7 +16,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   ariaLabel: undefined,
-  itemWidth: 180,
+  itemWidth: 240,
   gap: 16,
   peekRatio: 0.25,
   breakout: true,

@@ -105,7 +105,7 @@ const hoverProviders = computed(() => {
         v-if="posterSrc && !imageFailed"
         :src="posterSrc"
         :srcset="posterSrcSet(props.title.posterPath)"
-        sizes="180px sm:240px md:320px"
+        sizes="240px sm:240px md:320px"
         :alt="title.name"
         loading="lazy"
         decoding="async"

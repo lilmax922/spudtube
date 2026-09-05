@@ -135,7 +135,7 @@ const hoverProviders = computed(() => {
         v-if="posterSrc"
         :src="posterSrc"
         :srcset="posterSrcSet(props.title.posterPath)"
-        sizes="180px sm:240px md:320px"
+        sizes="240px md:320px"
         :alt="title.name"
         loading="lazy"
         decoding="async"
@@ -164,7 +164,7 @@ const hoverProviders = computed(() => {
       </div>
 
       <div class="expandable-overlay-content">
-        <div class="line-clamp-2 text-caption-md font-bold leading-tight tracking-tight">
+        <div class="line-clamp-2 text-heading-sm leading-tight tracking-tight">
           {{ title.name }}
         </div>
 
@@ -174,16 +174,16 @@ const hoverProviders = computed(() => {
             :key="provider.id"
             :src="providerLogoUrl(provider.logoPath) ?? undefined"
             :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
-            sizes="24px"
+            sizes="32px"
             :alt="provider.name"
             :title="provider.name"
             loading="lazy"
             decoding="async"
-            class="h-5 w-5 rounded bg-muted object-contain p-0.5"
+            class="h-6 w-6 rounded bg-muted object-contain p-0.5"
           />
         </div>
 
-        <div class="flex flex-wrap items-center gap-1 text-caption-sm font-medium">
+        <div class="flex flex-wrap items-center gap-1 text-body-sm-strong">
           <span v-if="year">{{ year }}</span>
           <span>·</span>
           <span class="inline-flex items-center gap-1"><span aria-hidden="true">★</span> {{ ratingText }}</span>
@@ -200,9 +200,10 @@ const hoverProviders = computed(() => {
   z-index: 1;
 }
 
-/* Inspira expandable-gallery feel adapted to a carousel card: the poster rests,
-   and hover/focus swaps to the backdrop with a half-second ease. Width growth
-   lives on the carousel item so siblings are pushed, not overlapped. */
+/* Rest state is a 16:9 backdrop card, visually distinct from the standard
+   2:3 poster card. Hover/focus grows the art to the full 540x300 backdrop
+   and reveals the info overlay; width growth lives on the carousel item so
+   siblings are pushed, not overlapped. Desktop fine pointers only. */
 .expandable-poster,
 .expandable-backdrop {
   transition: opacity 0.5s ease-in-out;
@@ -226,6 +227,31 @@ const hoverProviders = computed(() => {
 
 .expandable-title-card-art {
   isolation: isolate;
+}
+
+/* Desktop rest: backdrop leads at 16:9 (135 = 240x9/16); hover/focus grows
+   to 540x300 (300 ~= 540x9/16 rounded). Keep in sync with the 240px item
+   width in title-carousel-section.vue and EXPANDABLE_WIDTH (540).
+   Scoped inside the same media gate as the item-width growth so narrower
+   viewports and touch keep the static poster (base opacities below).
+   The template h-[300px] is only a fallback for the 1px crack between
+   Tailwind's (width < 880px) and this (min-width: 881px) gate. */
+@media (min-width: 881px) and (hover: hover) and (pointer: fine) {
+  .expandable-title-card-art {
+    height: 135px;
+    transition: height 0.5s ease-in-out;
+  }
+  .group\/expandable-card:hover .expandable-title-card-art,
+  .group\/expandable-card:focus-visible .expandable-title-card-art,
+  .group\/expandable-card:focus-within .expandable-title-card-art {
+    height: 300px;
+  }
+  .expandable-title-card-art .expandable-poster {
+    opacity: 0;
+  }
+  .expandable-title-card-art .expandable-backdrop {
+    opacity: 1;
+  }
 }
 .expandable-title-card-art::before {
   content: '';
@@ -324,6 +350,7 @@ const hoverProviders = computed(() => {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .expandable-title-card-art,
   .expandable-poster,
   .expandable-backdrop,
   .expandable-overlay-content,

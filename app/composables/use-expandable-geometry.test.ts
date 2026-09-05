@@ -45,7 +45,7 @@ describe('resolveExpandableShift', () => {
     const viewportWidth = 881
     const margin = 24
     const expandedWidth = 540
-    for (let cardLeft = 24; cardLeft + 180 <= viewportWidth - margin; cardLeft += 37) {
+    for (let cardLeft = 24; cardLeft + 240 <= viewportWidth - margin; cardLeft += 37) {
       const shift = resolveExpandableShift({ cardLeft, viewportWidth, expandedWidth, margin })
       expect(shift).toBeGreaterThanOrEqual(0)
       expect(cardLeft - shift).toBeGreaterThanOrEqual(0)

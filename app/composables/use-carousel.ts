@@ -11,7 +11,7 @@ export interface CarouselOptions {
 }
 
 export const CAROUSEL_DEFAULTS: Required<CarouselOptions> = {
-  itemWidth: 180,
+  itemWidth: 240,
   gap: 16,
   peekRatio: 0.25,
   threshold: 2,
@@ -40,8 +40,8 @@ export const BROWSE_CAROUSEL_BREAKPOINTS: Array<{ maxWidth: number, count: numbe
   { maxWidth: 447, count: 1 },
   { maxWidth: 679, count: 2 },
   { maxWidth: 879, count: 3 },
-  { maxWidth: 1399, count: 4 },
-  { maxWidth: 1799, count: 5 },
+  { maxWidth: 1399, count: 3 },
+  { maxWidth: 1799, count: 4 },
 ]
 
 export function getBrowseVisibleCount(viewportWidth: number): number {
@@ -51,7 +51,7 @@ export function getBrowseVisibleCount(viewportWidth: number): number {
     if (viewportWidth <= bp.maxWidth)
       return bp.count
   }
-  return 6
+  return 5
 }
 
 export function getVisibleCount(
@@ -123,6 +123,14 @@ export function getScrollAmount(
   void state
   const visible = getBrowseVisibleCount(clientWidth)
   return visible * (itemWidth + gap)
+}
+
+// Embla reInit gate: slide growth (expandable 240->540px) must not re-measure
+// Embla mid-transition. Repeated re-measured re-seeks kill in-flight scroll
+// animations, so an arrow click during expansion lands instantly instead of
+// gliding. Only the viewport container may trigger a re-measure.
+export function shouldReinitCarousel(entries: ResizeObserverEntry[]): boolean {
+  return entries.some(entry => entry.target instanceof Element && entry.target.matches('[data-slot="carousel-content"]'))
 }
 
 export interface UseCarouselReturn {

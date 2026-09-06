@@ -60,7 +60,7 @@ The set of Titles a User has marked `WATCHLISTED`.
 ### Browse & Discovery
 
 **TitleCarouselSection**:
-A single horizontal section on the browse surface — one SectionHeader and one TitleCarousel of TitleCards. Each section renders the result of its own server-side query, configured by static values (never by component logic).
+A single horizontal section on the browse surface - one SectionHeader and one TitleCarousel of cards (TitleCard or ExpandableTitleCard). Each section renders the result of its own server-side query, configured by static values (never by component logic).
 _Avoid_: rails, shelf, lane, content row
 
 **SectionHeader**:
@@ -76,12 +76,16 @@ The action in a SectionHeader that explores a TitleCarouselSection beyond its vi
 _Avoid_: more button
 
 **TitleCarousel**:
-The horizontally scrollable viewport inside a TitleCarouselSection that presents TitleCards. It owns peek, gap, row padding, breakout/full-bleed behavior, and page-by-page scrolling. Exactly one per TitleCarouselSection.
+The horizontally scrollable viewport inside a TitleCarouselSection that presents cards. It owns peek, gap, row padding, breakout/full-bleed behavior, and page-by-page scrolling. Exactly one per TitleCarouselSection.
 _Avoid_: slider, scroller, vega carousel
 
 **TitleCard**:
 The card representing a single Title inside a TitleCarousel (or grid). It shows the Title's artwork, year, and rating, and reveals additional detail on hover/focus. It does not encode Availability; that belongs to the Title detail surface.
 _Avoid_: tile, poster, video, thumbnail
+
+**ExpandableTitleCard**:
+A single card component with rest and expanded states, used in place of TitleCard inside the second TitleCarouselSection (horror / obsessed). At rest it shows the Title's poster as a portrait card at its row's item width; on hover/focus (desktop fine pointers only, after a short intent delay) it widens to 540px at equal height and swaps to the Title's backdrop, overlaying title, providers, year, and rating. Click behavior matches TitleCard.
+_Avoid_: gallery card, expanded tile, super carousel
 
 ### Layout
 

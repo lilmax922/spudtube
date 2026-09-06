@@ -249,6 +249,7 @@ void refreshSections()
               :items="row.items"
               :show-see-more="row.canSeeMore"
               :aria-label="row.label"
+              :section-key="row.key"
               @see-more="handleSeeMore(row.key)"
             />
           </motion.div>

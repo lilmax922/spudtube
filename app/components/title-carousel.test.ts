@@ -48,6 +48,18 @@ describe('title-carousel', () => {
 
   it('shows peek width data attribute', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
+      props: { itemWidth: 240, peekRatio: 0.25 },
+      slots: {
+        default: () => `<div>a</div>`,
+      },
+    })
+
+    const root = wrapper.find('[data-carousel-state]')
+    expect(root.attributes('data-peek-width')).toBe('60')
+  })
+
+  it('derives peek width from the standard 180px item width', async () => {
+    const wrapper = await mountSuspended(TitleCarousel, {
       props: { itemWidth: 180, peekRatio: 0.25 },
       slots: {
         default: () => `<div>a</div>`,

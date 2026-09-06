@@ -203,14 +203,26 @@ describe('title-card hover content', () => {
   })
 })
 
-describe('title-card responsive hover — <=560px with mouse still shows overlay', () => {
-  it('does not hide hover-overlay-content with bare max-width:560px; requires hover/pointer capability', () => {
+describe('title-card hover is mouse-only', () => {
+  it('gates mask, overlay, zoom and shadow on (hover: hover) and (pointer: fine)', () => {
     const source = readFileSync(resolve(import.meta.dirname, './title-card.vue'), 'utf8')
-    // Bare "@media (max-width: 560px)" with display:none would hide overlay even on fine-pointer desktops.
-    // Fix gates it on (hover: none) / (pointer: coarse) so narrow desktop + mouse still shows hover.
-    const bareMaxWidthHide = /@media\s*\(\s*max-width\s*:\s*560px\s*\)\s*\{[^}]*\.hover-overlay-content[^}]*display\s*:\s*none/
-    expect(source).not.toMatch(bareMaxWidthHide)
-    expect(source).toMatch(/@media\s*\(max-width:\s*560px\)\s*and\s*\(hover:\s*none\)/)
-    expect(source).toMatch(/\.hover-overlay-content[\s\S]*?display:\s*none/)
+    // Touch drag synthesizes :hover mid-swipe; every hover visual must live
+    // inside the fine-pointer media gate so it never flashes on mobile.
+    const gate = source.match(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{([\s\S]*?)\n\}/)
+    expect(gate).not.toBeNull()
+    const gated = gate![1] ?? ''
+    expect(gated).toMatch(/\.title-card-root:hover[\s\S]*?box-shadow/)
+    expect(gated).toMatch(/\.title-card-art::before[\s\S]*?opacity:\s*1/)
+    expect(gated).toMatch(/\.hover-overlay-content[\s\S]*?opacity:\s*1/)
+    expect(gated).toMatch(/\.title-card-poster[\s\S]*?scale/)
+  })
+
+  it('has no ungated :hover rule that could flash visuals on touch', () => {
+    const source = readFileSync(resolve(import.meta.dirname, './title-card.vue'), 'utf8')
+    const style = source.slice(source.indexOf('<style'))
+    const withoutGate = style.replace(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{[\s\S]*?\n\}/, '')
+    expect(withoutGate).not.toMatch(/:hover[\s\S]*?opacity:\s*1/)
+    expect(withoutGate).not.toMatch(/:hover[\s\S]*?box-shadow:\s*0 16px/)
+    expect(source).not.toMatch(/group-hover\/title-card:scale/)
   })
 })

@@ -109,7 +109,7 @@ const hoverProviders = computed(() => {
         :alt="title.name"
         loading="lazy"
         decoding="async"
-        class="h-full w-full object-cover transition-transform duration-300 group-hover/title-card:scale-105"
+        class="title-card-poster h-full w-full object-cover"
         @error="imageFailed = true"
       />
       <div
@@ -163,9 +163,25 @@ const hoverProviders = computed(() => {
   z-index: 1;
   transition: box-shadow 0.22s;
 }
-.title-card-root:hover {
-  z-index: 5;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+.title-card-poster {
+  transition: transform 0.3s;
+}
+/* Hover visuals are mouse-only: touch drag over a card synthesizes :hover
+   and would otherwise flash the mask mid-swipe. */
+@media (hover: hover) and (pointer: fine) {
+  .title-card-root:hover {
+    z-index: 5;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  }
+  .group\/title-card:hover .title-card-poster {
+    transform: scale(1.05);
+  }
+  .group\/title-card:hover .title-card-art::before {
+    opacity: 1;
+  }
+  .group\/title-card:hover .hover-overlay-content {
+    opacity: 1;
+  }
 }
 
 .title-card-art {
@@ -182,9 +198,6 @@ const hoverProviders = computed(() => {
   transition: opacity 0.22s;
   z-index: 2;
   pointer-events: none;
-}
-.group\/title-card:hover .title-card-art::before {
-  opacity: 1;
 }
 
 .hover-overlay-content {
@@ -203,9 +216,6 @@ const hoverProviders = computed(() => {
   opacity: 0;
   transition: opacity 0.22s;
   pointer-events: none;
-}
-.group\/title-card:hover .hover-overlay-content {
-  opacity: 1;
 }
 
 .discovery-badge {
@@ -227,19 +237,5 @@ const hoverProviders = computed(() => {
 
 .hover-card {
   display: none;
-}
-
-@media (max-width: 560px) and (hover: none) {
-  .title-card-root:hover {
-    box-shadow: none;
-  }
-  .hover-overlay-content {
-    display: none;
-  }
-}
-@media (max-width: 560px) and (pointer: coarse) {
-  .hover-overlay-content {
-    display: none;
-  }
 }
 </style>

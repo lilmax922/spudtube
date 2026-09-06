@@ -114,7 +114,7 @@ const hoverProviders = computed(() => {
     @focusin="onEnter"
     @focusout="onLeaveFocus"
   >
-    <div ref="artRef" class="expandable-title-card-art relative h-[300px] w-full overflow-hidden rounded-xl bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)] max-[880px]:aspect-[2/3] max-[880px]:h-auto">
+    <div ref="artRef" class="expandable-title-card-art relative aspect-[2/3] h-auto w-full overflow-hidden rounded-xl bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
       <span
         v-if="showKind"
         data-testid="kind-badge"
@@ -200,10 +200,10 @@ const hoverProviders = computed(() => {
   z-index: 1;
 }
 
-/* Rest state is a 16:9 backdrop card, visually distinct from the standard
-   2:3 poster card. Hover/focus grows the art to the full 540x300 backdrop
-   and reveals the info overlay; width growth lives on the carousel item so
-   siblings are pushed, not overlapped. Desktop fine pointers only. */
+/* Rest state is a 2:3 portrait poster. Hover/focus swaps to the backdrop
+   and reveals the info overlay at the same height; only the carousel item
+   widens (240px -> 540px) so the card extends horizontally and siblings
+   are pushed, not overlapped. Desktop fine pointers only. */
 .expandable-poster,
 .expandable-backdrop {
   transition: opacity 0.5s ease-in-out;
@@ -229,28 +229,16 @@ const hoverProviders = computed(() => {
   isolation: isolate;
 }
 
-/* Desktop rest: backdrop leads at 16:9 (135 = 240x9/16); hover/focus grows
-   to 540x300 (300 ~= 540x9/16 rounded). Keep in sync with the 240px item
-   width in title-carousel-section.vue and EXPANDABLE_WIDTH (540).
-   Scoped inside the same media gate as the item-width growth so narrower
-   viewports and touch keep the static poster (base opacities below).
-   The template h-[300px] is only a fallback for the 1px crack between
-   Tailwind's (width < 880px) and this (min-width: 881px) gate. */
+/* Desktop needs no art overrides: the base crossfade above already shows
+   the portrait poster at rest and the backdrop on hover/focus. The art
+   height is fixed below so rest (240x360) and expanded (540x360) share the
+   same height and the card only extends horizontally. Height never
+   animates; only the carousel item widens. */
 @media (min-width: 881px) and (hover: hover) and (pointer: fine) {
   .expandable-title-card-art {
-    height: 135px;
-    transition: height 0.5s ease-in-out;
-  }
-  .group\/expandable-card:hover .expandable-title-card-art,
-  .group\/expandable-card:focus-visible .expandable-title-card-art,
-  .group\/expandable-card:focus-within .expandable-title-card-art {
-    height: 300px;
-  }
-  .expandable-title-card-art .expandable-poster {
-    opacity: 0;
-  }
-  .expandable-title-card-art .expandable-backdrop {
-    opacity: 1;
+    /* 360 = 240px item width x 3/2. Keep in sync with the item width in
+       title-carousel-section.vue; expanded 540x360 keeps this height. */
+    height: 360px;
   }
 }
 .expandable-title-card-art::before {

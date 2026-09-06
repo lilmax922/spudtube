@@ -210,4 +210,12 @@ describe('title-carousel-section expandable styling', () => {
     expect(source).toMatch(/translateX\(var\(--expand-shift/)
     expect(source).toMatch(/:edge-margin="gutter"/)
   })
+
+  it('keeps standard rows narrower than the expandable row', () => {
+    const source = readFileSync(resolve(import.meta.dirname, './title-carousel-section.vue'), 'utf8')
+    // Standard items render at 180px while the expandable row keeps 240px;
+    // counts stay shared, only the width diverges.
+    expect(source).toMatch(/w-\[180px\]/)
+    expect(source).toMatch(/:item-width="useExpandableCards \? 240 : 180"/)
+  })
 })

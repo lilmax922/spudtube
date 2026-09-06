@@ -125,6 +125,14 @@ export function getScrollAmount(
   return visible * (itemWidth + gap)
 }
 
+// Embla reInit gate: slide growth (expandable 240->540px) must not re-measure
+// Embla mid-transition. Repeated re-measured re-seeks kill in-flight scroll
+// animations, so an arrow click during expansion lands instantly instead of
+// gliding. Only the viewport container may trigger a re-measure.
+export function shouldReinitCarousel(entries: ResizeObserverEntry[]): boolean {
+  return entries.some(entry => entry.target instanceof Element && entry.target.matches('[data-slot="carousel-content"]'))
+}
+
 export interface UseCarouselReturn {
   viewportRef: Ref<HTMLElement | null>
   state: Ref<CarouselState>

@@ -7,6 +7,7 @@ import {
   getMidSnapShift,
   getScrollAmount,
   getVisibleCount,
+  shouldReinitCarousel,
 } from './use-carousel'
 
 describe('calculatePeekWidth', () => {
@@ -187,6 +188,29 @@ describe('getMidSnapShift', () => {
     const step = 196
     const hidden = (((step - shift) % step) + step) % step
     expect(180 - hidden).toBe(44)
+  })
+})
+
+describe('shouldReinitCarousel', () => {
+  function entryFor(el: Element): ResizeObserverEntry {
+    return { target: el } as unknown as ResizeObserverEntry
+  }
+
+  it('ignores slide resizes so expansion never re-measures Embla mid-transition', () => {
+    const slide = document.createElement('div')
+    slide.setAttribute('data-slot', 'carousel-item')
+    expect(shouldReinitCarousel([entryFor(slide)])).toBe(false)
+  })
+
+  it('re-measures when the viewport container resizes', () => {
+    const slide = document.createElement('div')
+    const viewport = document.createElement('div')
+    viewport.setAttribute('data-slot', 'carousel-content')
+    expect(shouldReinitCarousel([entryFor(slide), entryFor(viewport)])).toBe(true)
+  })
+
+  it('returns false with no entries', () => {
+    expect(shouldReinitCarousel([])).toBe(false)
   })
 })
 

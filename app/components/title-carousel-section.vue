@@ -85,12 +85,12 @@ onBeforeUnmount(() => {
       @see-more="emit('seeMore')"
     />
 
-    <TitleCarousel :aria-label="ariaLabel ?? title" :breakout="true" :padding-left="gutter">
+    <TitleCarousel :aria-label="ariaLabel ?? title" :breakout="true" :padding-left="gutter" :item-width="useExpandableCards ? 240 : 180">
       <CarouselItem
         v-for="(item, idx) in displayItems"
         :key="`${item.kind}-${item.tmdbId}-${idx}`"
-        class="pl-0 basis-auto w-[240px] shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
-        :class="useExpandableCards ? 'expandable-carousel-item' : ''"
+        class="pl-0 basis-auto shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
+        :class="useExpandableCards ? 'expandable-carousel-item w-[240px]' : 'w-[180px]'"
       >
         <ExpandableTitleCard v-if="useExpandableCards" :title="item" :edge-margin="gutter" />
         <TitleCard v-else :title="item" />

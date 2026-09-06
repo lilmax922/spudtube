@@ -3,7 +3,7 @@ import type { CarouselApi } from '@/components/ui/carousel'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { Carousel, CarouselContent } from '@/components/ui/carousel'
-import { calculatePeekWidth, getBrowseVisibleCount, getMidSnapShift } from '../composables/use-carousel'
+import { calculatePeekWidth, getBrowseVisibleCount, getMidSnapShift, shouldReinitCarousel } from '../composables/use-carousel'
 
 interface Props {
   ariaLabel?: string
@@ -59,12 +59,15 @@ function measureItemWidth(): number {
 // Group snaps are item-offset aligned; getMidSnapShift shifts them by a constant
 // so mid-scroll positions clip both edge items symmetrically (~peekRatio).
 // Start/end snaps are re-clamped to the scroll bounds by containScroll:'trimSnaps'.
+// watchResize ignores slide resizes: expandable growth must not reInit Embla
+// mid-transition (see shouldReinitCarousel); only the viewport re-measures.
 const carouselOpts = {
   align: (viewSize: number) => getMidSnapShift(viewSize, measureItemWidth(), props.gap, props.peekRatio),
   containScroll: 'trimSnaps' as const,
   slidesToScroll: visibleCount.value,
   dragFree: false,
   skipSnaps: false,
+  watchResize: (_api: unknown, entries: ResizeObserverEntry[]) => shouldReinitCarousel(entries),
 }
 
 function onInitApi(api: CarouselApi | undefined): void {

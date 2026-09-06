@@ -228,11 +228,10 @@ watch(open, (value) => {
   }
 })
 
+// Opening the drawer must not move focus into the provider search input:
+// on mobile that pops the keyboard over the freshly opened drawer.
 watch(drawerOpen, (value) => {
-  if (value) {
-    nextTick(() => drawerProviderSearchInputRef.value?.focus())
-  }
-  else {
+  if (!value) {
     drawerProviderSearchText.value = ''
     emit('clearProviderSearch')
   }

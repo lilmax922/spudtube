@@ -511,6 +511,34 @@ describe('homeFilterBar', () => {
     expect(selectedSpan!.className).toBe(unselectedSpan!.className)
   })
 
+  it('does not autofocus the provider search input when the mobile drawer opens', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+
+    // Record every element the drawer open path tries to focus: focusing the
+    // search input pops the mobile keyboard, so nothing in the open path may.
+    const focused: Element[] = []
+    const originalFocus = HTMLElement.prototype.focus
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, ...args: []) {
+      focused.push(this)
+      return originalFocus.apply(this, args)
+    })
+    try {
+      await wrapper.find('.homeFilterBarSummaryInner').trigger('click')
+      await wrapper.vm.$nextTick()
+      await new Promise(r => setTimeout(r, 50))
+
+      const drawerEl = document.querySelector('[data-testid="home-filter-drawer"]')
+      expect(drawerEl).toBeTruthy()
+      const drawerInput = drawerEl!.querySelector('input[type="search"]')
+      expect(drawerInput).toBeTruthy()
+      expect(focused).not.toContain(drawerInput)
+    }
+    finally {
+      focusSpy.mockRestore()
+    }
+  })
+
   it('ensures home-filter-bar stays above title-card on hover (z-index fix)', async () => {
     const fs = await import('node:fs')
     const path = await import('node:path')

@@ -118,9 +118,18 @@ onBeforeUnmount(() => {
     transform: translateX(var(--expand-shift, 0px));
     transition: width 0.5s ease-in-out, transform 0.5s ease-in-out;
   }
+  /* Hover growth waits 0.5s for intent (see EXPANDABLE_HOVER_DELAY_MS in
+     use-expandable-geometry.ts); the glide transform is never
+     delayed (the shift itself already arrives late via JS) and leaving
+     collapses with no delay. Focus expands immediately. */
+  .expandable-carousel-item:hover {
+    transition: width 0.5s ease-in-out 0.5s, transform 0.5s ease-in-out;
+  }
   .expandable-carousel-item:hover,
   .expandable-carousel-item:focus-within {
-    /* Keep in sync with EXPANDABLE_WIDTH in use-expandable-geometry.ts */
+    /* Keep in sync with EXPANDABLE_WIDTH in use-expandable-geometry.ts.
+       The 0.5s hover delay lives on .expandable-carousel-item:hover above;
+       focus and collapse stay immediate. */
     width: 540px;
   }
 }

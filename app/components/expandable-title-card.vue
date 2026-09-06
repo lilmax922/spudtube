@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
 import { Clapperboard } from '@lucide/vue'
-import { computed, inject, ref, shallowRef } from 'vue'
+import { computed, inject, onBeforeUnmount, ref, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAvailability } from '../composables/use-availability'
 import { useDiscoveryBadges } from '../composables/use-discovery-badges'
-import { EXPANDABLE_VIEWPORT_MARGIN, matchesExpandableMedia, useExpandableShift } from '../composables/use-expandable-geometry'
+import { EXPANDABLE_HOVER_DELAY_MS, EXPANDABLE_VIEWPORT_MARGIN, matchesExpandableMedia, useExpandableShift } from '../composables/use-expandable-geometry'
 import { useRegion } from '../composables/use-region'
 import { backdropSrcSet, backdropUrl, posterSrcSet, posterUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
@@ -72,27 +72,66 @@ const { shift, refreshShift } = useExpandableShift(artRef, () => props.edgeMargi
 const setShift = inject(EXPANDABLE_SHIFT_KEY, null)
 
 // Push rows grow rightward, so a right-edge card would overflow the viewport.
-// Report the needed row glide on interact; the section translates every item
-// left by that amount and clears it once nothing is expanded.
-function onEnter(): void {
-  markInspected()
+// The card reports the needed row glide and the section translates every
+// item left by that amount, clearing it once nothing is expanded.
+// Mouse hover waits EXPANDABLE_HOVER_DELAY_MS for intent; keyboard focus
+// and reduced-motion expand immediately; leaving before the delay cancels.
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function')
+    return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+let expandTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearExpandTimer(): void {
+  if (expandTimer != null) {
+    clearTimeout(expandTimer)
+    expandTimer = null
+  }
+}
+
+function expandNow(): void {
+  expandTimer = null
   if (setShift == null || !matchesExpandableMedia())
     return
   refreshShift()
   setShift(shift.value)
 }
 
-function onLeave(): void {
+function onMouseEnter(): void {
+  markInspected()
+  clearExpandTimer()
+  if (setShift == null || !matchesExpandableMedia())
+    return
+  if (prefersReducedMotion()) {
+    expandNow()
+    return
+  }
+  expandTimer = setTimeout(expandNow, EXPANDABLE_HOVER_DELAY_MS)
+}
+
+function onFocusIn(): void {
+  markInspected()
+  clearExpandTimer()
+  expandNow()
+}
+
+function onMouseLeave(): void {
+  clearExpandTimer()
   setShift?.(null)
 }
 
 function onLeaveFocus(event: FocusEvent): void {
+  clearExpandTimer()
   const current = event.currentTarget
   const next = event.relatedTarget
   if (current instanceof Node && next instanceof Node && current.contains(next))
     return
   setShift?.(null)
 }
+
+onBeforeUnmount(() => clearExpandTimer())
 
 const hoverProviders = computed(() => {
   const entry = availability.data.value?.[region.value]
@@ -109,9 +148,9 @@ const hoverProviders = computed(() => {
     :to="titleDetailPath(title.kind, title.tmdbId)"
     data-testid="expandable-title-card"
     class="group/expandable-card expandable-title-card-root relative flex flex-col rounded-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/20"
-    @mouseenter="onEnter"
-    @mouseleave="onLeave"
-    @focusin="onEnter"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
+    @focusin="onFocusIn"
     @focusout="onLeaveFocus"
   >
     <div ref="artRef" class="expandable-title-card-art relative aspect-[2/3] h-auto w-full overflow-hidden rounded-xl bg-muted shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
@@ -223,6 +262,16 @@ const hoverProviders = computed(() => {
 .group\/expandable-card:focus-visible .expandable-backdrop,
 .group\/expandable-card:focus-within .expandable-backdrop {
   opacity: 1;
+}
+
+/* Hover waits 0.5s for intent before the swap (see EXPANDABLE_HOVER_DELAY_MS
+   in use-expandable-geometry.ts); keyboard focus swaps immediately and
+   leaving collapses with no delay. */
+.group\/expandable-card:hover .expandable-poster,
+.group\/expandable-card:hover .expandable-backdrop,
+.group\/expandable-card:hover .expandable-title-card-art::before,
+.group\/expandable-card:hover .expandable-overlay-content {
+  transition-delay: 0.5s;
 }
 
 .expandable-title-card-art {

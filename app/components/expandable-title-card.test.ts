@@ -159,11 +159,10 @@ describe('expandable-title-card', () => {
     expect(logos.map(img => img.attributes('alt'))).toEqual(['CATCHPLAY+', 'Netflix'])
   })
 
-  it('reports its row-glide need on hover and clears it on leave', async () => {
-    const setShift = vi.fn()
+  async function mountWithShift(setShift: ReturnType<typeof vi.fn>) {
     const originalMatchMedia = window.matchMedia
     window.matchMedia = ((query: string) => ({
-      matches: true,
+      matches: !query.includes('prefers-reduced-motion'),
       media: query,
       onchange: null,
       addEventListener: () => {},
@@ -172,20 +171,79 @@ describe('expandable-title-card', () => {
       removeListener: () => {},
       dispatchEvent: () => false,
     })) as unknown as typeof window.matchMedia
+    const wrapper = await mountSuspended(ExpandableTitleCard, {
+      route: '/?probe=1',
+      props: { title: baseTitle },
+      global: { provide: { [EXPANDABLE_SHIFT_KEY]: setShift } },
+    })
+    function restore(): void {
+      window.matchMedia = originalMatchMedia
+    }
+    return { wrapper, restore }
+  }
+
+  it('reports its row-glide need 500ms after hover and clears it on leave', async () => {
+    vi.useFakeTimers()
     try {
-      const wrapper = await mountSuspended(ExpandableTitleCard, {
-        route: '/?probe=1',
-        props: { title: baseTitle },
-        global: { provide: { [EXPANDABLE_SHIFT_KEY]: setShift } },
-      })
-      // happy-dom reports no layout, so the unmeasured card needs no glide.
-      await wrapper.find('a').trigger('mouseenter')
-      expect(setShift).toHaveBeenCalledWith(0)
-      await wrapper.find('a').trigger('mouseleave')
-      expect(setShift).toHaveBeenLastCalledWith(null)
+      const setShift = vi.fn()
+      const { wrapper, restore } = await mountWithShift(setShift)
+      try {
+        // happy-dom reports no layout, so the unmeasured card needs no glide.
+        await wrapper.find('a').trigger('mouseenter')
+        expect(setShift).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(499)
+        expect(setShift).not.toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(1)
+        expect(setShift).toHaveBeenCalledWith(0)
+        await wrapper.find('a').trigger('mouseleave')
+        expect(setShift).toHaveBeenLastCalledWith(null)
+      }
+      finally {
+        restore()
+      }
     }
     finally {
-      window.matchMedia = originalMatchMedia
+      vi.useRealTimers()
+    }
+  })
+
+  it('never reports a glide when leaving before the hover delay elapses', async () => {
+    vi.useFakeTimers()
+    try {
+      const setShift = vi.fn()
+      const { wrapper, restore } = await mountWithShift(setShift)
+      try {
+        await wrapper.find('a').trigger('mouseenter')
+        await vi.advanceTimersByTimeAsync(300)
+        await wrapper.find('a').trigger('mouseleave')
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(setShift).toHaveBeenCalledTimes(1)
+        expect(setShift).toHaveBeenCalledWith(null)
+      }
+      finally {
+        restore()
+      }
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reports its row-glide need immediately on keyboard focus', async () => {
+    vi.useFakeTimers()
+    try {
+      const setShift = vi.fn()
+      const { wrapper, restore } = await mountWithShift(setShift)
+      try {
+        await wrapper.find('a').trigger('focusin')
+        expect(setShift).toHaveBeenCalledWith(0)
+      }
+      finally {
+        restore()
+      }
+    }
+    finally {
+      vi.useRealTimers()
     }
   })
 
@@ -205,6 +263,13 @@ describe('expandable-title-card interaction feel — inspira adaptation', () => 
 
   it('animates the poster/backdrop swap with a half-second ease', () => {
     expect(source).toMatch(/transition:\s*opacity\s+0\.5s\s+ease-in-out/)
+  })
+
+  it('delays the swap on hover only; focus swaps immediately', () => {
+    expect(source).toMatch(/\.group\\\/expandable-card:hover[^{]*\{[\s\S]*?transition-delay:\s*0\.5s/)
+    // The hover rule is the single place allowed to delay; focus rules
+    // and the base transitions must not carry one.
+    expect(source.match(/transition-delay/g)?.length ?? 0).toBe(1)
   })
 
   it('reveals the overlay on hover and on keyboard focus alike', () => {

@@ -6,6 +6,9 @@ import { computed, toValue } from 'vue'
 export const EXPANDABLE_WIDTH = 540
 export const EXPANDABLE_VIEWPORT_MARGIN = 24
 
+// Hover waits for intent before expanding; keyboard focus expands immediately.
+export const EXPANDABLE_HOVER_DELAY_MS = 500
+
 // Desktop fine pointers only: mirrors the CSS gates that grow the hovered
 // card, so narrower viewports and touch never compute a row glide.
 export const EXPANDABLE_MEDIA_QUERY = '(min-width: 881px) and (hover: hover) and (pointer: fine)'

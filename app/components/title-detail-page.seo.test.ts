@@ -26,12 +26,14 @@ vi.mock('../lib/auth-client', () => ({
   signIn: { social: vi.fn() },
 }))
 
-vi.mock('../composables/use-title-rating', () => ({
-  useTitleRating: () => ({ label: ref(null), pending: ref(false), rate: vi.fn(), clear: vi.fn() }),
-}))
-
-vi.mock('../composables/use-title-status', () => ({
-  useTitleStatus: () => ({ status: ref(null), pending: ref(false), set: vi.fn(), clear: vi.fn() }),
+vi.mock('../composables/use-personal-tracking', () => ({
+  usePersonalTracking: () => ({
+    state: ref({ rating: null, status: null }),
+    pending: ref(false),
+    rate: vi.fn(),
+    setStatus: vi.fn(),
+    clear: vi.fn(),
+  }),
 }))
 
 vi.mock('../composables/use-trailer', () => ({

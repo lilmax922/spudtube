@@ -7,7 +7,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 import MyListPage from './my-list.vue'
 
-const fetchMock = vi.hoisted(() => vi.fn(() => Promise.resolve({})))
+const fetchMock = vi.hoisted(() => vi.fn((url: string, options?: { method?: string, body?: Record<string, string> }) => {
+  // Echo fake: honors the server contract (PUT echoes the persisted value,
+  // DELETE returns null) so the tracking module can reconcile against it.
+  const method = options?.method ?? 'GET'
+  const body = options?.body ?? {}
+  if (url.includes('/api/status/'))
+    return Promise.resolve(method === 'PUT' ? { status: body.status } : { status: null })
+  if (url.includes('/api/ratings/'))
+    return Promise.resolve(method === 'PUT' ? { label: body.label } : { label: null })
+  return Promise.resolve({})
+}))
 const refreshMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
 const showToastMock = vi.hoisted(() => vi.fn())
 
@@ -397,9 +407,7 @@ describe('my-list immediate removal', () => {
     expect(fetchMock).toHaveBeenCalled()
   })
 
-  // Note: undo for WATCHLISTED->WATCHED move via revertStatusFromPage(key,null,prev)
-  // is intentionally not asserted here. Current revert logic uses (null, prev) which
-  // covers WATCHLISTED->null removals but does not correctly reverse a move
-  // (would need WATCHED->WATCHLISTED). That edge is separate from the
-  // shallowRef/bumpList fix and the four required cases above.
+  // Undo of a WATCHLISTED->WATCHED move flows through the same tracking seam
+  // (revertStatusFromPage re-applies the previous status), so it reverses
+  // the move instead of only covering removals.
 })

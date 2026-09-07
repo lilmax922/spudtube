@@ -3,7 +3,7 @@ import type { Kind } from '#shared/kind/kind'
 import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { computed, ref, watch } from 'vue'
 import { $fetch } from '#imports'
-import { toMediaSegment } from '../lib/kind'
+import { toMediaSegment } from '#shared/kind/kind'
 
 export interface PersonalTrackingFetcher {
   getRating: () => Promise<RatingLabel | null>

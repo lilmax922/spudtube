@@ -1,5 +1,6 @@
 import type { Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
 import process from 'node:process'
+import { toMediaSegment } from '../../shared/kind/kind'
 import { createTtlCache } from './cache'
 import {
   DEFAULT_TMDB_LANGUAGE,
@@ -17,7 +18,6 @@ import {
   mapTvDetail,
   mapTvSummary,
   toKind,
-  toMediaSegment,
 } from './mappers'
 import {
   rawGenreListSchema,

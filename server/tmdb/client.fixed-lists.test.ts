@@ -34,7 +34,7 @@ const TV_PAGE = {
   ],
 }
 
-describe('tmdb client — fixed list readers', () => {
+describe('tmdb client: fixed list readers', () => {
   it('reads the popular list for each kind with paging params', async () => {
     const { fetchJson, requests } = createFakeTransport({
       '/3/tv/popular': TV_PAGE,

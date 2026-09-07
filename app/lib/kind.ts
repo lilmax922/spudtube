@@ -1,8 +1,6 @@
 import type { Kind } from '#shared/kind/kind'
 import { toMediaSegment } from '#shared/kind/kind'
 
-export { toMediaSegment }
-
 export function titleDetailPath(kind: Kind, tmdbId: number): string {
   return `/${toMediaSegment(kind)}/${tmdbId}`
 }

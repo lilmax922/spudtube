@@ -4,7 +4,7 @@ import type { TmdbLanguage } from '#server/tmdb/types'
 import type { Kind } from '#shared/kind/kind'
 import { ref, watch } from 'vue'
 import { $fetch } from '#imports'
-import { toMediaSegment } from '../lib/kind'
+import { toMediaSegment } from '#shared/kind/kind'
 import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface HeroTitle {

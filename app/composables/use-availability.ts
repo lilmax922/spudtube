@@ -4,7 +4,7 @@ import type { ProviderCatalog } from '#server/tmdb/types'
 import type { Kind } from '#shared/kind/kind'
 import { computed } from 'vue'
 import { useFetch } from '#imports'
-import { toMediaSegment } from '../lib/kind'
+import { toMediaSegment } from '#shared/kind/kind'
 import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface AvailabilityOptions {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MonetizationTag } from '#server/api/my-list.get'
-import type { Kind, Provider } from '#server/tmdb/types'
+import type { Provider } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { ChevronLeft, ChevronRight, X } from '@lucide/vue'
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref } from 'vue'

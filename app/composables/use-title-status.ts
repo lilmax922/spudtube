@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
-import type { WatchStatus } from '#server/db/schema/title-status'
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
+import type { WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { computed, ref, watch } from 'vue'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'

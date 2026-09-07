@@ -1,4 +1,4 @@
-import type { RatingLabel } from '#server/db/schema/rating'
+import type { RatingLabel } from '#shared/personal-tracking/personal-tracking'
 import type { RatingFetcher } from './use-title-rating'
 import { describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'

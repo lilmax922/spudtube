@@ -1,5 +1,5 @@
 import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
-import type { RatingLabel } from '#server/db/schema/rating'
+import type { RatingLabel } from '#shared/personal-tracking/personal-tracking'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import RatingTrio from './rating-trio.vue'

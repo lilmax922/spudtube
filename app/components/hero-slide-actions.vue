@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { WatchStatus } from '#server/db/schema/title-status'
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
+import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { computed, shallowRef } from 'vue'
 import { useTitleRating } from '../composables/use-title-rating'
 import { useTitleStatus } from '../composables/use-title-status'

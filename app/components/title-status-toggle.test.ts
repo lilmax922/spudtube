@@ -1,4 +1,4 @@
-import type { WatchStatus } from '#server/db/schema/title-status'
+import type { WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { describe, expect, it } from 'vitest'
 import TitleStatusToggle from './title-status-toggle.vue'

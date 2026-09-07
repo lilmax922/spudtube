@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /* eslint-disable style/quote-props */
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { WatchStatus } from '#server/db/schema/title-status'
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
+import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { ArrowLeft } from '@lucide/vue'
 import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'

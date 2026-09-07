@@ -4,11 +4,11 @@ import { upsertTitleStatus } from '../../../db/queries/title-status'
 import { UpdateTitleStatusBodySchema } from '../../../db/schema/title-status'
 import { apiValidationError } from '../../../utils/api-validation'
 import { requireAuthSession } from '../../../utils/auth'
-import { parseStatusParams } from '../params'
+import { parseMediaParams } from '../../media-params'
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
-  const { kind, id } = parseStatusParams(event)
+  const { kind, id } = parseMediaParams(event)
   const parsed = UpdateTitleStatusBodySchema.safeParse(await readBody(event))
   if (!parsed.success)
     return apiValidationError(event, parsed.error)

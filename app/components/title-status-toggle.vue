@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { WatchStatus } from '#server/db/schema/title-status'
+import type { WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { Bookmark, Check } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '../composables/use-toast'

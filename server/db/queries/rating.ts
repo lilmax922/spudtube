@@ -1,6 +1,6 @@
 import type { z } from 'zod'
+import type { Kind } from '../../../shared/kind/kind'
 import type { Db } from '../index'
-import type { Kind } from '../schema/kind'
 import type { InsertRatingSchema, Rating } from '../schema/rating'
 import { and, eq } from 'drizzle-orm'
 import { rating } from '../schema/rating'

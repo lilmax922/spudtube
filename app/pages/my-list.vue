@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { MonetizationTag, MyList, MyListEntry } from '#server/api/my-list.get'
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { WatchStatus } from '#server/db/schema/title-status'
-import type { Kind, Provider } from '#server/tmdb/types'
+import type { Provider } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
+import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import type { Filters, KindFilter, MonetizationFilter } from '../components/my-list-filter.vue'
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref } from 'vue'

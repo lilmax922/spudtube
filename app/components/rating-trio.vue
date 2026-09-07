@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { RatingLabel } from '#server/db/schema/rating'
+import type { RatingLabel } from '#shared/personal-tracking/personal-tracking'
 import { Star, ThumbsDown, ThumbsUp } from '@lucide/vue'
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'

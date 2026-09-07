@@ -1,5 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
-import type { Kind, Page, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
+import type { Page, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { computed, ref, watch } from 'vue'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'

@@ -1,5 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
-import type { Genre, Kind, Page, Provider, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
+import type { Genre, Page, Provider, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { computed, ref, watch } from 'vue'
 import { $fetch } from '#imports'
 import { DEFAULT_REGION } from '#shared/region/region'

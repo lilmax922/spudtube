@@ -1,4 +1,4 @@
-import type { WatchStatus } from '#server/db/schema/title-status'
+import type { WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import type { StatusFetcher } from './use-title-status'
 import { describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'

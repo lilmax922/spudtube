@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
+import type { RatingLabel } from '#shared/personal-tracking/personal-tracking'
 import { computed, ref, watch } from 'vue'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'

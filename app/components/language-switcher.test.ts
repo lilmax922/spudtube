@@ -38,6 +38,15 @@ const mock = vi.hoisted(() => {
       loadingMore: ref(false),
       error: ref(false),
     },
+    listing: {
+      mode: ref('browse'),
+      searchedQuery: ref(''),
+      rows: ref([]),
+      popularProviders: ref([]),
+      providerSearchResults: ref([]),
+      providerSearchQuery: ref(''),
+      providerSearchLoading: ref(false),
+    },
     refresh: vi.fn(),
     loadMore: vi.fn(),
     setKind: vi.fn(),
@@ -50,11 +59,13 @@ const mock = vi.hoisted(() => {
   }
 })
 
-vi.mock('../composables/use-browse-grid', () => ({
-  useBrowseGrid: () => ({
+vi.mock('../composables/use-browse-listing', () => ({
+  useBrowseListing: () => ({
     ...mock.state,
+    ...mock.listing,
     refresh: mock.refresh,
     loadMore: mock.loadMore,
+    applySection: vi.fn(),
     setKind: mock.setKind,
     toggleGenre: mock.toggleGenre,
     clearGenres: mock.clearGenres,
@@ -62,6 +73,10 @@ vi.mock('../composables/use-browse-grid', () => ({
     toggleProvider: mock.toggleProvider,
     clearProviders: mock.clearProviders,
     clearFilters: mock.clearFilters,
+    search: vi.fn(),
+    clearSearch: vi.fn(),
+    searchProviders: vi.fn(),
+    clearProviderSearch: vi.fn(),
   }),
 }))
 

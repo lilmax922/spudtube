@@ -15,7 +15,7 @@ describe('search page input', () => {
     const fs = await import('node:fs')
     const path = await import('node:path')
     const file = fs.readFileSync(path.resolve(process.cwd(), 'app/pages/search.vue'), 'utf-8')
-    expect(file).toMatch(/useDefaultTrending/)
+    expect(file).toMatch(/useTrending/)
     expect(file).toMatch(/isEmptyQuery/)
     expect(file).toMatch(/data-testid="search-default"/)
     expect(file).not.toMatch(/useTrendingNames/)

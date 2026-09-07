@@ -1,19 +1,24 @@
 <script setup lang="ts">
 import { LoaderCircle } from '@lucide/vue'
 import { AnimatePresence, motion } from 'motion-v'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useBrowseGrid } from '../composables/use-browse-grid'
-import { useBrowseSections } from '../composables/use-browse-sections'
+import { useBrowseListing } from '../composables/use-browse-listing'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
-import { useSearchState } from '../composables/use-search-state'
 import HomeFilterBar from './home-filter-bar.vue'
 import TitleCard from './title-card.vue'
 import TitleCarouselSection from './title-carousel-section.vue'
 
 const { t } = useI18n()
+const listing = useBrowseListing()
 const {
+  mode,
+  searchedQuery,
+  items: gridItems,
+  loading: gridLoading,
+  loadingMore: gridLoadingMore,
+  error: gridError,
   selectedGenreIds,
   minRating,
   selectedProviderIds,
@@ -23,41 +28,17 @@ const {
   providerSearchQuery,
   providerSearchLoading,
   genres,
-  items,
-  loading,
-  loadingMore,
-  error,
+  rows: listingRows,
   refresh,
   loadMore,
+  applySection,
   toggleGenre,
   setMinRating,
   toggleProvider,
   clearFilters,
   searchProviders,
   clearProviderSearch,
-} = useBrowseGrid()
-const safeMinRating = computed(() => (minRating as unknown as { value: number | null } | undefined)?.value ?? null)
-const {
-  sections,
-  loading: sectionsLoading,
-  refresh: refreshSections,
-} = useBrowseSections()
-const {
-  mode,
-  searchedQuery,
-  items: searchItems,
-  loading: searchLoading,
-  loadingMore: searchLoadingMore,
-  error: searchError,
-  loadMore: searchLoadMore,
-} = useSearchState()
-
-const gridItems = computed(() => (mode.value === 'search' ? searchItems.value : items.value))
-const gridLoading = computed(() => (mode.value === 'search' ? searchLoading.value : loading.value))
-const gridLoadingMore = computed(() =>
-  mode.value === 'search' ? searchLoadingMore.value : loadingMore.value,
-)
-const gridError = computed(() => (mode.value === 'search' ? searchError.value : error.value))
+} = listing
 const showKind = computed(() => mode.value === 'search')
 const emptyMessage = computed(() =>
   mode.value === 'search'
@@ -71,7 +52,7 @@ const loadingMessage = computed(() =>
 const isUnfilteredBrowse = computed(() =>
   mode.value === 'browse'
   && selectedGenreIds.value.length === 0
-  && safeMinRating.value == null
+  && minRating.value == null
   && selectedProviderIds.value.length === 0
   && !gridError.value,
 )
@@ -86,11 +67,11 @@ interface BrowseRow {
 const rows = computed<BrowseRow[]>(() => {
   if (mode.value !== 'browse')
     return []
-  return sections.value.map(section => ({
+  return listingRows.value.map(section => ({
     key: section.key,
     label: t(section.titleKey),
-    items: section.titles,
-    canSeeMore: section.genres.length > 0,
+    items: section.items,
+    canSeeMore: section.canSeeMore,
   }))
 })
 
@@ -100,15 +81,7 @@ const isRowsMode = computed(() =>
 )
 
 function handleSeeMore(key: string): void {
-  const section = sections.value.find(entry => entry.key === key)
-  // Genre-less rows hide their See more button, so reaching here without genres is defensive.
-  if (!section || section.genres.length === 0)
-    return
-  clearFilters()
-  if (section.minRating != null)
-    setMinRating(section.minRating)
-  for (const gid of section.genres)
-    toggleGenre(gid)
+  void applySection(key)
 }
 
 const sentinel = ref<HTMLElement | null>(null)
@@ -116,19 +89,10 @@ const sentinel = ref<HTMLElement | null>(null)
 useInfiniteScroll(sentinel, () => {
   if (isUnfilteredBrowse.value)
     return
-  if (mode.value === 'search')
-    void searchLoadMore()
-  else
-    void loadMore()
-})
-
-watch(() => searchedQuery.value, (value) => {
-  if (value !== '')
-    clearFilters()
+  void loadMore()
 })
 
 void refresh()
-void refreshSections()
 </script>
 
 <template>
@@ -160,7 +124,7 @@ void refreshSections()
       </div>
 
       <div
-        v-else-if="(gridLoading || sectionsLoading) && gridItems.length === 0 && rows.length === 0"
+        v-else-if="gridLoading && gridItems.length === 0 && rows.length === 0"
         aria-busy="true"
       >
         <div

@@ -1,30 +1,23 @@
-import type { Ref } from 'vue'
 import type { AsyncData, NuxtError } from '#app'
 import type { DiscoveryBadges } from '#server/tmdb/types'
 import type { Kind } from '#shared/kind/kind'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 import { useFetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'
+import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface DiscoveryBadgesData {
   badges: AsyncData<DiscoveryBadges | undefined, NuxtError | undefined>
 }
 
 export function useDiscoveryBadges(kind: Kind): DiscoveryBadgesData {
-  let localeRef: Ref<string>
-  try {
-    localeRef = (useI18n().locale as unknown) as Ref<string>
-  }
-  catch {
-    localeRef = ref('en') as Ref<string>
-  }
+  const tmdbLanguage = useTmdbLanguage()
   const badges = useFetch<DiscoveryBadges>(
     computed(() => `/api/catalog/${toMediaSegment(kind)}/discovery-badges`),
     {
-      query: { language: localeRef },
-      watch: [localeRef],
-      key: computed(() => `discovery-badges:${kind}:${localeRef.value}`),
+      query: { language: tmdbLanguage },
+      watch: [tmdbLanguage],
+      key: computed(() => `discovery-badges:${kind}:${tmdbLanguage.value}`),
     },
   )
   return { badges }

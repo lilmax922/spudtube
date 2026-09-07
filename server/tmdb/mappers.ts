@@ -9,7 +9,10 @@ import type {
   rawTvSummarySchema,
 } from './schemas'
 import type { CastMember, CrewMember, Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
+import { toMediaSegment } from '../../shared/kind/kind'
 import { localizeGenres } from './genres'
+
+export { toMediaSegment }
 
 export function toKind(mediaType: string): Kind | null {
   if (mediaType === 'movie')
@@ -17,10 +20,6 @@ export function toKind(mediaType: string): Kind | null {
   if (mediaType === 'tv')
     return 'TV_SHOW'
   return null
-}
-
-export function toMediaSegment(kind: Kind): 'movie' | 'tv' {
-  return kind === 'MOVIE' ? 'movie' : 'tv'
 }
 
 export function kindFromSegment(segment: 'movie' | 'tv'): Kind {

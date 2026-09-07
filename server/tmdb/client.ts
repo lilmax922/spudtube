@@ -116,6 +116,24 @@ const defaultFetchJson: FetchJson = async (url, init) => {
   return await response.json()
 }
 
+async function readKindPage(
+  kind: Kind,
+  cacheKey: string,
+  path: string,
+  params: Record<string, string>,
+  cache: ReturnType<typeof createTtlCache>,
+  request: (path: string, params: Record<string, string>) => Promise<unknown>,
+): Promise<Page<TitleSummary>> {
+  return cache.wrap(cacheKey, SEARCH_TTL_MS, async () => {
+    const raw = rawListPageSchema.parse(await request(path, params))
+    return mapPage(raw, raw.results.map(item =>
+      kind === 'MOVIE'
+        ? mapMovieSummary(rawMovieSummarySchema.parse(item))
+        : mapTvSummary(rawTvSummarySchema.parse(item)),
+    ))
+  })
+}
+
 async function readListPath(
   kind: Kind,
   path: string,
@@ -125,17 +143,10 @@ async function readListPath(
   request: (path: string, params: Record<string, string>) => Promise<unknown>,
 ): Promise<Page<TitleSummary>> {
   const segment = toMediaSegment(kind)
-  return cache.wrap(`list:${language}:${segment}:${path}:${page}`, SEARCH_TTL_MS, async () => {
-    const raw = rawListPageSchema.parse(await request(path, {
-      page: String(page),
-      language,
-    }))
-    return mapPage(raw, raw.results.map(item =>
-      kind === 'MOVIE'
-        ? mapMovieSummary(rawMovieSummarySchema.parse(item))
-        : mapTvSummary(rawTvSummarySchema.parse(item)),
-    ))
-  })
+  return readKindPage(kind, `list:${language}:${segment}:${path}:${page}`, path, {
+    page: String(page),
+    language,
+  }, cache, request)
 }
 
 export function createTmdbClient({
@@ -233,14 +244,7 @@ export function createTmdbClient({
         params.watch_region ?? '',
         String(page),
       ].join(':')
-      return cache.wrap(cacheKey, SEARCH_TTL_MS, async () => {
-        const raw = rawListPageSchema.parse(await request(`/discover/${segment}`, params))
-        return mapPage(raw, raw.results.map(item =>
-          kind === 'MOVIE'
-            ? mapMovieSummary(rawMovieSummarySchema.parse(item))
-            : mapTvSummary(rawTvSummarySchema.parse(item)),
-        ))
-      })
+      return readKindPage(kind, cacheKey, `/discover/${segment}`, params, cache, request)
     },
 
     async trending(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE, window: TrendingWindow = DEFAULT_TRENDING_WINDOW): Promise<Page<TitleSummary>> {
@@ -248,19 +252,10 @@ export function createTmdbClient({
         throw new TmdbApiError(400, `Unsupported trending window: ${String(window)}`)
       }
       const segment = toMediaSegment(kind)
-      return cache.wrap(`trending:${language}:${segment}:${window}:${page}`, SEARCH_TTL_MS, async () => {
-        const raw = rawListPageSchema.parse(
-          await request(`/trending/${segment}/${window}`, {
-            page: String(page),
-            language,
-          }),
-        )
-        return mapPage(raw, raw.results.map(item =>
-          kind === 'MOVIE'
-            ? mapMovieSummary(rawMovieSummarySchema.parse(item))
-            : mapTvSummary(rawTvSummarySchema.parse(item)),
-        ))
-      })
+      return readKindPage(kind, `trending:${language}:${segment}:${window}:${page}`, `/trending/${segment}/${window}`, {
+        page: String(page),
+        language,
+      }, cache, request)
     },
 
     popular(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
@@ -293,19 +288,10 @@ export function createTmdbClient({
 
     topRated(kind: Kind, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`top-rated:${language}:${segment}:${page}`, SEARCH_TTL_MS, async () => {
-        const raw = rawListPageSchema.parse(
-          await request(`/${segment}/top_rated`, {
-            page: String(page),
-            language,
-          }),
-        )
-        return mapPage(raw, raw.results.map(item =>
-          kind === 'MOVIE'
-            ? mapMovieSummary(rawMovieSummarySchema.parse(item))
-            : mapTvSummary(rawTvSummarySchema.parse(item)),
-        ))
-      })
+      return readKindPage(kind, `top-rated:${language}:${segment}:${page}`, `/${segment}/top_rated`, {
+        page: String(page),
+        language,
+      }, cache, request)
     },
 
     title(kind: Kind, tmdbId: number, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<TitleDetail | null> {
@@ -364,19 +350,10 @@ export function createTmdbClient({
 
     recommendations(kind: Kind, tmdbId: number, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`recommendations:${language}:${segment}:${tmdbId}:${page}`, SEARCH_TTL_MS, async () => {
-        const raw = rawListPageSchema.parse(
-          await request(`/${segment}/${tmdbId}/recommendations`, {
-            page: String(page),
-            language,
-          }),
-        )
-        return mapPage(raw, raw.results.map(item =>
-          kind === 'MOVIE'
-            ? mapMovieSummary(rawMovieSummarySchema.parse(item))
-            : mapTvSummary(rawTvSummarySchema.parse(item)),
-        ))
-      })
+      return readKindPage(kind, `recommendations:${language}:${segment}:${tmdbId}:${page}`, `/${segment}/${tmdbId}/recommendations`, {
+        page: String(page),
+        language,
+      }, cache, request)
     },
 
     genres(kind: Kind, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Genre[]> {

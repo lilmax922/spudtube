@@ -1,8 +1,7 @@
 import type { Kind } from '#shared/kind/kind'
+import { toMediaSegment } from '#shared/kind/kind'
 
-export function toMediaSegment(kind: Kind): 'movie' | 'tv' {
-  return kind === 'MOVIE' ? 'movie' : 'tv'
-}
+export { toMediaSegment }
 
 export function titleDetailPath(kind: Kind, tmdbId: number): string {
   return `/${toMediaSegment(kind)}/${tmdbId}`

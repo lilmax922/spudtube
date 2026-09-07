@@ -1,7 +1,7 @@
 import type { HeroFetcher } from './use-hero-titles'
-import { describe, expect, it, vi } from 'vitest'
-import { ref } from 'vue'
-import { useHeroTitles } from './use-hero-titles'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { effectScope, ref } from 'vue'
+import { resetHeroTitlesForTest, setHeroTitlesFetcherForTest, useHeroTitles } from './use-hero-titles'
 
 const sampleHero = [
   {
@@ -26,6 +26,14 @@ function createFetcher(): { fetcher: HeroFetcher, fetchHero: ReturnType<typeof v
 }
 
 describe('use-hero-titles', () => {
+  beforeEach(() => {
+    resetHeroTitlesForTest()
+  })
+
+  afterEach(() => {
+    resetHeroTitlesForTest()
+  })
+
   it('exposes enriched hero titles from the injected fetcher', async () => {
     const { fetcher, fetchHero } = createFetcher()
     fetchHero.mockResolvedValue({ results: sampleHero })
@@ -54,7 +62,7 @@ describe('use-hero-titles', () => {
     await vi.waitFor(() => expect(state.titles.value).toHaveLength(1))
     const callsAfterFirst = fetchHero.mock.calls.length
 
-    // Simulate user toggling genres/rating — the hero composable never observes them.
+    // Simulate user toggling genres/rating: the hero composable never observes them.
     expect(fetchHero.mock.calls.length).toBe(callsAfterFirst)
     expect(state.error.value).toBe(false)
   })
@@ -84,5 +92,58 @@ describe('use-hero-titles', () => {
     await vi.waitFor(() => expect(state.error.value).toBe(true))
     expect(state.titles.value).toEqual([])
     expect(state.loading.value).toBe(false)
+  })
+
+  it('reloads with the latest kind when remounted after setKind while unmounted', async () => {
+    const movieTitles = [{ ...sampleHero[0]!, kind: 'MOVIE' as const, tmdbId: 419430, name: 'Dune' }]
+    const tvTitles = [{ ...sampleHero[0]!, kind: 'TV_SHOW' as const, tmdbId: 1399, name: 'Winter Coming' }]
+    const fetchHero = vi.fn<HeroFetcher['fetchHero']>().mockImplementation(async (kind) => {
+      return { results: kind === 'MOVIE' ? movieTitles : tvTitles }
+    })
+    setHeroTitlesFetcherForTest({ fetchHero })
+
+    const kind = ref<'MOVIE' | 'TV_SHOW'>('MOVIE')
+    const homeScope = effectScope()
+    const first = homeScope.run(() => useHeroTitles(kind))!
+    await vi.waitFor(() => expect(first.titles.value).toHaveLength(1))
+    expect(first.titles.value[0]!.name).toBe('Dune')
+    expect(fetchHero).toHaveBeenCalledWith('MOVIE', 'en')
+
+    // Leaving home disposes the mount watcher; header setKind happens with no listener.
+    homeScope.stop()
+    kind.value = 'TV_SHOW'
+
+    const returnScope = effectScope()
+    const second = returnScope.run(() => useHeroTitles(kind))!
+    expect(second).toBe(first)
+    await vi.waitFor(() => expect(fetchHero).toHaveBeenCalledWith('TV_SHOW', 'en'))
+    await vi.waitFor(() => expect(second.titles.value[0]!.name).toBe('Winter Coming'))
+    returnScope.stop()
+  })
+
+  it('stays live to in-page kind switches after a same-kind remount', async () => {
+    const movieTitles = [{ ...sampleHero[0]!, kind: 'MOVIE' as const, tmdbId: 419430, name: 'Dune' }]
+    const tvTitles = [{ ...sampleHero[0]!, kind: 'TV_SHOW' as const, tmdbId: 1399, name: 'Winter Coming' }]
+    const fetchHero = vi.fn<HeroFetcher['fetchHero']>().mockImplementation(async (kind) => {
+      return { results: kind === 'MOVIE' ? movieTitles : tvTitles }
+    })
+    setHeroTitlesFetcherForTest({ fetchHero })
+
+    const kind = ref<'MOVIE' | 'TV_SHOW'>('MOVIE')
+    const firstScope = effectScope()
+    const first = firstScope.run(() => useHeroTitles(kind))!
+    await vi.waitFor(() => expect(first.titles.value[0]!.name).toBe('Dune'))
+    firstScope.stop()
+
+    const callsAfterFirstMount = fetchHero.mock.calls.length
+    const secondScope = effectScope()
+    const second = secondScope.run(() => useHeroTitles(kind))!
+    expect(second).toBe(first)
+    expect(fetchHero.mock.calls.length).toBe(callsAfterFirstMount)
+
+    kind.value = 'TV_SHOW'
+    await vi.waitFor(() => expect(fetchHero).toHaveBeenCalledWith('TV_SHOW', 'en'))
+    await vi.waitFor(() => expect(second.titles.value[0]!.name).toBe('Winter Coming'))
+    secondScope.stop()
   })
 })

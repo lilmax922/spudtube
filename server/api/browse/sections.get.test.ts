@@ -91,6 +91,24 @@ describe('gET /api/browse/sections', () => {
     expect(fakeClient.discover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ language: 'en', page: 1 }))
   })
 
+  it('passes each row query through and marks the expandable rows', async () => {
+    fakeClient.trending.mockResolvedValue({ page: 1, results: makeTitles(10, 1), totalPages: 1, totalResults: 10 })
+    fakeClient.discover.mockResolvedValue({ page: 1, results: makeTitles(10, 101), totalPages: 1, totalResults: 10 })
+
+    const response = await call(new Request('http://localhost/api/browse/sections?kind=movie&language=en'))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    const byKey = new Map(body.sections.map((section: { key: string } & Record<string, unknown>) => [section.key, section]))
+    const horror = byKey.get('movie.horror') as unknown as { expandable: boolean, query: Record<string, unknown>, genres: number[] }
+    expect(horror.expandable).toBe(true)
+    expect(horror.query).toMatchObject({ source: 'discover', genreIds: [27], minVoteCount: 100 })
+    expect(horror.genres).toEqual([27])
+    const trending = byKey.get('movie.trending') as unknown as { expandable: boolean, query: Record<string, unknown> }
+    expect(trending.expandable).toBe(false)
+    expect(trending.query).toMatchObject({ source: 'trending', trendingWindow: 'week' })
+  })
+
   it('hides rows with fewer titles than one carousel page', async () => {
     fakeClient.trending.mockResolvedValue({ page: 1, results: makeTitles(10, 1), totalPages: 1, totalResults: 10 })
     fakeClient.discover.mockImplementation(async (_kind: unknown, options: { genreIds?: number[] }) => {

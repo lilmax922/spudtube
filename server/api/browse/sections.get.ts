@@ -1,4 +1,4 @@
-import type { SectionDefinition } from '../../browse/sections'
+import type { SectionDefinition, SectionQuery } from '../../browse/sections'
 import type { Kind, TitleSummary } from '../../tmdb/types'
 import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
@@ -12,8 +12,10 @@ import { parseOrThrow } from '../../utils/validation'
 export interface BrowseSection {
   key: string
   titleKey: string
+  expandable: boolean
   genres: number[]
   minRating: number | null
+  query: SectionQuery
   titles: TitleSummary[]
 }
 
@@ -80,8 +82,10 @@ export default defineEventHandler(async (event): Promise<BrowseSectionsPayload> 
       return {
         key: definition.key,
         titleKey: definition.titleKey,
+        expandable: definition.expandable,
         genres: definition.query.genreIds ?? [],
         minRating: definition.query.minRating ?? null,
+        query: definition.query,
         titles,
       }
     }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { CarouselVariant } from '../composables/use-carousel'
 import { LoaderCircle } from '@lucide/vue'
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, ref } from 'vue'
@@ -6,6 +7,7 @@ import { useI18n } from 'vue-i18n'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBrowseListing } from '../composables/use-browse-listing'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
+import { EXPANDABLE_SECTION_KEYS } from './constants'
 import HomeFilterBar from './home-filter-bar.vue'
 import TitleCard from './title-card.vue'
 import TitleCarouselSection from './title-carousel-section.vue'
@@ -82,6 +84,12 @@ const isRowsMode = computed(() =>
 
 function handleSeeMore(key: string): void {
   void applySection(key)
+}
+
+// Domain keys stay at the call site: the row declares its variant intent and
+// the carousel module only ever sees the variant.
+function toCarouselVariant(sectionKey: string): CarouselVariant {
+  return (EXPANDABLE_SECTION_KEYS as readonly string[]).includes(sectionKey) ? 'expandable' : 'standard'
 }
 
 const sentinel = ref<HTMLElement | null>(null)
@@ -213,7 +221,7 @@ void refresh()
               :items="row.items"
               :show-see-more="row.canSeeMore"
               :aria-label="row.label"
-              :section-key="row.key"
+              :variant="toCarouselVariant(row.key)"
               @see-more="handleSeeMore(row.key)"
             />
           </motion.div>

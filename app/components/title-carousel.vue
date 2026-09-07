@@ -1,29 +1,33 @@
 <script setup lang="ts">
+import type { CarouselVariant } from '../composables/use-carousel'
 import type { CarouselApi } from '@/components/ui/carousel'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { Carousel, CarouselContent } from '@/components/ui/carousel'
-import { calculatePeekWidth, getBrowseVisibleCount, getMidSnapShift, shouldReinitCarousel } from '../composables/use-carousel'
+import {
+  calculatePeekWidth,
+  CAROUSEL_DEFAULTS,
+  CAROUSEL_VARIANT_WIDTHS,
+  getBrowseVisibleCount,
+  getMidSnapShift,
+  shouldReinitCarousel,
+  useContentGutter,
+} from '../composables/use-carousel'
 
 interface Props {
+  variant: CarouselVariant
   ariaLabel?: string
-  itemWidth?: number
-  gap?: number
-  peekRatio?: number
-  breakout?: boolean
-  paddingLeft?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   ariaLabel: undefined,
-  itemWidth: 240,
-  gap: 16,
-  peekRatio: 0.25,
-  breakout: true,
-  paddingLeft: 60,
 })
 
-const peekWidth = computed(() => calculatePeekWidth(props.itemWidth, props.peekRatio))
+// Item width follows the variant; gap and peek ratio stay fixed so every row
+// snaps with the same rhythm. The gutter tracks the centered page width.
+const itemWidth = computed(() => CAROUSEL_VARIANT_WIDTHS[props.variant])
+const gutter = useContentGutter()
+const peekWidth = computed(() => calculatePeekWidth(itemWidth.value, CAROUSEL_DEFAULTS.peekRatio))
 
 const outerRef = shallowRef<HTMLElement | null>(null)
 const carouselApi = ref<CarouselApi | undefined>(undefined)
@@ -53,7 +57,7 @@ const visibleCount = computed(() => getBrowseVisibleCount(viewportWidth.value))
 function measureItemWidth(): number {
   const el = outerRef.value?.querySelector('[data-slot="carousel-item"]')
   const w = el?.getBoundingClientRect().width ?? 0
-  return w > 0 ? w : props.itemWidth
+  return w > 0 ? w : itemWidth.value
 }
 
 // Group snaps are item-offset aligned; getMidSnapShift shifts them by a constant
@@ -62,7 +66,7 @@ function measureItemWidth(): number {
 // watchResize ignores slide resizes: expandable growth must not reInit Embla
 // mid-transition (see shouldReinitCarousel); only the viewport re-measures.
 const carouselOpts = {
-  align: (viewSize: number) => getMidSnapShift(viewSize, measureItemWidth(), props.gap, props.peekRatio),
+  align: (viewSize: number) => getMidSnapShift(viewSize, measureItemWidth(), CAROUSEL_DEFAULTS.gap, CAROUSEL_DEFAULTS.peekRatio),
   containScroll: 'trimSnaps' as const,
   slidesToScroll: visibleCount.value,
   dragFree: false,
@@ -102,7 +106,7 @@ function onWindowResize(): void {
 }
 
 // slidesToScroll / gutter feed Embla measurements; re-init after Vue patches styles.
-watch([visibleCount, () => props.paddingLeft], async () => {
+watch([visibleCount, gutter], async () => {
   await nextTick()
   const api = carouselApi.value as unknown as { reInit: (opts: Record<string, unknown>) => void } | undefined
   api?.reInit({ slidesToScroll: visibleCount.value })
@@ -117,23 +121,22 @@ onBeforeUnmount(() => {
 })
 
 const contentStyle = computed(() => ({
-  paddingLeft: `${props.paddingLeft}px`,
+  paddingLeft: `${gutter.value}px`,
 }))
 
 const outerStyle = computed(() => ({
-  '--browse-gutter': `${props.paddingLeft}px`,
+  '--browse-gutter': `${gutter.value}px`,
 }))
 </script>
 
 <template>
   <div
     ref="outerRef"
-    class="group/carousel title-carousel-outer relative"
-    :class="breakout ? 'title-carousel-outer--breakout' : ''"
+    class="group/carousel title-carousel-outer title-carousel-outer--breakout relative"
     :style="outerStyle"
     :data-carousel-state="state"
     :data-peek-width="peekWidth"
-    :data-carousel-padding="paddingLeft"
+    :data-carousel-padding="gutter"
   >
     <Carousel
       :opts="carouselOpts"

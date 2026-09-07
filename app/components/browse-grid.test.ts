@@ -127,6 +127,19 @@ function trendingRow(): BrowseSection {
   }
 }
 
+function backdropTitles(): TitleSummary[] {
+  return [1, 2, 3, 4, 5, 6].map(id => ({
+    kind: 'MOVIE',
+    tmdbId: id,
+    name: `Backdrop ${id}`,
+    posterPath: `/poster-${id}.jpg`,
+    backdropPath: `/backdrop-${id}.jpg`,
+    releaseDate: '2021-10-22',
+    voteAverage: 7.8,
+    genreIds: [27],
+  }))
+}
+
 const fakes = vi.hoisted(() => ({
   fetchGenres: vi.fn(),
   fetchDiscover: vi.fn(),
@@ -460,5 +473,19 @@ describe('browse-grid', () => {
     expect(wrapper.text()).toContain('Trending Right Now')
     const seeMore = wrapper.findAll('button').find(button => button.text().includes('See more'))
     expect(seeMore).toBeUndefined()
+  })
+
+  it('maps the horror row key to expandable cards and other rows to standard cards', async () => {
+    const listing = seedListing()
+    fakes.fetchSections.mockResolvedValue([{ ...horrorRow(), titles: backdropTitles() }, trendingRow()])
+    const wrapper = await mountSuspended(BrowseGrid)
+    mountedWrappers.push(wrapper)
+    await listing.refresh()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.findAll('[data-testid="expandable-title-card"]')).toHaveLength(6)
+    const hrefs = wrapper.findAll('a').map(link => link.attributes('href'))
+    expect(hrefs).toContain('/movie/419430')
+    expect(hrefs).toContain('/movie/693134')
   })
 })

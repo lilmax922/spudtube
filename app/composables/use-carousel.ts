@@ -1,39 +1,23 @@
 import type { Ref } from 'vue'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-export type CarouselState = 'atStart' | 'atMid' | 'atEnd' | 'single'
+export type CarouselVariant = 'standard' | 'expandable'
 
-export interface CarouselOptions {
-  itemWidth?: number
-  gap?: number
-  peekRatio?: number
-  threshold?: number
-}
-
-export const CAROUSEL_DEFAULTS: Required<CarouselOptions> = {
+export const CAROUSEL_DEFAULTS = {
   itemWidth: 240,
   gap: 16,
   peekRatio: 0.25,
-  threshold: 2,
+} as const
+
+// Rest item width per variant. The section template carries the matching
+// literal width classes (Tailwind needs literals), so keep both in sync.
+export const CAROUSEL_VARIANT_WIDTHS: Record<CarouselVariant, number> = {
+  standard: 180,
+  expandable: 240,
 }
 
 export function calculatePeekWidth(itemWidth: number, peekRatio: number): number {
   return Math.round(itemWidth * peekRatio)
-}
-
-export function getCarouselState(
-  scrollLeft: number,
-  clientWidth: number,
-  scrollWidth: number,
-  threshold: number = CAROUSEL_DEFAULTS.threshold,
-): CarouselState {
-  if (scrollWidth <= clientWidth + threshold)
-    return 'single'
-  if (scrollLeft <= threshold)
-    return 'atStart'
-  if (scrollLeft + clientWidth >= scrollWidth - threshold)
-    return 'atEnd'
-  return 'atMid'
 }
 
 export const BROWSE_CAROUSEL_BREAKPOINTS: Array<{ maxWidth: number, count: number }> = [
@@ -52,20 +36,6 @@ export function getBrowseVisibleCount(viewportWidth: number): number {
       return bp.count
   }
   return 5
-}
-
-export function getVisibleCount(
-  clientWidth: number,
-  itemWidth: number,
-  gap: number,
-  peekWidth: number,
-  state: CarouselState,
-): number {
-  void itemWidth
-  void gap
-  void peekWidth
-  void state
-  return getBrowseVisibleCount(clientWidth)
 }
 
 /**
@@ -111,20 +81,6 @@ export function getMidSnapShift(
   return (((step - hidden) % step) + step) % step
 }
 
-export function getScrollAmount(
-  clientWidth: number,
-  itemWidth: number,
-  gap: number,
-  peekWidth: number,
-  state: CarouselState,
-): number {
-  void gap
-  void peekWidth
-  void state
-  const visible = getBrowseVisibleCount(clientWidth)
-  return visible * (itemWidth + gap)
-}
-
 // Embla reInit gate: slide growth (expandable 240->540px) must not re-measure
 // Embla mid-transition. Repeated re-measured re-seeks kill in-flight scroll
 // animations, so an arrow click during expansion lands instantly instead of
@@ -133,98 +89,37 @@ export function shouldReinitCarousel(entries: ResizeObserverEntry[]): boolean {
   return entries.some(entry => entry.target instanceof Element && entry.target.matches('[data-slot="carousel-content"]'))
 }
 
-export interface UseCarouselReturn {
-  viewportRef: Ref<HTMLElement | null>
-  state: Ref<CarouselState>
-  peekWidth: Ref<number>
-  isAtStart: Readonly<Ref<boolean>>
-  isAtEnd: Readonly<Ref<boolean>>
-  isAtMid: Readonly<Ref<boolean>>
-  scrollBy: (direction: 'prev' | 'next') => void
-  refresh: () => void
+// Single home for the content gutter: the centered page caps inline size at
+// --max-content-width, so wider viewports split the surplus as side gutters.
+// The carousel viewport padding and the expandable card edge margin both read
+// this, which keeps the row and its glide math on the same gutter.
+export function resolveContentGutter(viewportWidth: number, maxContentWidth: number, contentGutter: number): number {
+  return Math.max(contentGutter, (viewportWidth - maxContentWidth) / 2 + contentGutter)
 }
 
-export function useCarousel(options: CarouselOptions = {}): UseCarouselReturn {
-  const {
-    itemWidth = CAROUSEL_DEFAULTS.itemWidth,
-    gap = CAROUSEL_DEFAULTS.gap,
-    peekRatio = CAROUSEL_DEFAULTS.peekRatio,
-    threshold = CAROUSEL_DEFAULTS.threshold,
-  } = options
+function readCssVarNumber(name: string, fallback: number): number {
+  if (typeof window === 'undefined' || typeof document === 'undefined')
+    return fallback
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  const n = Number.parseFloat(raw)
+  return Number.isFinite(n) ? n : fallback
+}
 
-  const viewportRef = ref<HTMLElement | null>(null)
-  const state = ref<CarouselState>('atStart')
-  const peekWidth = ref(calculatePeekWidth(itemWidth, peekRatio))
-
-  const isAtStart = computed(() => state.value === 'atStart' || state.value === 'single')
-  const isAtEnd = computed(() => state.value === 'atEnd' || state.value === 'single')
-  const isAtMid = computed(() => state.value === 'atMid')
-
-  function updateState(): void {
-    const el = viewportRef.value
-    if (!el) {
-      state.value = 'atStart'
+export function useContentGutter(): Ref<number> {
+  const gutter = ref(24)
+  function updateGutter(): void {
+    if (typeof window === 'undefined')
       return
-    }
-    state.value = getCarouselState(el.scrollLeft, el.clientWidth, el.scrollWidth, threshold)
+    const max = readCssVarNumber('--max-content-width', 1680)
+    const base = readCssVarNumber('--content-gutter', 24)
+    gutter.value = resolveContentGutter(window.innerWidth, max, base)
   }
-
-  function scrollBy(direction: 'prev' | 'next'): void {
-    const el = viewportRef.value
-    if (!el)
-      return
-    const amount = getScrollAmount(el.clientWidth, itemWidth, gap, peekWidth.value, state.value)
-    const delta = direction === 'next' ? amount : -amount
-    el.scrollBy({ left: delta, behavior: 'smooth' })
-  }
-
-  function refresh(): void {
-    peekWidth.value = calculatePeekWidth(itemWidth, peekRatio)
-    updateState()
-  }
-
-  let resizeObserver: ResizeObserver | null = null
-
   onMounted(() => {
-    updateState()
-    const el = viewportRef.value
-    if (!el)
-      return
-    el.addEventListener('scroll', updateState, { passive: true })
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(() => updateState())
-      resizeObserver.observe(el)
-    }
-    else {
-      window.addEventListener('resize', updateState)
-    }
+    updateGutter()
+    window.addEventListener('resize', updateGutter)
   })
-
   onBeforeUnmount(() => {
-    const el = viewportRef.value
-    if (el)
-      el.removeEventListener('scroll', updateState)
-    resizeObserver?.disconnect()
-    if (typeof ResizeObserver === 'undefined')
-      window.removeEventListener('resize', updateState)
+    window.removeEventListener('resize', updateGutter)
   })
-
-  watch(viewportRef, (next, prev) => {
-    if (prev)
-      prev.removeEventListener('scroll', updateState)
-    if (next)
-      next.addEventListener('scroll', updateState, { passive: true })
-    updateState()
-  })
-
-  return {
-    viewportRef,
-    state,
-    peekWidth,
-    isAtStart,
-    isAtEnd,
-    isAtMid,
-    scrollBy,
-    refresh,
-  }
+  return gutter
 }

@@ -1,16 +1,12 @@
 import type { ComputedRef, Ref } from 'vue'
 import type { Genre, Kind, Page, Provider, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
 import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
 import { DEFAULT_REGION } from '#shared/region/region'
+import { toMediaSegment } from '../lib/kind'
 import { usePagedResults } from './use-paged-results'
 import { useRegion } from './use-region'
-
-const KIND_SEGMENT: Record<Kind, 'movie' | 'tv'> = {
-  MOVIE: 'movie',
-  TV_SHOW: 'tv',
-}
+import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface FetchProviderListOptions {
   q?: string
@@ -32,7 +28,7 @@ export function createApiBrowseFetcher(): BrowseFetcher {
     fetchGenres(kind, language) {
       return $fetch<Genre[]>('/api/catalog/genres', {
         query: {
-          kind: KIND_SEGMENT[kind],
+          kind: toMediaSegment(kind),
           ...(language ? { language } : {}),
         },
       })
@@ -40,7 +36,7 @@ export function createApiBrowseFetcher(): BrowseFetcher {
     fetchDiscover(kind, { genreIds, minRating, providerIds, page, language }) {
       return $fetch<Page<TitleSummary>>('/api/catalog/discover', {
         query: {
-          kind: KIND_SEGMENT[kind],
+          kind: toMediaSegment(kind),
           ...(genreIds.length > 0 ? { genres: genreIds.join(',') } : {}),
           ...(minRating != null ? { minRating: String(minRating) } : {}),
           ...(providerIds.length > 0 ? { providers: providerIds.join(',') } : {}),
@@ -54,7 +50,7 @@ export function createApiBrowseFetcher(): BrowseFetcher {
         return Promise.resolve(new Map())
       return $fetch<Record<string, Provider[]>>('/api/catalog/providers', {
         query: {
-          kind: KIND_SEGMENT[kind],
+          kind: toMediaSegment(kind),
           ids: tmdbIds.join(','),
           ...(language ? { language } : {}),
         },
@@ -63,7 +59,7 @@ export function createApiBrowseFetcher(): BrowseFetcher {
     fetchProviderList(kind, language, options) {
       return $fetch<Provider[]>('/api/catalog/provider-list', {
         query: {
-          kind: KIND_SEGMENT[kind],
+          kind: toMediaSegment(kind),
           ...(language ? { language } : {}),
           ...(options?.q ? { q: options.q } : {}),
           ...(options?.popular ? { popular: '1' } : {}),
@@ -121,16 +117,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const providerSearchQuery = ref('')
   const providerSearchLoading = ref(false)
   const genres = ref<Genre[]>([])
-  let localeRef: Ref<string>
-  try {
-    localeRef = (useI18n().locale as unknown) as Ref<string>
-  }
-  catch {
-    localeRef = ref('en') as Ref<string>
-  }
-  const tmdbLanguage = computed<TmdbLanguage>(() =>
-    localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
-  )
+  const tmdbLanguage = useTmdbLanguage()
 
   let regionRef: Ref<string>
   try {

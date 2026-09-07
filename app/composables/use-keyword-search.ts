@@ -1,9 +1,9 @@
 import type { ComputedRef, Ref } from 'vue'
 import type { Page, TitleSummary, TmdbLanguage } from '#server/tmdb/types'
 import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
 import { usePagedResults } from './use-paged-results'
+import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface SearchFetcher {
   fetchSearch: (query: string, page: number, language?: TmdbLanguage) => Promise<Page<TitleSummary>>
@@ -43,16 +43,7 @@ export function useKeywordSearch(fetcher: SearchFetcher = createApiSearchFetcher
   const query = ref('')
   const searchedQuery = ref('')
   const mode = computed(() => (searchedQuery.value === '' ? 'browse' : 'search'))
-  let localeRef: Ref<string>
-  try {
-    localeRef = (useI18n().locale as unknown) as Ref<string>
-  }
-  catch {
-    localeRef = ref('en') as Ref<string>
-  }
-  const tmdbLanguage = computed<TmdbLanguage>(() =>
-    localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
-  )
+  const tmdbLanguage = useTmdbLanguage()
   const { loadFirstPage, loadNextPage, reset, ...paged } = usePagedResults<TitleSummary>(page =>
     fetcher.fetchSearch(searchedQuery.value, page, tmdbLanguage.value),
   )

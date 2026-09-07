@@ -8,6 +8,7 @@ const mock = vi.hoisted(() => ({
   browse: {
     refresh: vi.fn(),
     loadMore: vi.fn(),
+    applySection: vi.fn(),
     setKind: vi.fn(),
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
@@ -15,15 +16,12 @@ const mock = vi.hoisted(() => ({
     toggleProvider: vi.fn(),
     clearProviders: vi.fn(),
     clearFilters: vi.fn(),
+    searchProviders: vi.fn(),
+    clearProviderSearch: vi.fn(),
   },
   search: {
     search: vi.fn(),
     clear: vi.fn(),
-  },
-  overlaySearch: {
-    search: vi.fn(),
-    clear: vi.fn(),
-    loadMore: vi.fn(),
   },
   navigateTo: vi.fn(),
 }))
@@ -56,11 +54,24 @@ const searchState = {
   hasMore: shallowRef(false),
 }
 
-vi.mock('./composables/use-browse-grid', () => ({
-  useBrowseGrid: () => ({
+const listingState = {
+  mode: shallowRef<'browse' | 'search'>('browse'),
+  searchedQuery: shallowRef(''),
+  rows: shallowRef<Array<{ key: string, titleKey: string, items: TitleSummary[], canSeeMore: boolean }>>([]),
+  popularProviders: shallowRef<{ id: number, name: string, logoPath: string | null }[]>([]),
+  providerSearchResults: shallowRef<{ id: number, name: string, logoPath: string | null }[]>([]),
+  providerSearchQuery: shallowRef(''),
+  providerSearchLoading: shallowRef(false),
+}
+
+// Header, grid, and overlay all cross the same BrowseListing seam.
+vi.mock('./composables/use-browse-listing', () => ({
+  useBrowseListing: () => ({
     ...browseState,
+    ...listingState,
     refresh: mock.browse.refresh,
     loadMore: mock.browse.loadMore,
+    applySection: mock.browse.applySection,
     setKind: mock.browse.setKind,
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
@@ -68,31 +79,10 @@ vi.mock('./composables/use-browse-grid', () => ({
     toggleProvider: mock.browse.toggleProvider,
     clearProviders: mock.browse.clearProviders,
     clearFilters: mock.browse.clearFilters,
-  }),
-}))
-
-vi.mock('./composables/use-search-state', () => ({
-  useSearchState: () => ({
-    ...searchState,
     search: mock.search.search,
-    clear: mock.search.clear,
-  }),
-}))
-
-vi.mock('./composables/use-keyword-search', () => ({
-  useKeywordSearch: () => ({
-    query: shallowRef(''),
-    searchedQuery: shallowRef(''),
-    items: shallowRef<TitleSummary[]>([]),
-    page: shallowRef(0),
-    totalPages: shallowRef(0),
-    loading: shallowRef(false),
-    loadingMore: shallowRef(false),
-    error: shallowRef(false),
-    hasMore: shallowRef(false),
-    search: mock.overlaySearch.search,
-    loadMore: mock.overlaySearch.loadMore,
-    clear: mock.overlaySearch.clear,
+    clearSearch: mock.search.clear,
+    searchProviders: mock.browse.searchProviders,
+    clearProviderSearch: mock.browse.clearProviderSearch,
   }),
 }))
 
@@ -118,12 +108,12 @@ describe('app shell', () => {
     vi.useRealTimers()
     mock.search.search.mockReset()
     mock.search.clear.mockReset()
-    mock.overlaySearch.search.mockReset()
-    mock.overlaySearch.clear.mockReset()
     mock.navigateTo.mockReset()
     searchState.query.value = ''
     searchState.mode.value = 'browse'
     searchState.searchedQuery.value = ''
+    listingState.mode.value = 'browse'
+    listingState.rows.value = []
     browseState.items.value = []
     browseState.genres.value = []
   })
@@ -154,7 +144,7 @@ describe('app shell', () => {
     expect(input.attributes('placeholder')).toBe('Search movies and TV shows')
   })
 
-  it('keeps homepage browse grid stable while typing in overlay (no global search mutation)', async () => {
+  it('drives the shared search while typing in overlay and restores browse on dismiss', async () => {
     vi.useFakeTimers()
     browseState.items.value = titles
     browseState.genres.value = genres
@@ -163,15 +153,14 @@ describe('app shell', () => {
     await wrapper.vm.$nextTick()
 
     await wrapper.find('input[type="search"]').setValue('dune')
-    // global search should not be invoked by overlay typing
-    expect(mock.search.search).not.toHaveBeenCalled()
-    // homepage should still show browse titles, not filtered
-    expect(wrapper.text()).toContain('沙丘')
-
     await vi.advanceTimersByTimeAsync(400)
-    expect(mock.search.search).not.toHaveBeenCalled()
-    // overlay internal debounce should have fired
-    expect(mock.overlaySearch.search).toHaveBeenCalledWith('dune')
+    // overlay typing drives the shared session behind one seam
+    expect(mock.search.search).toHaveBeenCalledWith('dune')
+
+    // dismiss without navigating restores the session the overlay started
+    await wrapper.find('[role="presentation"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(mock.search.clear).toHaveBeenCalled()
   })
 
   it('navigates to /search on submit with Enter', async () => {
@@ -185,6 +174,8 @@ describe('app shell', () => {
     expect(mock.navigateTo).toHaveBeenCalledWith({ path: '/search', query: { q: 'dune' } })
     // global search should not be called directly; navigation drives search page
     expect(mock.search.search).not.toHaveBeenCalled()
+    // navigating keeps the session so the page reuses the results as-is
+    expect(mock.search.clear).not.toHaveBeenCalled()
   })
 
   it('clears the overlay query via the field clear button without invoking global clear', async () => {
@@ -204,8 +195,8 @@ describe('app shell', () => {
 
     const updatedInput = wrapper.find('input[type="search"]')
     expect((updatedInput.element as HTMLInputElement).value).toBe('')
-    // app's clear only clears overlay query, not global search state
-    expect(mock.search.clear).not.toHaveBeenCalled()
+    // clearing the overlay query clears the shared session it drives
+    expect(mock.search.clear).toHaveBeenCalled()
   })
 
   it('closes the search overlay via close button, backdrop and Escape without trapping', async () => {

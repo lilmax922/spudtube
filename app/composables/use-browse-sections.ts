@@ -1,43 +1,37 @@
 import type { Ref } from 'vue'
-import type { BrowseSectionsPayload } from '#server/api/browse/sections.get'
+import type { BrowseSection } from '#server/api/browse/sections.get'
 import type { Kind, TmdbLanguage } from '#server/tmdb/types'
-import { computed, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, watch } from 'vue'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'
-import { useBrowseGrid } from './use-browse-grid'
+import { useTmdbLanguage } from './use-tmdb-language'
+
+export interface SectionsFetcher {
+  fetchSections: (kind: Kind, language: TmdbLanguage) => Promise<BrowseSection[]>
+}
+
+export function createApiSectionsFetcher(): SectionsFetcher {
+  return {
+    async fetchSections(kind, language) {
+      const payload = await $fetch<{ sections: BrowseSection[] }>('/api/browse/sections', {
+        query: { kind: toMediaSegment(kind), language },
+      })
+      return payload.sections
+    },
+  }
+}
 
 export interface BrowseSectionsState {
-  sections: Ref<BrowseSectionsPayload['sections']>
+  sections: Ref<BrowseSection[]>
   loading: Ref<boolean>
   error: Ref<boolean>
   refresh: () => Promise<void>
 }
 
-async function fetchSections(
-  kind: Kind,
-  language: TmdbLanguage,
-): Promise<BrowseSectionsPayload['sections']> {
-  const payload = await $fetch<BrowseSectionsPayload>('/api/browse/sections', {
-    query: { kind: toMediaSegment(kind), language },
-  })
-  return payload.sections
-}
+export function useBrowseSections(kind: Ref<Kind>, fetcher: SectionsFetcher = createApiSectionsFetcher()): BrowseSectionsState {
+  const tmdbLanguage = useTmdbLanguage()
 
-export function useBrowseSections(): BrowseSectionsState {
-  const { kind } = useBrowseGrid()
-  let localeRef: Ref<string>
-  try {
-    localeRef = (useI18n().locale as unknown) as Ref<string>
-  }
-  catch {
-    localeRef = ref('en') as Ref<string>
-  }
-  const tmdbLanguage = computed<TmdbLanguage>(() =>
-    localeRef.value === 'zh-TW' ? 'zh-TW' : 'en',
-  )
-
-  const sections = ref<BrowseSectionsPayload['sections']>([])
+  const sections = ref<BrowseSection[]>([])
   const loading = ref(false)
   const error = ref(false)
 
@@ -45,7 +39,7 @@ export function useBrowseSections(): BrowseSectionsState {
     loading.value = true
     error.value = false
     try {
-      sections.value = await fetchSections(kind.value, tmdbLanguage.value)
+      sections.value = await fetcher.fetchSections(kind.value, tmdbLanguage.value)
     }
     catch {
       error.value = true

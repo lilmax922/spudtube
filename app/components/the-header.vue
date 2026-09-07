@@ -8,7 +8,7 @@ import { navigateTo, useCookie, useRoute } from '#imports'
 import { LOCALE_COOKIE, LOCALES } from '#shared/i18n/locale'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { useBrowseGrid } from '../composables/use-browse-grid'
+import { useBrowseListing } from '../composables/use-browse-listing'
 import { useMediaLightboxState } from '../composables/use-media-lightbox'
 import { useTrailerState } from '../composables/use-trailer'
 import AccountMenu from './account-menu.vue'
@@ -32,7 +32,7 @@ const SHEET_BTN_CLASS = 'h-10 w-full justify-start gap-2 rounded-md px-4 text-bu
 
 const { t, locale, setLocale } = useI18n()
 const route = useRoute()
-const { kind: browseKind, setKind } = useBrowseGrid()
+const { kind: browseKind, setKind } = useBrowseListing()
 
 const isScrolled = shallowRef(false)
 const isSheetOpen = shallowRef(false)

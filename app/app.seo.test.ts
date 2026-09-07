@@ -12,6 +12,7 @@ const mock = vi.hoisted(() => ({
   browse: {
     refresh: vi.fn(),
     loadMore: vi.fn(),
+    applySection: vi.fn(),
     setKind: vi.fn(),
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
@@ -19,15 +20,12 @@ const mock = vi.hoisted(() => ({
     toggleProvider: vi.fn(),
     clearProviders: vi.fn(),
     clearFilters: vi.fn(),
+    searchProviders: vi.fn(),
+    clearProviderSearch: vi.fn(),
   },
   search: {
     search: vi.fn(),
     clear: vi.fn(),
-  },
-  overlaySearch: {
-    search: vi.fn(),
-    clear: vi.fn(),
-    loadMore: vi.fn(),
   },
   navigateTo: vi.fn(),
 }))
@@ -63,24 +61,24 @@ const browseState = {
   error: ref(false),
 }
 
-const searchState = {
-  query: ref(''),
-  searchedQuery: ref(''),
+const listingState = {
   mode: ref<'browse' | 'search'>('browse'),
-  items: ref<TitleSummary[]>([]),
-  page: ref(0),
-  totalPages: ref(0),
-  loading: ref(false),
-  loadingMore: ref(false),
-  error: ref(false),
-  hasMore: ref(false),
+  searchedQuery: ref(''),
+  rows: ref<Array<{ key: string, titleKey: string, items: TitleSummary[], canSeeMore: boolean }>>([]),
+  popularProviders: ref<{ id: number, name: string, logoPath: string | null }[]>([]),
+  providerSearchResults: ref<{ id: number, name: string, logoPath: string | null }[]>([]),
+  providerSearchQuery: ref(''),
+  providerSearchLoading: ref(false),
 }
 
-vi.mock('./composables/use-browse-grid', () => ({
-  useBrowseGrid: () => ({
+// Header, grid, and overlay all cross the same BrowseListing seam.
+vi.mock('./composables/use-browse-listing', () => ({
+  useBrowseListing: () => ({
     ...browseState,
+    ...listingState,
     refresh: mock.browse.refresh,
     loadMore: mock.browse.loadMore,
+    applySection: mock.browse.applySection,
     setKind: mock.browse.setKind,
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
@@ -88,31 +86,10 @@ vi.mock('./composables/use-browse-grid', () => ({
     toggleProvider: mock.browse.toggleProvider,
     clearProviders: mock.browse.clearProviders,
     clearFilters: mock.browse.clearFilters,
-  }),
-}))
-
-vi.mock('./composables/use-search-state', () => ({
-  useSearchState: () => ({
-    ...searchState,
     search: mock.search.search,
-    clear: mock.search.clear,
-  }),
-}))
-
-vi.mock('./composables/use-keyword-search', () => ({
-  useKeywordSearch: () => ({
-    query: ref(''),
-    searchedQuery: ref(''),
-    items: ref<TitleSummary[]>([]),
-    page: ref(0),
-    totalPages: ref(0),
-    loading: ref(false),
-    loadingMore: ref(false),
-    error: ref(false),
-    hasMore: ref(false),
-    search: mock.overlaySearch.search,
-    loadMore: mock.overlaySearch.loadMore,
-    clear: mock.overlaySearch.clear,
+    clearSearch: mock.search.clear,
+    searchProviders: mock.browse.searchProviders,
+    clearProviderSearch: mock.browse.clearProviderSearch,
   }),
 }))
 

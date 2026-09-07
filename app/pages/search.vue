@@ -6,9 +6,9 @@ import { useI18n } from 'vue-i18n'
 import { navigateTo, useRoute, useSeoMeta } from '#imports'
 import TitleCard from '../components/title-card.vue'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { useDefaultTrending } from '../composables/use-default-trending'
+import { useBrowseListing } from '../composables/use-browse-listing'
 import { useInfiniteScroll } from '../composables/use-infinite-scroll'
-import { useSearchState } from '../composables/use-search-state'
+import { useTrending } from '../composables/use-trending'
 
 useSeoMeta({ robots: 'noindex, nofollow' })
 
@@ -22,8 +22,8 @@ const {
   error,
   search,
   loadMore,
-  clear,
-} = useSearchState()
+  clearSearch: clear,
+} = useBrowseListing()
 
 const queryParam = computed(() => {
   const raw = route.query.q
@@ -100,7 +100,7 @@ const emptyMessage = computed(() =>
 const displayQuery = computed(() => searchedQuery.value || queryParam.value)
 
 // Default landing state, shown only when no query was entered.
-const defaultTrending = useDefaultTrending()
+const defaultTrending = useTrending()
 const defaultTab = shallowRef<string>('all')
 
 const tabs = computed<Array<{ id: string, label: string }>>(() => [

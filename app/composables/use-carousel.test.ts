@@ -3,10 +3,8 @@ import {
   BROWSE_CAROUSEL_BREAKPOINTS,
   calculatePeekWidth,
   getBrowseVisibleCount,
-  getCarouselState,
   getMidSnapShift,
-  getScrollAmount,
-  getVisibleCount,
+  resolveContentGutter,
   shouldReinitCarousel,
 } from './use-carousel'
 
@@ -20,35 +18,6 @@ describe('calculatePeekWidth', () => {
   it('rounds to nearest integer', () => {
     expect(calculatePeekWidth(100, 0.25)).toBe(25)
     expect(calculatePeekWidth(101, 0.25)).toBe(25)
-  })
-})
-
-describe('getCarouselState', () => {
-  it('returns single when content fits without scroll', () => {
-    expect(getCarouselState(0, 1280, 1000)).toBe('single')
-    expect(getCarouselState(0, 500, 500)).toBe('single')
-  })
-
-  it('returns atStart when at left edge', () => {
-    expect(getCarouselState(0, 500, 1200)).toBe('atStart')
-    expect(getCarouselState(1, 500, 1200, 2)).toBe('atStart')
-  })
-
-  it('returns atEnd when at right edge', () => {
-    // scrollLeft + clientWidth == scrollWidth
-    expect(getCarouselState(700, 500, 1200)).toBe('atEnd')
-    // with tolerance
-    expect(getCarouselState(698, 500, 1200, 5)).toBe('atEnd')
-  })
-
-  it('returns atMid when in middle', () => {
-    expect(getCarouselState(300, 500, 1200)).toBe('atMid')
-    expect(getCarouselState(100, 500, 1200)).toBe('atMid')
-  })
-
-  it('tolerates threshold for atStart/atEnd', () => {
-    expect(getCarouselState(2, 500, 1200, 2)).toBe('atStart')
-    expect(getCarouselState(3, 500, 1200, 2)).toBe('atMid')
   })
 })
 
@@ -104,31 +73,6 @@ describe('getBrowseVisibleCount', () => {
   it('returns at least 1 for narrow or invalid width', () => {
     expect(getBrowseVisibleCount(-10)).toBe(1)
     expect(getBrowseVisibleCount(100)).toBe(1)
-  })
-})
-
-describe('getVisibleCount', () => {
-  const itemWidth = 240
-  const gap = 16
-  const peek = 60
-
-  it('aliases getBrowseVisibleCount regardless of other params', () => {
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atStart')).toBe(3)
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atMid')).toBe(3)
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'atEnd')).toBe(3)
-    expect(getVisibleCount(1280, itemWidth, gap, peek, 'single')).toBe(3)
-  })
-
-  it('maps viewport table for various widths', () => {
-    expect(getVisibleCount(400, itemWidth, gap, peek, 'atStart')).toBe(1)
-    expect(getVisibleCount(500, itemWidth, gap, peek, 'atMid')).toBe(2)
-    expect(getVisibleCount(700, itemWidth, gap, peek, 'atMid')).toBe(3)
-    expect(getVisibleCount(1500, itemWidth, gap, peek, 'atEnd')).toBe(4)
-    expect(getVisibleCount(1920, itemWidth, gap, peek, 'atStart')).toBe(5)
-  })
-
-  it('returns at least 1 for narrow viewport', () => {
-    expect(getVisibleCount(100, itemWidth, gap, peek, 'atStart')).toBe(1)
   })
 })
 
@@ -214,36 +158,18 @@ describe('shouldReinitCarousel', () => {
   })
 })
 
-describe('getScrollAmount', () => {
-  const itemWidth = 180
-  const gap = 16
-  const peek = 45
-
-  it('returns visibleCount * (itemWidth+gap) via table', () => {
-    // 1280 => 3 => 3*196=588
-    expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(588)
-    // 700 => 3 => 3*196=588
-    expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(588)
-    // 500 => 2 => 392
-    expect(getScrollAmount(500, itemWidth, gap, peek, 'atEnd')).toBe(392)
-    // 1920 => 5 => 980
-    expect(getScrollAmount(1920, itemWidth, gap, peek, 'single')).toBe(980)
+describe('resolveContentGutter', () => {
+  it('returns the base gutter on narrow viewports', () => {
+    expect(resolveContentGutter(320, 1680, 24)).toBe(24)
+    expect(resolveContentGutter(1280, 1680, 24)).toBe(24)
   })
 
-  it('scales with the production 240px desktop item width', () => {
-    const w = 240
-    const step = w + gap
-    // amount is always visibleCount * (itemWidth + gap); counts come from the breakpoint table
-    expect(getScrollAmount(1280, w, gap, 60, 'atStart')).toBe(getBrowseVisibleCount(1280) * step)
-    expect(getScrollAmount(1920, w, gap, 60, 'single')).toBe(getBrowseVisibleCount(1920) * step)
+  it('returns the base gutter exactly at max content width', () => {
+    expect(resolveContentGutter(1680, 1680, 24)).toBe(24)
   })
 
-  it('ignores peek and state, depends only on viewport width', () => {
-    expect(getScrollAmount(1280, itemWidth, gap, peek, 'atStart')).toBe(
-      getScrollAmount(1280, itemWidth, gap, peek, 'single'),
-    )
-    expect(getScrollAmount(700, itemWidth, gap, peek, 'atMid')).toBe(
-      getScrollAmount(700, itemWidth, gap, 0, 'single'),
-    )
+  it('grows past max content width to center the row', () => {
+    expect(resolveContentGutter(1920, 1680, 24)).toBe(144)
+    expect(resolveContentGutter(2000, 1680, 24)).toBe(184)
   })
 })

@@ -1,10 +1,7 @@
 import type { VueWrapper } from '@vue/test-utils'
 import type { TitleSummary } from '#server/tmdb/types'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, describe, expect, it } from 'vitest'
-import { EXPANDABLE_SECTION_KEYS, MIN_EXPANDABLE_TITLES } from './constants'
 import TitleCard from './title-card.vue'
 import TitleCarouselSection from './title-carousel-section.vue'
 
@@ -44,14 +41,14 @@ function findSeeMore(wrapper: VueWrapper) {
 
 describe('title-carousel-section', () => {
   it('shows See more by default when items are present', async () => {
-    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items } })
+    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items, variant: 'standard' } })
     mountedWrappers.push(wrapper)
 
     expect(findSeeMore(wrapper)).toBeTruthy()
   })
 
   it('hides See more when showSeeMore is false even with items present', async () => {
-    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items, showSeeMore: false } })
+    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items, variant: 'standard', showSeeMore: false } })
     mountedWrappers.push(wrapper)
 
     expect(wrapper.text()).toContain('Horror')
@@ -59,14 +56,14 @@ describe('title-carousel-section', () => {
   })
 
   it('hides See more when there are no items even if showSeeMore is true', async () => {
-    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items: [], showSeeMore: true } })
+    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items: [], variant: 'standard', showSeeMore: true } })
     mountedWrappers.push(wrapper)
 
     expect(findSeeMore(wrapper)).toBeUndefined()
   })
 
   it('emits seeMore when the button is clicked', async () => {
-    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items } })
+    const wrapper = await mountSuspended(TitleCarouselSection, { props: { title: 'Horror', items, variant: 'standard' } })
     mountedWrappers.push(wrapper)
 
     await findSeeMore(wrapper)!.trigger('click')
@@ -95,15 +92,9 @@ function expandableCards(wrapper: VueWrapper) {
 }
 
 describe('title-carousel-section expandable second row', () => {
-  it('covers the horror and obsessed rows and needs five usable backdrops', () => {
-    expect(EXPANDABLE_SECTION_KEYS).toContain('movie.horror')
-    expect(EXPANDABLE_SECTION_KEYS).toContain('tv.obsessed')
-    expect(MIN_EXPANDABLE_TITLES).toBe(5)
-  })
-
-  it('renders expandable cards on the horror row when enough backdrops exist', async () => {
+  it('renders expandable cards on the expandable variant when enough backdrops exist', async () => {
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Horror', items: sixUsable, sectionKey: 'movie.horror' },
+      props: { title: 'Horror', items: sixUsable, variant: 'expandable' },
     })
     mountedWrappers.push(wrapper)
 
@@ -111,9 +102,9 @@ describe('title-carousel-section expandable second row', () => {
     expect(wrapper.findComponent(TitleCard).exists()).toBe(false)
   })
 
-  it('renders standard cards on other rows even with backdrops present', async () => {
+  it('renders standard cards for the standard variant even with backdrops present', async () => {
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Trending', items: sixUsable, sectionKey: 'movie.trending' },
+      props: { title: 'Trending', items: sixUsable, variant: 'standard' },
     })
     mountedWrappers.push(wrapper)
 
@@ -121,9 +112,9 @@ describe('title-carousel-section expandable second row', () => {
     expect(wrapper.findAllComponents(TitleCard)).toHaveLength(6)
   })
 
-  it('renders standard cards when no section key is given', async () => {
+  it('renders standard cards for the standard variant', async () => {
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Horror', items: sixUsable },
+      props: { title: 'Horror', items: sixUsable, variant: 'standard' },
     })
     mountedWrappers.push(wrapper)
 
@@ -134,7 +125,7 @@ describe('title-carousel-section expandable second row', () => {
   it('excludes titles without backdrop artwork from the expandable row', async () => {
     const mixed = [...sixUsable, { ...backdropTitle(7, 'No Backdrop'), backdropPath: null }]
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Horror', items: mixed, sectionKey: 'movie.horror' },
+      props: { title: 'Horror', items: mixed, variant: 'expandable' },
     })
     mountedWrappers.push(wrapper)
 
@@ -150,7 +141,7 @@ describe('title-carousel-section expandable second row', () => {
       { ...backdropTitle(4, 'No Backdrop 4'), backdropPath: null },
     ]
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Horror', items: sparse, sectionKey: 'movie.horror' },
+      props: { title: 'Horror', items: sparse, variant: 'expandable' },
     })
     mountedWrappers.push(wrapper)
 
@@ -161,7 +152,7 @@ describe('title-carousel-section expandable second row', () => {
   it('shows the poster at rest and carries the backdrop plus overlay fields without overview', async () => {
     const withOverview = sixUsable.map(item => ({ ...item, overview: '不該出現在卡片上的簡介。' }))
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Horror', items: withOverview, sectionKey: 'movie.horror' },
+      props: { title: 'Horror', items: withOverview, variant: 'expandable' },
     })
     mountedWrappers.push(wrapper)
 
@@ -181,7 +172,7 @@ describe('title-carousel-section expandable second row', () => {
 
   it('navigates an expandable card to the same detail route as a title card', async () => {
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Horror', items: sixUsable, sectionKey: 'movie.horror' },
+      props: { title: 'Horror', items: sixUsable, variant: 'expandable' },
     })
     mountedWrappers.push(wrapper)
 
@@ -190,7 +181,7 @@ describe('title-carousel-section expandable second row', () => {
 
   it('keeps SeeMore working on the expandable row', async () => {
     const wrapper = await mountSuspended(TitleCarouselSection, {
-      props: { title: 'Horror', items: sixUsable, sectionKey: 'movie.horror' },
+      props: { title: 'Horror', items: sixUsable, variant: 'expandable' },
     })
     mountedWrappers.push(wrapper)
 
@@ -201,21 +192,28 @@ describe('title-carousel-section expandable second row', () => {
   })
 })
 
-describe('title-carousel-section expandable styling', () => {
-  it('grows the hovered item to push siblings and glides the row into view', () => {
-    const source = readFileSync(resolve(import.meta.dirname, './title-carousel-section.vue'), 'utf8')
-    expect(source).toMatch(/w-\[240px\]/)
-    expect(source).toMatch(/\.expandable-carousel-item[\s\S]*?width:\s*540px/)
-    expect(source).toMatch(/transition:\s*width\s+0\.5s/)
-    expect(source).toMatch(/translateX\(var\(--expand-shift/)
-    expect(source).toMatch(/:edge-margin="gutter"/)
+describe('title-carousel-section item widths', () => {
+  it('renders wide items on the expandable variant', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: sixUsable, variant: 'expandable' },
+    })
+    mountedWrappers.push(wrapper)
+
+    const items = wrapper.findAll('[data-slot="carousel-item"]')
+    expect(items.length).toBeGreaterThan(0)
+    for (const item of items)
+      expect(item.classes()).toContain('w-[240px]')
   })
 
-  it('keeps standard rows narrower than the expandable row', () => {
-    const source = readFileSync(resolve(import.meta.dirname, './title-carousel-section.vue'), 'utf8')
-    // Standard items render at 180px while the expandable row keeps 240px;
-    // counts stay shared, only the width diverges.
-    expect(source).toMatch(/w-\[180px\]/)
-    expect(source).toMatch(/:item-width="useExpandableCards \? 240 : 180"/)
+  it('renders narrow items on the standard variant', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Trending', items: sixUsable, variant: 'standard' },
+    })
+    mountedWrappers.push(wrapper)
+
+    const items = wrapper.findAll('[data-slot="carousel-item"]')
+    expect(items.length).toBeGreaterThan(0)
+    for (const item of items)
+      expect(item.classes()).toContain('w-[180px]')
   })
 })

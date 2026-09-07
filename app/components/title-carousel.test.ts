@@ -9,6 +9,7 @@ function createItems(count: number): string[] {
 describe('title-carousel', () => {
   it('renders slotted items', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
+      props: { variant: 'standard' },
       slots: {
         default: () => createItems(6).map(text => `<div class="w-[240px] shrink-0 snap-start">${text}</div>`).join(''),
       },
@@ -21,7 +22,7 @@ describe('title-carousel', () => {
 
   it('exposes atStart state when scroll is at left edge', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
-      props: { ariaLabel: 'recommendations' },
+      props: { variant: 'standard', ariaLabel: 'recommendations' },
       slots: {
         default: () => `<div class="w-[240px] shrink-0">x</div>`.repeat(10),
       },
@@ -37,6 +38,7 @@ describe('title-carousel', () => {
 
   it('hides arrows when content fits (single)', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
+      props: { variant: 'standard' },
       slots: {
         default: () => `<div>only one</div>`,
       },
@@ -46,9 +48,9 @@ describe('title-carousel', () => {
     expect(wrapper.find('[data-testid="carousel-next"]').exists()).toBe(false)
   })
 
-  it('shows peek width data attribute', async () => {
+  it('derives peek width from the expandable variant', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
-      props: { itemWidth: 240, peekRatio: 0.25 },
+      props: { variant: 'expandable' },
       slots: {
         default: () => `<div>a</div>`,
       },
@@ -58,9 +60,9 @@ describe('title-carousel', () => {
     expect(root.attributes('data-peek-width')).toBe('60')
   })
 
-  it('derives peek width from the standard 180px item width', async () => {
+  it('derives peek width from the standard variant', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
-      props: { itemWidth: 180, peekRatio: 0.25 },
+      props: { variant: 'standard' },
       slots: {
         default: () => `<div>a</div>`,
       },
@@ -72,6 +74,7 @@ describe('title-carousel', () => {
 
   it('scrolls by page on next click', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
+      props: { variant: 'standard' },
       slots: {
         default: () => `<div class="w-[240px] shrink-0 snap-start">x</div>`.repeat(10),
       },
@@ -104,9 +107,9 @@ describe('title-carousel', () => {
     }
   })
 
-  it('applies correct state classes for atStart / atMid / atEnd via getCarouselState', async () => {
-    // This is covered via composable unit test, but we verify component exposes state attribute
+  it('exposes carousel position through the state attribute', async () => {
     const wrapper = await mountSuspended(TitleCarousel, {
+      props: { variant: 'standard' },
       slots: {
         default: () => `<div>a</div>`,
       },

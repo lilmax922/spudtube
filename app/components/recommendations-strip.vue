@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CarouselItem } from '@/components/ui/carousel'
 import TitleCard from './title-card.vue'
@@ -12,34 +11,6 @@ interface Props {
 const props = defineProps<Props>()
 
 const { t } = useI18n()
-
-const gutter = ref(24)
-
-function getCssVarNumber(name: string, fallback: number): number {
-  if (typeof window === 'undefined' || typeof document === 'undefined')
-    return fallback
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-  const n = Number.parseFloat(raw)
-  return Number.isFinite(n) ? n : fallback
-}
-
-function updateGutter(): void {
-  if (typeof window === 'undefined')
-    return
-  const vw = window.innerWidth
-  const max = getCssVarNumber('--max-content-width', 1680)
-  const base = getCssVarNumber('--content-gutter', 24)
-  gutter.value = Math.max(base, (vw - max) / 2 + base)
-}
-
-onMounted(() => {
-  updateGutter()
-  window.addEventListener('resize', updateGutter)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateGutter)
-})
 </script>
 
 <template>
@@ -50,7 +21,7 @@ onBeforeUnmount(() => {
       </h2>
     </div>
 
-    <TitleCarousel :aria-label="t('detail.recommendations')" :breakout="true" :padding-left="gutter">
+    <TitleCarousel variant="standard" :aria-label="t('detail.recommendations')">
       <CarouselItem
         v-for="title in props.titles"
         :key="`${title.kind}-${title.tmdbId}`"

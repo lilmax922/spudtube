@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import type { Kind } from '../../shared/kind/kind'
 import type {
   rawGenreSchema,
   rawMovieDetailSchema,
@@ -8,7 +9,7 @@ import type {
   rawTvDetailSchema,
   rawTvSummarySchema,
 } from './schemas'
-import type { CastMember, CrewMember, Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
+import type { CastMember, CrewMember, Genre, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
 import { localizeGenres } from './genres'
 
 export function toKind(mediaType: string): Kind | null {
@@ -17,10 +18,6 @@ export function toKind(mediaType: string): Kind | null {
   if (mediaType === 'tv')
     return 'TV_SHOW'
   return null
-}
-
-export function toMediaSegment(kind: Kind): 'movie' | 'tv' {
-  return kind === 'MOVIE' ? 'movie' : 'tv'
 }
 
 export function kindFromSegment(segment: 'movie' | 'tv'): Kind {

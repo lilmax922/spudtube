@@ -1,11 +1,11 @@
-import type { Ref } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 import type { HeroPayload } from '#server/api/catalog/[kind]/hero.get'
 import type { TmdbLanguage } from '#server/tmdb/types'
 import type { Kind } from '#shared/kind/kind'
 import { ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
-import { toMediaSegment } from '../lib/kind'
+import { toMediaSegment } from '#shared/kind/kind'
+import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface HeroTitle {
   kind: 'MOVIE' | 'TV_SHOW'
@@ -46,19 +46,14 @@ export interface HeroTitlesState {
 let heroInstance: HeroTitlesState | undefined
 let heroFetcher: HeroFetcher | undefined
 let heroObservedKind: Ref<'MOVIE' | 'TV_SHOW'> | undefined
-let heroObservedLocale: Ref<string> | undefined
+let heroObservedLocale: ComputedRef<TmdbLanguage> | undefined
 let heroGeneration = 0
 let heroLoadedKind: 'MOVIE' | 'TV_SHOW' | undefined
-let heroLoadedLanguage: string | undefined
+let heroLoadedLanguage: TmdbLanguage | undefined
 let heroTestFetcher: HeroFetcher | undefined
 
-function resolveLocaleRef(): Ref<string> {
-  try {
-    return (useI18n().locale as unknown) as Ref<string>
-  }
-  catch {
-    return ref('en') as Ref<string>
-  }
+function resolveLocaleRef(): ComputedRef<TmdbLanguage> {
+  return useTmdbLanguage()
 }
 
 function mapHeroPayload(payload: HeroPayload): HeroTitle[] {
@@ -85,12 +80,12 @@ async function reloadSharedHero(): Promise<void> {
   const state = heroInstance
   const fetcher = heroTestFetcher ?? heroFetcher
   const kindRef = heroObservedKind
-  const localeRef = heroObservedLocale
-  if (!state || !fetcher || !kindRef || !localeRef)
+  const tmdbLanguage = heroObservedLocale
+  if (!state || !fetcher || !kindRef || !tmdbLanguage)
     return
   const current = ++heroGeneration
   const kindValue = kindRef.value
-  const languageValue = localeRef.value as TmdbLanguage
+  const languageValue = tmdbLanguage.value
   state.loading.value = true
   state.error.value = false
   try {
@@ -99,7 +94,7 @@ async function reloadSharedHero(): Promise<void> {
       return
     state.titles.value = mapHeroPayload(payload)
     heroLoadedKind = kindValue
-    heroLoadedLanguage = localeRef.value
+    heroLoadedLanguage = tmdbLanguage.value
   }
   catch {
     if (current === heroGeneration)
@@ -114,7 +109,7 @@ async function reloadSharedHero(): Promise<void> {
 export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetcher): HeroTitlesState {
   if (fetcher !== undefined) {
     const actualFetcher: HeroFetcher = fetcher
-    const localeRef = resolveLocaleRef()
+    const tmdbLanguage = resolveLocaleRef()
     const titles = ref<HeroTitle[]>([])
     const loading = ref(false)
     const error = ref(false)
@@ -125,7 +120,7 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
       loading.value = true
       error.value = false
       try {
-        const payload = await actualFetcher.fetchHero(kind.value, localeRef.value as TmdbLanguage)
+        const payload = await actualFetcher.fetchHero(kind.value, tmdbLanguage.value)
         if (current !== generation)
           return
         titles.value = mapHeroPayload(payload)
@@ -141,7 +136,7 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
     }
 
     void load()
-    watch([kind, localeRef], () => {
+    watch([kind, tmdbLanguage], () => {
       void load()
     })
 
@@ -152,20 +147,20 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
   // calling scope, so every mount re-registers it and resyncs when kind or
   // locale drifted while the page was unmounted (for example setKind from
   // the header on another page before navigating home).
-  const localeRef = resolveLocaleRef()
+  const tmdbLanguage = resolveLocaleRef()
   if (heroInstance) {
     heroObservedKind = kind
-    heroObservedLocale = localeRef
+    heroObservedLocale = tmdbLanguage
     watch([heroObservedKind, heroObservedLocale], () => {
       void reloadSharedHero()
     })
-    if (heroLoadedKind !== kind.value || heroLoadedLanguage !== localeRef.value)
+    if (heroLoadedKind !== kind.value || heroLoadedLanguage !== tmdbLanguage.value)
       void reloadSharedHero()
     return heroInstance
   }
   heroFetcher = heroTestFetcher ?? createApiHeroFetcher()
   heroObservedKind = kind
-  heroObservedLocale = localeRef
+  heroObservedLocale = tmdbLanguage
   const titles = ref<HeroTitle[]>([])
   const loading = ref(false)
   const error = ref(false)

@@ -3,6 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, ref } from 'vue'
 import { resetHeroTitlesForTest, setHeroTitlesFetcherForTest, useHeroTitles } from './use-hero-titles'
 
+const localeRef = ref('en')
+
+vi.mock('vue-i18n', async () => {
+  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
+  return {
+    ...actual,
+    useI18n: () => ({
+      locale: localeRef,
+      t: (key: string) => key,
+      setLocale: vi.fn(),
+    }),
+  }
+})
+
 const sampleHero = [
   {
     kind: 'MOVIE' as const,
@@ -28,6 +42,7 @@ function createFetcher(): { fetcher: HeroFetcher, fetchHero: ReturnType<typeof v
 describe('use-hero-titles', () => {
   beforeEach(() => {
     resetHeroTitlesForTest()
+    localeRef.value = 'en'
   })
 
   afterEach(() => {
@@ -145,5 +160,23 @@ describe('use-hero-titles', () => {
     await vi.waitFor(() => expect(fetchHero).toHaveBeenCalledWith('TV_SHOW', 'en'))
     await vi.waitFor(() => expect(second.titles.value[0]!.name).toBe('Winter Coming'))
     secondScope.stop()
+  })
+
+  it('maps zh-TW through and narrows other DisplayLocales to en', async () => {
+    localeRef.value = 'zh-TW'
+    const { fetcher, fetchHero } = createFetcher()
+    fetchHero.mockResolvedValue({ results: sampleHero })
+
+    const kind = ref<'MOVIE' | 'TV_SHOW'>('MOVIE')
+    useHeroTitles(kind, fetcher)
+
+    await vi.waitFor(() => expect(fetchHero).toHaveBeenCalledWith('MOVIE', 'zh-TW'))
+    resetHeroTitlesForTest()
+    localeRef.value = 'ja'
+    const { fetcher: jaFetcher, fetchHero: jaFetchHero } = createFetcher()
+    jaFetchHero.mockResolvedValue({ results: sampleHero })
+    useHeroTitles(kind, jaFetcher)
+
+    await vi.waitFor(() => expect(jaFetchHero).toHaveBeenCalledWith('MOVIE', 'en'))
   })
 })

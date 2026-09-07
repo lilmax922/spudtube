@@ -1,11 +1,11 @@
-import type { ComputedRef, Ref } from 'vue'
+import type { ComputedRef } from 'vue'
 import type { AsyncData, NuxtError } from '#app'
 import type { ProviderCatalog } from '#server/tmdb/types'
 import type { Kind } from '#shared/kind/kind'
-import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed } from 'vue'
 import { useFetch } from '#imports'
-import { toMediaSegment } from '../lib/kind'
+import { toMediaSegment } from '#shared/kind/kind'
+import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface AvailabilityOptions {
   /** Cards defer the request until the title is actually inspected. */
@@ -19,13 +19,7 @@ export interface AvailabilityData {
 
 export function useAvailability(kind: Kind, tmdbId: number | ComputedRef<number | null>, options: AvailabilityOptions = {}): AvailabilityData {
   const { immediate = true } = options
-  let localeRef: Ref<string>
-  try {
-    localeRef = (useI18n().locale as unknown) as Ref<string>
-  }
-  catch {
-    localeRef = ref('en') as Ref<string>
-  }
+  const tmdbLanguage = useTmdbLanguage()
   const idRef = typeof tmdbId === 'number' ? computed(() => tmdbId) : tmdbId
   const catalog = useFetch<ProviderCatalog>(
     computed(() => {
@@ -35,9 +29,9 @@ export function useAvailability(kind: Kind, tmdbId: number | ComputedRef<number 
       return `/api/catalog/${toMediaSegment(kind)}/${id}/providers`
     }),
     {
-      query: { language: localeRef },
-      watch: [localeRef, idRef],
-      key: computed(() => `providers:${kind}:${idRef.value ?? 'pending'}:${localeRef.value}`),
+      query: { language: tmdbLanguage },
+      watch: [tmdbLanguage, idRef],
+      key: computed(() => `providers:${kind}:${idRef.value ?? 'pending'}:${tmdbLanguage.value}`),
       immediate,
     },
   )

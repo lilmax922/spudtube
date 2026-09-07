@@ -178,6 +178,12 @@ function onCardUpdated(payload: { kind: MyListEntry['kind'], tmdbId: number, pre
   }
 }
 
+function onCardSignInRequested(): void {
+  // Unreachable: the my-list middleware guarantees a signed-in visitor, so
+  // cards never emit this here. Kept explicit so a future middleware change
+  // fails loudly in review instead of silently dropping the signal.
+}
+
 const TABS: Array<{ key: MyListTab, label: string }> = [
   { key: 'watchlist', label: t('myList.tabs.watchlist') },
   { key: 'watched', label: t('myList.tabs.watched') },
@@ -361,7 +367,7 @@ function onFiltersClear(): void {
             layout
             class="list-none"
           >
-            <MyListCard :entry="entry" @updated="onCardUpdated" />
+            <MyListCard :entry="entry" @updated="onCardUpdated" @sign-in-requested="onCardSignInRequested" />
           </motion.li>
         </AnimatePresence>
       </ul>

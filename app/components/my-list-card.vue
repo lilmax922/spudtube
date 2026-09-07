@@ -69,7 +69,7 @@ function tracker(): PersonalTrackingState {
   return created
 }
 
-// Page patches (toast undo, refetch) flow back into the module state.
+// Page patches (toast undo) flow back into the module state.
 watch(() => props.entry.status, (next) => {
   const current = tracking.value
   if (current)

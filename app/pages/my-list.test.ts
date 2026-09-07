@@ -158,12 +158,9 @@ let listFixture: MyList = EMPTY_LIST
 
 mockNuxtImport('$fetch', () => fetchMock)
 mockNuxtImport('useFetch', () => (_url: string) => ({
-  // NOTE: Production useFetch returns shallowRef, so inner array mutations
-  // require reassigning the root object via bumpList() to trigger reactivity.
-  // This test mock intentionally uses deep `ref()` so existing and immediate
-  // cases can be verified without depending on the shallowRef fix landing.
-  // After bumpList is wired in my-list.vue, switch to shallowRef here to
-  // faithfully reproduce the bug (splice without bumpList would not update).
+  // NOTE: the list state is a deep `ref()` here while production holds the
+  // server payload in `useFetch` state; either way the page only ever
+  // replaces the root object (`list.value = { ... }`) so updates propagate.
   data: ref(listFixture) as unknown as Ref<MyList>,
   pending: ref(false),
   error: ref(null),

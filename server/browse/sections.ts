@@ -29,6 +29,7 @@ export interface SectionDefinition {
   key: string
   kind: Kind
   titleKey: string
+  expandable: boolean
   query: SectionQuery
 }
 
@@ -44,19 +45,19 @@ const TWIST_KEYWORD_IDS = [326438, 275311, 362567]
 const THEORIES_KEYWORD_IDS = [316332, 10410]
 
 export const BROWSE_SECTIONS: SectionDefinition[] = [
-  { key: 'movie.trending', kind: 'MOVIE', titleKey: 'browse.sections.movieTrending', query: { source: 'trending', trendingWindow: 'week' } },
-  { key: 'movie.horror', kind: 'MOVIE', titleKey: 'browse.sections.movieHorror', query: { source: 'discover', genreIds: [27], minVoteCount: 100 } },
-  { key: 'movie.twist', kind: 'MOVIE', titleKey: 'browse.sections.movieTwist', query: { source: 'discover', genreIds: [9648, 53, 80], keywordIds: TWIST_KEYWORD_IDS, minVoteCount: 50 } },
-  { key: 'movie.crowd', kind: 'MOVIE', titleKey: 'browse.sections.movieCrowd', query: { source: 'discover', genreIds: [35, 10751, 12], minRating: 7, minVoteCount: 100 } },
-  { key: 'movie.mood', kind: 'MOVIE', titleKey: 'browse.sections.movieMood', query: { source: 'discover', genreIds: [10749, 18], minRating: 7, minVoteCount: 100 } },
-  { key: 'movie.gems', kind: 'MOVIE', titleKey: 'browse.sections.movieGems', query: { source: 'discover', minRating: 7.5, minVoteCount: 100, sortBy: 'vote_average.desc' } },
-  { key: 'tv.trending', kind: 'TV_SHOW', titleKey: 'browse.sections.tvTrending', query: { source: 'trending', trendingWindow: 'week' } },
-  { key: 'tv.obsessed', kind: 'TV_SHOW', titleKey: 'browse.sections.tvObsessed', query: { source: 'topRated' } },
-  { key: 'tv.binge', kind: 'TV_SHOW', titleKey: 'browse.sections.tvBinge', query: { source: 'discover', genreIds: [35, 18, 9648], minVoteCount: 100 } },
+  { key: 'movie.trending', kind: 'MOVIE', titleKey: 'browse.sections.movieTrending', expandable: false, query: { source: 'trending', trendingWindow: 'week' } },
+  { key: 'movie.horror', kind: 'MOVIE', titleKey: 'browse.sections.movieHorror', expandable: true, query: { source: 'discover', genreIds: [27], minVoteCount: 100 } },
+  { key: 'movie.twist', kind: 'MOVIE', titleKey: 'browse.sections.movieTwist', expandable: false, query: { source: 'discover', genreIds: [9648, 53, 80], keywordIds: TWIST_KEYWORD_IDS, minVoteCount: 50 } },
+  { key: 'movie.crowd', kind: 'MOVIE', titleKey: 'browse.sections.movieCrowd', expandable: false, query: { source: 'discover', genreIds: [35, 10751, 12], minRating: 7, minVoteCount: 100 } },
+  { key: 'movie.mood', kind: 'MOVIE', titleKey: 'browse.sections.movieMood', expandable: false, query: { source: 'discover', genreIds: [10749, 18], minRating: 7, minVoteCount: 100 } },
+  { key: 'movie.gems', kind: 'MOVIE', titleKey: 'browse.sections.movieGems', expandable: false, query: { source: 'discover', minRating: 7.5, minVoteCount: 100, sortBy: 'vote_average.desc' } },
+  { key: 'tv.trending', kind: 'TV_SHOW', titleKey: 'browse.sections.tvTrending', expandable: false, query: { source: 'trending', trendingWindow: 'week' } },
+  { key: 'tv.obsessed', kind: 'TV_SHOW', titleKey: 'browse.sections.tvObsessed', expandable: true, query: { source: 'topRated' } },
+  { key: 'tv.binge', kind: 'TV_SHOW', titleKey: 'browse.sections.tvBinge', expandable: false, query: { source: 'discover', genreIds: [35, 18, 9648], minVoteCount: 100 } },
   // TV has no Thriller (53) or Science Fiction (878) genre codes; theories use Mystery + Crime + Sci-Fi-Fantasy instead.
-  { key: 'tv.theories', kind: 'TV_SHOW', titleKey: 'browse.sections.tvTheories', query: { source: 'discover', genreIds: [9648, 80, 10765], keywordIds: THEORIES_KEYWORD_IDS, minVoteCount: 50 } },
-  { key: 'tv.worlds', kind: 'TV_SHOW', titleKey: 'browse.sections.tvWorlds', query: { source: 'discover', genreIds: [10765, 10759], minVoteCount: 100 } },
-  { key: 'tv.wordOfMouth', kind: 'TV_SHOW', titleKey: 'browse.sections.tvWordOfMouth', query: { source: 'discover', minRating: 8, minVoteCount: 50, sortBy: 'vote_average.desc' } },
+  { key: 'tv.theories', kind: 'TV_SHOW', titleKey: 'browse.sections.tvTheories', expandable: false, query: { source: 'discover', genreIds: [9648, 80, 10765], keywordIds: THEORIES_KEYWORD_IDS, minVoteCount: 50 } },
+  { key: 'tv.worlds', kind: 'TV_SHOW', titleKey: 'browse.sections.tvWorlds', expandable: false, query: { source: 'discover', genreIds: [10765, 10759], minVoteCount: 100 } },
+  { key: 'tv.wordOfMouth', kind: 'TV_SHOW', titleKey: 'browse.sections.tvWordOfMouth', expandable: false, query: { source: 'discover', minRating: 8, minVoteCount: 50, sortBy: 'vote_average.desc' } },
 ]
 
 export function sectionsForKind(kind: Kind): SectionDefinition[] {

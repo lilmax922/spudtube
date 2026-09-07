@@ -87,6 +87,10 @@ _Avoid_: tile, poster, video, thumbnail
 A single card component with rest and expanded states, used in place of TitleCard inside the second TitleCarouselSection (horror / obsessed). At rest it shows the Title's poster as a portrait card at its row's item width; on hover/focus (desktop fine pointers only, after a short intent delay) it widens to 540px at equal height and swaps to the Title's backdrop, overlaying title, providers, year, and rating. Click behavior matches TitleCard.
 _Avoid_: gallery card, expanded tile, super carousel
 
+**BrowseListing**:
+The unified browse/search/rows Title listing state behind one seam - filters, search session, TitleCarouselSections, and paging owned inside; callers see mode, rows, items, loadMore, and applySection.
+_Avoid_: grid state, search state, rows state
+
 ### Layout
 
 **MaxContentWidth**:

@@ -2,10 +2,10 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import BrowseGrid from '../components/browse-grid.vue'
 import HeroCarousel from '../components/hero-carousel.vue'
-import { useBrowseGrid } from '../composables/use-browse-grid'
+import { useBrowseListing } from '../composables/use-browse-listing'
 import { useHeroTitles } from '../composables/use-hero-titles'
 
-const { kind } = useBrowseGrid()
+const { kind } = useBrowseListing()
 const { titles: heroTitles, loading: heroLoading } = useHeroTitles(kind)
 </script>
 

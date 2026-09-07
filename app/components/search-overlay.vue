@@ -5,8 +5,9 @@ import { ListboxFilter } from 'reka-ui'
 import { computed, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from '#imports'
-import { useKeywordSearch } from '../composables/use-keyword-search'
-import { useTrendingNames } from '../composables/use-trending-names'
+import { useBrowseListing } from '../composables/use-browse-listing'
+import { useInfiniteScroll } from '../composables/use-infinite-scroll'
+import { useTrending } from '../composables/use-trending'
 import { posterUrl } from '../lib/images'
 import { kindLabelKey, titleDetailPath } from '../lib/kind'
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from './ui/command'
@@ -38,11 +39,22 @@ const activeTab = shallowRef<string>('all')
 const STORAGE_KEY = 'spudtube:recent'
 const recents = useStorage<string[]>(STORAGE_KEY, [])
 
-const overlaySearch = useKeywordSearch()
-const trendingNames = useTrendingNames()
+const listing = useBrowseListing()
+const trending = useTrending()
+
+// The overlay drives the shared search session so selecting a result lands on
+// /search?q= with results already in place. Snapshot ownership on open: only
+// the session the overlay itself started is restored on dismiss; navigating
+// away keeps the results for the page.
+let ownsSession = false
+let navigating = false
+
+useInfiniteScroll(searchSentinel, () => {
+  void listing.loadMore()
+}, { root: panelRef, rootMargin: '160px' })
 
 const debouncedOverlaySearch = useDebounceFn((q: string) => {
-  void overlaySearch.search(q)
+  void listing.search(q)
 }, 350)
 
 function addRecent(q: string): void {
@@ -70,18 +82,21 @@ function onPickTrending(value: string): void {
 }
 
 function onSelectRecent(value: string): void {
+  navigating = true
   onPickRecent(value)
   void navigateTo({ path: '/search', query: { q: value } })
   emit('close')
 }
 
 function onSelectTrending(value: string): void {
+  navigating = true
   onPickTrending(value)
   void navigateTo({ path: '/search', query: { q: value } })
   emit('close')
 }
 
 function onResultClick(title: { kind: 'MOVIE' | 'TV_SHOW', name: string }): void {
+  navigating = true
   addRecent(title.name)
   emit('close')
 }
@@ -91,7 +106,7 @@ function posterSrc(title: { posterPath: string | null }): string | null {
 }
 
 function year(title: { releaseDate: string | null }): string {
-  return title.releaseDate?.slice(0, 4) ?? '—'
+  return title.releaseDate?.slice(0, 4) ?? '-'
 }
 
 function kindLabel(kind: 'MOVIE' | 'TV_SHOW'): string {
@@ -99,7 +114,7 @@ function kindLabel(kind: 'MOVIE' | 'TV_SHOW'): string {
 }
 
 const filteredItems = computed(() => {
-  const list = overlaySearch.items.value
+  const list = listing.items.value
   if (activeTab.value === 'movie')
     return list.filter(i => i.kind === 'MOVIE')
   if (activeTab.value === 'tv')
@@ -113,44 +128,22 @@ const tabs = computed<Array<{ id: 'all' | 'movie' | 'tv', label: string }>>(() =
   { id: 'tv', label: t('search.tabs.tvShows') },
 ])
 
-let observer: IntersectionObserver | null = null
-
-function setupObserver(): void {
-  if (observer) {
-    observer.disconnect()
-    observer = null
-  }
-  if (!searchSentinel.value || props.query.trim() === '')
-    return
-  observer = new IntersectionObserver((entries) => {
-    if (entries.some(e => e.isIntersecting)) {
-      void overlaySearch.loadMore()
-    }
-  }, { root: panelRef.value, rootMargin: '160px' })
-  observer.observe(searchSentinel.value)
-}
-
 watch(() => props.query, (q) => {
   if (q.trim() === '') {
     debouncedOverlaySearch.cancel()
-    overlaySearch.clear()
+    listing.clearSearch()
   }
   else {
     debouncedOverlaySearch(q)
   }
-  setupObserver()
-})
-
-watch(() => overlaySearch.items.value.length, () => {
-  setupObserver()
 })
 
 watch(() => props.open, async (isOpen) => {
   if (typeof document === 'undefined')
     return
   if (isOpen) {
+    ownsSession = listing.searchedQuery.value === ''
     document.body.style.overflow = 'hidden'
-    setupObserver()
     // ListboxFilter has auto-focus, this is a fallback for happy-dom / test env
     await new Promise<void>(resolve => setTimeout(resolve, 15))
     const el = (inputRef.value?.$el as HTMLElement | undefined) ?? inputRef.value as unknown as HTMLElement | null
@@ -161,9 +154,12 @@ watch(() => props.open, async (isOpen) => {
   }
   else {
     document.body.style.overflow = ''
-    if (observer) {
-      observer.disconnect()
-      observer = null
+    if (navigating) {
+      navigating = false
+    }
+    else if (ownsSession) {
+      ownsSession = false
+      listing.clearSearch()
     }
   }
 }, { immediate: true })
@@ -181,6 +177,7 @@ function onBackdropClick(event: MouseEvent): void {
 function onInnerSearch(): void {
   const q = props.query.trim()
   if (q) {
+    navigating = true
     addRecent(q)
     void navigateTo({ path: '/search', query: { q } })
     emit('close')
@@ -199,7 +196,7 @@ function onBarButton(): void {
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
   if (props.query.trim() !== '')
-    void overlaySearch.search(props.query)
+    void listing.search(props.query)
   if (props.open) {
     // initial open true → focus input after mount
     setTimeout(() => {
@@ -211,13 +208,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown)
   document.body.style.overflow = ''
-  if (observer)
-    observer.disconnect()
   debouncedOverlaySearch.cancel()
-})
-
-watch(activeTab, () => {
-  setupObserver()
 })
 </script>
 
@@ -313,14 +304,14 @@ watch(activeTab, () => {
                 {{ t('search.noRecent') }}
               </p>
             </div>
-            <div v-if="trendingNames.names.value.length > 0" class="searchSection border-t border-border p-[18px_16px]">
+            <div v-if="trending.names.value.length > 0" class="searchSection border-t border-border p-[18px_16px]">
               <h4 class="flex items-center gap-1.5 text-caption-md font-bold text-foreground">
                 <Flame :size="14" :stroke-width="1.75" class="text-primary" aria-hidden="true" />
                 {{ t('search.trendingSearches') }}
               </h4>
               <CommandGroup class="trendingChips mt-3 flex flex-wrap gap-2 p-0 bg-transparent">
                 <CommandItem
-                  v-for="trend in trendingNames.names.value"
+                  v-for="trend in trending.names.value"
                   :key="trend"
                   :value="trend"
                   :data-q="trend"
@@ -342,20 +333,20 @@ watch(activeTab, () => {
                     :value="tab.id"
                     :data-tab="tab.id"
                   >
-                    {{ tab.label }}123
+                    {{ tab.label }}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
             <div
-              v-if="overlaySearch.loading.value && filteredItems.length === 0"
+              v-if="listing.loading.value && filteredItems.length === 0"
               class="flex items-center justify-center gap-2 py-8 text-body-md text-muted-foreground"
             >
               <Star :size="14" class="animate-spin" aria-hidden="true" />
               {{ t('search.loading') }}
             </div>
             <div
-              v-else-if="overlaySearch.error.value && filteredItems.length === 0"
+              v-else-if="listing.error.value && filteredItems.length === 0"
               class="py-8 text-center text-body-md text-muted-foreground"
             >
               {{ t('search.error') }}
@@ -417,7 +408,7 @@ watch(activeTab, () => {
                 class="flex justify-center py-3"
               >
                 <span
-                  v-if="overlaySearch.loadingMore.value"
+                  v-if="listing.loadingMore.value"
                   class="size-6 animate-spin rounded-full border-2 border-border border-t-ring"
                   aria-label="載入中"
                 />

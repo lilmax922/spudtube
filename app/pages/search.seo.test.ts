@@ -31,12 +31,34 @@ const searchState = {
   hasMore: shallowRef(false),
 }
 
-vi.mock('../composables/use-search-state', () => ({
-  useSearchState: () => ({
+vi.mock('../composables/use-browse-listing', () => ({
+  useBrowseListing: () => ({
     ...searchState,
-    search: mock.search.search,
+    mode: shallowRef('browse' as const),
+    rows: shallowRef([]),
+    popularProviders: shallowRef([]),
+    providerSearchResults: shallowRef([]),
+    providerSearchQuery: shallowRef(''),
+    providerSearchLoading: shallowRef(false),
+    selectedGenreIds: shallowRef<number[]>([]),
+    minRating: shallowRef<number | null>(null),
+    selectedProviderIds: shallowRef<number[]>([]),
+    availableProviders: shallowRef([]),
+    genres: shallowRef([]),
+    refresh: mock.search.search,
     loadMore: mock.search.loadMore,
-    clear: mock.search.clear,
+    applySection: mock.search.search,
+    setKind: mock.search.search,
+    toggleGenre: mock.search.search,
+    clearGenres: mock.search.clear,
+    setMinRating: mock.search.search,
+    toggleProvider: mock.search.search,
+    clearProviders: mock.search.clear,
+    clearFilters: mock.search.clear,
+    search: mock.search.search,
+    clearSearch: mock.search.clear,
+    searchProviders: mock.search.search,
+    clearProviderSearch: mock.search.clear,
   }),
 }))
 

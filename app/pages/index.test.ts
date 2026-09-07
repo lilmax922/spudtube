@@ -19,15 +19,6 @@ interface BrowseMockState {
   error: { value: boolean }
 }
 
-interface SearchMockState {
-  mode: { value: 'browse' | 'search' }
-  searchedQuery: { value: string }
-  items: { value: TitleSummary[] }
-  loading: { value: boolean }
-  loadingMore: { value: boolean }
-  error: { value: boolean }
-}
-
 const heroState = {
   titles: shallowRef<HeroTitle[]>([]),
   loading: shallowRef(false),
@@ -38,6 +29,7 @@ const mock = vi.hoisted(() => ({
   browse: {
     refresh: vi.fn(),
     loadMore: vi.fn(),
+    applySection: vi.fn(),
     setKind: vi.fn(),
     toggleGenre: vi.fn(),
     clearGenres: vi.fn(),
@@ -45,8 +37,12 @@ const mock = vi.hoisted(() => ({
     toggleProvider: vi.fn(),
     clearProviders: vi.fn(),
     clearFilters: vi.fn(),
+    searchProviders: vi.fn(),
+    clearProviderSearch: vi.fn(),
   },
   search: {
+    search: vi.fn(),
+    clear: vi.fn(),
     loadMore: vi.fn(),
   },
 }))
@@ -64,20 +60,28 @@ const browseState: BrowseMockState = {
   error: shallowRef(false),
 }
 
-const searchState: SearchMockState = {
-  mode: shallowRef('browse'),
+const listingState = {
+  mode: shallowRef<'browse' | 'search'>('browse'),
   searchedQuery: shallowRef(''),
-  items: shallowRef<TitleSummary[]>([]),
-  loading: shallowRef(false),
-  loadingMore: shallowRef(false),
-  error: shallowRef(false),
+  rows: shallowRef<Array<{ key: string, titleKey: string, items: TitleSummary[], canSeeMore: boolean }>>([]),
+  popularProviders: shallowRef<{ id: number, name: string, logoPath: string | null }[]>([]),
+  providerSearchResults: shallowRef<{ id: number, name: string, logoPath: string | null }[]>([]),
+  providerSearchQuery: shallowRef(''),
+  providerSearchLoading: shallowRef(false),
 }
 
-vi.mock('../composables/use-browse-grid', () => ({
-  useBrowseGrid: () => ({
+vi.mock('../composables/use-browse-listing', () => ({
+  useBrowseListing: () => ({
     ...browseState,
+    ...listingState,
     refresh: mock.browse.refresh,
-    loadMore: mock.browse.loadMore,
+    loadMore: () => {
+      if (listingState.mode.value === 'search')
+        mock.search.loadMore()
+      else
+        mock.browse.loadMore()
+    },
+    applySection: mock.browse.applySection,
     setKind: mock.browse.setKind,
     toggleGenre: mock.browse.toggleGenre,
     clearGenres: mock.browse.clearGenres,
@@ -85,18 +89,15 @@ vi.mock('../composables/use-browse-grid', () => ({
     toggleProvider: mock.browse.toggleProvider,
     clearProviders: mock.browse.clearProviders,
     clearFilters: mock.browse.clearFilters,
+    search: mock.search.search,
+    clearSearch: mock.search.clear,
+    searchProviders: mock.browse.searchProviders,
+    clearProviderSearch: mock.browse.clearProviderSearch,
   }),
 }))
 
 vi.mock('../composables/use-hero-titles', () => ({
   useHeroTitles: () => heroState,
-}))
-
-vi.mock('../composables/use-search-state', () => ({
-  useSearchState: () => ({
-    ...searchState,
-    loadMore: mock.search.loadMore,
-  }),
 }))
 
 const heroTitles: HeroTitle[] = [
@@ -167,12 +168,9 @@ beforeEach(() => {
   browseState.loadingMore.value = false
   browseState.error.value = false
 
-  searchState.mode.value = 'browse'
-  searchState.searchedQuery.value = ''
-  searchState.items.value = []
-  searchState.loading.value = false
-  searchState.loadingMore.value = false
-  searchState.error.value = false
+  listingState.mode.value = 'browse'
+  listingState.searchedQuery.value = ''
+  listingState.rows.value = []
 
   heroState.titles.value = []
   heroState.loading.value = false

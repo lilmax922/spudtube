@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 import type { HeroPayload } from '#server/api/catalog/[kind]/hero.get'
-import type { Kind, TmdbLanguage } from '#server/tmdb/types'
+import type { TmdbLanguage } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'

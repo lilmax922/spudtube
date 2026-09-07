@@ -4,11 +4,11 @@ import { upsertRating } from '../../../db/queries/rating'
 import { UpdateRatingBodySchema } from '../../../db/schema/rating'
 import { apiValidationError } from '../../../utils/api-validation'
 import { requireAuthSession } from '../../../utils/auth'
-import { parseRatingParams } from '../params'
+import { parseMediaParams } from '../../media-params'
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
-  const { kind, id } = parseRatingParams(event)
+  const { kind, id } = parseMediaParams(event)
   const parsed = UpdateRatingBodySchema.safeParse(await readBody(event))
   if (!parsed.success)
     return apiValidationError(event, parsed.error)

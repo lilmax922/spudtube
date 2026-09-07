@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 import type { BrowseSection } from '#server/api/browse/sections.get'
-import type { Kind, TmdbLanguage } from '#server/tmdb/types'
+import type { TmdbLanguage } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { ref, watch } from 'vue'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '../lib/kind'

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { WatchStatus } from '#server/db/schema/title-status'
+import type { WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { Bookmark, Check } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
-import { useToast } from '../composables/use-toast'
 
 interface Props {
   status: WatchStatus | null
@@ -21,7 +20,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { showToast } = useToast()
 
 interface StatusAction {
   status: WatchStatus
@@ -48,37 +46,15 @@ const ACTIONS: StatusAction[] = [
   },
 ]
 
-function toastMessage(next: WatchStatus | null, target: WatchStatus): string {
-  if (target === 'WATCHLISTED')
-    return next ? t('watchStatus.toast.watchlistAdded') : t('watchStatus.toast.watchlistRemoved')
-  return next ? t('watchStatus.toast.watchedAdded') : t('watchStatus.toast.watchedRemoved')
-}
-
 function onActionClick(action: StatusAction): void {
   if (!props.signedIn) {
     emit('signInRequested')
     return
   }
-  const previous = props.status
-  const next: WatchStatus | null = props.status === action.status ? null : action.status
-  if (next == null)
+  if (props.status === action.status)
     emit('clearStatus')
   else
-    emit('setStatus', next)
-
-  const message = toastMessage(next, action.status)
-  showToast({
-    message,
-    actionLabel: t('watchStatus.toast.undo'),
-    onAction: () => {
-      if (previous == null) {
-        emit('clearStatus')
-      }
-      else {
-        emit('setStatus', previous)
-      }
-    },
-  })
+    emit('setStatus', action.status)
 }
 </script>
 

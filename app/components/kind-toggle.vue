@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { useI18n } from 'vue-i18n'
 
 defineProps<{ modelValue: Kind }>()

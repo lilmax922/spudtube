@@ -1,5 +1,5 @@
 import type { DOMWrapper, VueWrapper } from '@vue/test-utils'
-import type { RatingLabel } from '#server/db/schema/rating'
+import type { RatingLabel } from '#shared/personal-tracking/personal-tracking'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import RatingTrio from './rating-trio.vue'
@@ -49,7 +49,6 @@ describe('rating trio', () => {
 
     expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['不行', '不錯', '超棒'])
     await findButton(wrapper, '超棒')!.trigger('click')
-    await new Promise(resolve => setTimeout(resolve, 650))
     expect(wrapper.emitted('select')).toEqual([['AWESOME']])
     expect(options(wrapper)).toHaveLength(0)
   })
@@ -127,7 +126,6 @@ describe('rating trio', () => {
 
     expect(options(wrapper).map(option => option.attributes('aria-label'))).toEqual(['不行', '不錯', '超棒'])
     await findButton(wrapper, '超棒')!.trigger('click')
-    await new Promise(resolve => setTimeout(resolve, 650))
     expect(wrapper.emitted('select')).toEqual([['AWESOME']])
     expect(wrapper.emitted('clear')).toBeUndefined()
   })
@@ -139,7 +137,6 @@ describe('rating trio', () => {
     const good = findButton(wrapper, '不錯')!
     expect(good.attributes('aria-pressed')).toBe('true')
     await findButton(wrapper, '超棒')!.trigger('click')
-    await new Promise(resolve => setTimeout(resolve, 650))
 
     expect(wrapper.emitted('select')).toEqual([['AWESOME']])
     expect(wrapper.emitted('clear')).toBeUndefined()
@@ -150,9 +147,20 @@ describe('rating trio', () => {
 
     await findButton(wrapper, '已評價：不行')!.trigger('click')
     await findButton(wrapper, '不行')!.trigger('click')
-    await new Promise(resolve => setTimeout(resolve, 500))
 
     expect(wrapper.emitted('clear')).toHaveLength(1)
+  })
+
+  it('selection emits at once while the bounce animation still guards repeat clicks', async () => {
+    const wrapper = await render({ label: null, signedIn: true })
+
+    await findButton(wrapper, '評價這部片')!.trigger('click')
+    await findButton(wrapper, '超棒')!.trigger('click')
+    expect(wrapper.emitted('select')).toEqual([['AWESOME']])
+
+    await findButton(wrapper, '評價這部片')!.trigger('click')
+    await findButton(wrapper, '不錯')!.trigger('click')
+    expect(wrapper.emitted('select')).toEqual([['AWESOME']])
   })
 
   it('changing: pending disables the trio so no further actions fire', async () => {

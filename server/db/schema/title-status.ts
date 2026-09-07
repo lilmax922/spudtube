@@ -1,12 +1,14 @@
 import { relations } from 'drizzle-orm'
 import { integer, pgEnum, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod'
+import { WATCH_STATUSES } from '../../../shared/personal-tracking/personal-tracking'
 import { user } from './auth'
 import { kindEnum } from './kind'
 
 // Canonical WatchStatus values (CONTEXT.md). The enum cannot share the table's name
 // (Postgres tables reserve a composite type of the same name).
-export const watchStatusEnum = pgEnum('watch_status', ['WATCHLISTED', 'WATCHED'])
+// The value list lives in shared; this table only adds the Postgres enum.
+export const watchStatusEnum = pgEnum('watch_status', [...WATCH_STATUSES])
 
 export const titleStatus = pgTable('title_status', {
   userId: text().notNull().references(() => user.id, { onDelete: 'cascade' }),
@@ -24,7 +26,7 @@ export const titleStatusRelations = relations(titleStatus, ({ one }) => ({
   user: one(user, { fields: [titleStatus.userId], references: [user.id] }),
 }))
 
-export type WatchStatus = (typeof watchStatusEnum.enumValues)[number]
+export type { WatchStatus } from '../../../shared/personal-tracking/personal-tracking'
 
 export type TitleStatus = typeof titleStatus.$inferSelect
 export type InsertTitleStatus = typeof titleStatus.$inferInsert

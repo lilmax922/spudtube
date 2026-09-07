@@ -1,4 +1,4 @@
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 
 export function toMediaSegment(kind: Kind): 'movie' | 'tv' {
   return kind === 'MOVIE' ? 'movie' : 'tv'

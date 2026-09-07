@@ -4,7 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import MyListCard from './my-list-card.vue'
 
-const fetchMock = vi.hoisted(() => vi.fn(() => Promise.resolve({})))
+const fetchMock = vi.hoisted(() => vi.fn((url: string, options?: { method?: string, body?: Record<string, string> }) => {
+  // Echo fake: honors the server contract (PUT echoes the persisted value,
+  // DELETE returns null) so the tracking module can reconcile against it.
+  const method = options?.method ?? 'GET'
+  const body = options?.body ?? {}
+  if (url.includes('/api/status/'))
+    return Promise.resolve(method === 'PUT' ? { status: body.status } : { status: null })
+  if (url.includes('/api/ratings/'))
+    return Promise.resolve(method === 'PUT' ? { label: body.label } : { label: null })
+  return Promise.resolve({})
+}))
 
 mockNuxtImport('$fetch', () => fetchMock)
 

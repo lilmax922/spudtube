@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 import type { AsyncData, NuxtError } from '#app'
-import type { DiscoveryBadges, Kind } from '#server/tmdb/types'
+import type { DiscoveryBadges } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useFetch } from '#imports'

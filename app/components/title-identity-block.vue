@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { WatchStatus } from '#server/db/schema/title-status'
 import type { TitleDetail } from '#server/tmdb/types'
+import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { Play } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'

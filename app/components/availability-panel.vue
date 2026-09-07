@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { AvailabilityGroups, Kind, RegionAvailability } from '#server/tmdb/types'
+import type { AvailabilityGroups, RegionAvailability } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { isCuratedRegion } from '#shared/region/region'

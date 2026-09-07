@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import type { MyListEntry } from '#server/api/my-list.get'
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { WatchStatus } from '#server/db/schema/title-status'
-import { Bookmark, Check, Clapperboard } from '@lucide/vue'
-import { computed, ref, watch } from 'vue'
+import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
+import type { PersonalTrackingState } from '../composables/use-personal-tracking'
+import { Clapperboard } from '@lucide/vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { $fetch, useFetch } from '#imports'
+import { useFetch } from '#imports'
+import { usePersonalTracking } from '../composables/use-personal-tracking'
 import { authClient } from '../lib/auth-client'
 import { posterSrcSet, posterUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
-import { kindLabelKey, titleDetailPath, toMediaSegment } from '../lib/kind'
+import { kindLabelKey, titleDetailPath } from '../lib/kind'
 import RatingTrio from './rating-trio.vue'
+import TitleStatusToggle from './title-status-toggle.vue'
 
 interface Props {
   entry: MyListEntry
@@ -19,6 +21,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   updated: [payload: { kind: MyListEntry['kind'], tmdbId: number, previous: WatchStatus | RatingLabel | null, next: WatchStatus | RatingLabel | null, type: 'status' | 'rating' }]
+  signInRequested: []
 }>()
 
 const { t } = useI18n()
@@ -45,75 +48,88 @@ watch(() => props.entry.title?.posterPath, () => {
 const { data: session } = await authClient.useSession(useFetch)
 const signedIn = computed(() => session.value?.user != null)
 
-const localStatus = ref<WatchStatus | null>(props.entry.status ?? null)
-const localRating = ref<RatingLabel | null>(props.entry.ratingLabel ?? null)
-watch(() => props.entry.status, (v) => {
-  localStatus.value = v ?? null
+const id = computed(() => String(props.entry.tmdbId))
+
+// One tracking instance per card, created on the first user intent so mounting
+// the list never fires per-title reads. Until then the entry props render.
+// The module owns the optimistic flip and the revert; the card only forwards
+// the settled result so the page can adjust its list structure.
+const tracking = shallowRef<PersonalTrackingState | null>(null)
+
+function tracker(): PersonalTrackingState {
+  const existing = tracking.value
+  if (existing)
+    return existing
+  const created = usePersonalTracking(props.entry.kind, id, signedIn)
+  created.state.value = {
+    rating: props.entry.ratingLabel ?? null,
+    status: props.entry.status ?? null,
+  }
+  tracking.value = created
+  return created
+}
+
+// Page patches (toast undo) flow back into the module state.
+watch(() => props.entry.status, (next) => {
+  const current = tracking.value
+  if (current)
+    current.state.value = { ...current.state.value, status: next ?? null }
 })
-watch(() => props.entry.ratingLabel, (v) => {
-  localRating.value = v ?? null
+watch(() => props.entry.ratingLabel, (next) => {
+  const current = tracking.value
+  if (current)
+    current.state.value = { ...current.state.value, rating: next ?? null }
 })
 
-const statusPending = ref(false)
-const ratingPending = ref(false)
+const displayStatus = computed(() => tracking.value?.state.value.status ?? props.entry.status ?? null)
+const displayRating = computed(() => tracking.value?.state.value.rating ?? props.entry.ratingLabel ?? null)
+const busy = computed(() => tracking.value?.pending.value ?? false)
 
-async function toggleStatus(target: WatchStatus): Promise<void> {
-  if (statusPending.value)
+async function onSetStatus(target: WatchStatus): Promise<void> {
+  const current = tracker()
+  const previous = current.state.value.status
+  if (previous === target)
+    await current.clear('status')
+  else
+    await current.setStatus(target)
+  const next = current.state.value.status
+  if (next !== previous)
+    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'status' })
+}
+
+async function onClearStatus(): Promise<void> {
+  const current = tracker()
+  const previous = current.state.value.status
+  if (previous == null)
     return
-  const next: WatchStatus | null = localStatus.value === target ? null : target
-  const previous = localStatus.value
-  localStatus.value = next
-  emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'status' })
-  statusPending.value = true
-  const segment = toMediaSegment(props.entry.kind)
-  const url = `/api/status/${segment}/${props.entry.tmdbId}`
-  try {
-    if (next == null)
-      await $fetch(url, { method: 'DELETE' })
-    else
-      await $fetch(url, { method: 'PUT', body: { status: next } })
-  }
-  catch {
-    localStatus.value = previous
-    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous: next, next: previous, type: 'status' })
-  }
-  finally {
-    statusPending.value = false
-  }
+  await current.clear('status')
+  const next = current.state.value.status
+  if (next !== previous)
+    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'status' })
 }
 
-async function toggleRating(label: RatingLabel): Promise<void> {
-  if (ratingPending.value)
+async function onRatingSelect(label: RatingLabel): Promise<void> {
+  const current = tracker()
+  const previous = current.state.value.rating
+  await current.rate(label)
+  const next = current.state.value.rating
+  if (next !== previous)
+    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'rating' })
+}
+
+async function onRatingClear(): Promise<void> {
+  const current = tracker()
+  const previous = current.state.value.rating
+  if (previous == null)
     return
-  const next: RatingLabel | null = localRating.value === label ? null : label
-  const previous = localRating.value
-  localRating.value = next
-  emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'rating' })
-  ratingPending.value = true
-  const segment = toMediaSegment(props.entry.kind)
-  const url = `/api/ratings/${segment}/${props.entry.tmdbId}`
-  try {
-    if (next == null)
-      await $fetch(url, { method: 'DELETE' })
-    else
-      await $fetch(url, { method: 'PUT', body: { label: next } })
-  }
-  catch {
-    localRating.value = previous
-    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous: next, next: previous, type: 'rating' })
-  }
-  finally {
-    ratingPending.value = false
-  }
+  await current.clear('rating')
+  const next = current.state.value.rating
+  if (next !== previous)
+    emit('updated', { kind: props.entry.kind, tmdbId: props.entry.tmdbId, previous, next, type: 'rating' })
 }
 
-function onRatingSelect(label: RatingLabel): void {
-  void toggleRating(label)
-}
-
-function onRatingClear(): void {
-  if (localRating.value)
-    void toggleRating(localRating.value)
+function onSignInRequested(): void {
+  emit('signInRequested')
 }
 
 const visibleProviders = computed(() => props.entry.providers.slice(0, 5))
@@ -246,43 +262,23 @@ const extraProviderCount = computed(() => Math.max(0, props.entry.providers.leng
 
       <!-- action bar: watchlist / watched + rating (no separator per spec) -->
       <div class="mt-3 flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          class="inline-flex size-8 items-center justify-center rounded-full border border-input bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          :class="localStatus === 'WATCHLISTED'
-            ? 'text-foreground hover:bg-secondary'
-            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'"
-          :aria-pressed="localStatus === 'WATCHLISTED'"
-          :aria-label="localStatus === 'WATCHLISTED' ? t('watchStatus.watchlistRemove') : t('watchStatus.watchlistAdd')"
-          :title="localStatus === 'WATCHLISTED' ? t('watchStatus.watchlistRemove') : t('watchStatus.watchlistAdd')"
-          :disabled="statusPending"
-          @click.stop="toggleStatus('WATCHLISTED')"
-        >
-          <Bookmark :size="14" :stroke-width="1.75" :fill="localStatus === 'WATCHLISTED' ? 'currentColor' : 'none'" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          class="inline-flex size-8 items-center justify-center rounded-full border border-input bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
-          :class="localStatus === 'WATCHED'
-            ? 'text-foreground hover:bg-secondary'
-            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'"
-          :aria-pressed="localStatus === 'WATCHED'"
-          :aria-label="localStatus === 'WATCHED' ? t('watchStatus.watchedClear') : t('watchStatus.watchedMark')"
-          :title="localStatus === 'WATCHED' ? t('watchStatus.watchedClear') : t('watchStatus.watchedMark')"
-          :disabled="statusPending"
-          @click.stop="toggleStatus('WATCHED')"
-        >
-          <Check :size="14" :stroke-width="1.75" fill="none" aria-hidden="true" />
-        </button>
+        <TitleStatusToggle
+          :status="displayStatus"
+          :signed-in="signedIn"
+          :pending="busy"
+          @set-status="onSetStatus"
+          @clear-status="onClearStatus"
+          @sign-in-requested="onSignInRequested"
+        />
 
         <RatingTrio
-          :label="localRating"
+          :label="displayRating"
           :signed-in="signedIn"
-          :pending="ratingPending"
+          :pending="busy"
           compact
           @select="onRatingSelect"
           @clear="onRatingClear"
-          @sign-in-requested="() => {}"
+          @sign-in-requested="onSignInRequested"
         />
       </div>
     </div>

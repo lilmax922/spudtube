@@ -2,11 +2,11 @@ import { defineEventHandler } from 'h3'
 import { getDb } from '../../../db'
 import { deleteRating } from '../../../db/queries/rating'
 import { requireAuthSession } from '../../../utils/auth'
-import { parseRatingParams } from '../params'
+import { parseMediaParams } from '../../media-params'
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event)
-  const { kind, id } = parseRatingParams(event)
+  const { kind, id } = parseMediaParams(event)
   await deleteRating(getDb(event), session.user.id, kind, id)
   return { label: null }
 })

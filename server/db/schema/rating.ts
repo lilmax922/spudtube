@@ -1,12 +1,14 @@
 import { relations } from 'drizzle-orm'
 import { integer, pgEnum, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod'
+import { RATING_LABELS } from '../../../shared/personal-tracking/personal-tracking'
 import { user } from './auth'
 import { kindEnum } from './kind'
 
 // Canonical Rating labels (CONTEXT.md). The enum cannot share the table's name
 // (Postgres tables reserve a composite type of the same name).
-export const ratingLabelEnum = pgEnum('rating_label', ['AWESOME', 'GOOD', 'SUCKS'])
+// The value list lives in shared; this table only adds the Postgres enum.
+export const ratingLabelEnum = pgEnum('rating_label', [...RATING_LABELS])
 
 export const rating = pgTable('rating', {
   userId: text().notNull().references(() => user.id, { onDelete: 'cascade' }),
@@ -23,7 +25,7 @@ export const ratingRelations = relations(rating, ({ one }) => ({
   user: one(user, { fields: [rating.userId], references: [user.id] }),
 }))
 
-export type RatingLabel = (typeof ratingLabelEnum.enumValues)[number]
+export type { RatingLabel } from '../../../shared/personal-tracking/personal-tracking'
 
 export type Rating = typeof rating.$inferSelect
 export type InsertRating = typeof rating.$inferInsert

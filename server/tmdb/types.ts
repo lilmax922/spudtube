@@ -1,6 +1,8 @@
+import type { Kind } from '../../shared/kind/kind'
+
 export type TmdbLanguage = 'zh-TW' | 'en'
 
-export type Kind = 'MOVIE' | 'TV_SHOW'
+export type { Kind }
 
 export interface Page<T> {
   page: number

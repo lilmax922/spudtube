@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { WatchStatus } from '#server/db/schema/title-status'
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
+import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { computed, shallowRef } from 'vue'
-import { useTitleRating } from '../composables/use-title-rating'
-import { useTitleStatus } from '../composables/use-title-status'
+import { useI18n } from 'vue-i18n'
+import { usePersonalTracking } from '../composables/use-personal-tracking'
+import { useToast } from '../composables/use-toast'
 import { authClient } from '../lib/auth-client'
 import AuthRequiredModal from './auth-required-modal.vue'
 import RatingTrio from './rating-trio.vue'
@@ -16,28 +16,56 @@ const id = computed(() => String(props.tmdbId))
 const session = authClient.useSession()
 const signedIn = computed(() => session.value.data?.user != null)
 
-const { label, pending: ratingPending, rate, clear } = useTitleRating(
-  props.kind,
-  id as unknown as import('vue').Ref<string | string[]>,
-  signedIn,
-)
-const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(
+const { t } = useI18n()
+const { showToast } = useToast()
+const { state: tracking, pending, rate, setStatus, clear } = usePersonalTracking(
   props.kind,
   id as unknown as import('vue').Ref<string | string[]>,
   signedIn,
 )
 
+function statusToastMessage(next: WatchStatus | null, target: WatchStatus): string {
+  if (target === 'WATCHLISTED')
+    return next ? t('watchStatus.toast.watchlistAdded') : t('watchStatus.toast.watchlistRemoved')
+  return next ? t('watchStatus.toast.watchedAdded') : t('watchStatus.toast.watchedRemoved')
+}
+
+function showStatusToast(settled: WatchStatus | null, target: WatchStatus, previous: WatchStatus | null): void {
+  showToast({
+    message: statusToastMessage(settled, target),
+    actionLabel: t('watchStatus.toast.undo'),
+    onAction: () => {
+      if (previous == null)
+        void clear('status')
+      else
+        void setStatus(previous)
+    },
+  })
+}
+
 function onSelectRating(label: RatingLabel): void {
   void rate(label)
 }
 function onClearRating(): void {
-  void clear()
+  void clear('rating')
 }
-function onSetStatus(next: WatchStatus): void {
-  void set(next)
+async function onSetStatus(next: WatchStatus): Promise<void> {
+  const previous = tracking.value.status
+  await setStatus(next)
+  const settled = tracking.value.status
+  if (settled === previous)
+    return
+  showStatusToast(settled, next, previous)
 }
-function onClearStatus(): void {
-  void clearStatus()
+async function onClearStatus(): Promise<void> {
+  const previous = tracking.value.status
+  if (previous == null)
+    return
+  await clear('status')
+  const settled = tracking.value.status
+  if (settled === previous)
+    return
+  showStatusToast(settled, previous, previous)
 }
 const authModalOpen = shallowRef(false)
 
@@ -49,17 +77,17 @@ function onSignInRequested(): void {
 <template>
   <div class="flex flex-wrap items-center gap-2">
     <RatingTrio
-      :label="label"
+      :label="tracking.rating"
       :signed-in="signedIn"
-      :pending="ratingPending"
+      :pending="pending"
       @select="onSelectRating"
       @clear="onClearRating"
       @sign-in-requested="onSignInRequested"
     />
     <TitleStatusToggle
-      :status="status"
+      :status="tracking.status"
       :signed-in="signedIn"
-      :pending="statusPending"
+      :pending="pending"
       @set-status="onSetStatus"
       @clear-status="onClearStatus"
       @sign-in-requested="onSignInRequested"

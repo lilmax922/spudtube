@@ -1,6 +1,6 @@
 import type { z } from 'zod'
+import type { Kind } from '../../../shared/kind/kind'
 import type { Db } from '../index'
-import type { Kind } from '../schema/kind'
 import type { InsertTitleStatusSchema, TitleStatus } from '../schema/title-status'
 import { and, desc, eq, isNotNull } from 'drizzle-orm'
 import { titleStatus } from '../schema/title-status'

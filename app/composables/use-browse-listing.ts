@@ -1,5 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
-import type { Kind, TitleSummary } from '#server/tmdb/types'
+import type { TitleSummary } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
 import type { BrowseFetcher, BrowseGridState } from './use-browse-grid'
 import type { SectionsFetcher } from './use-browse-sections'
 import type { KeywordSearchState, SearchFetcher } from './use-keyword-search'

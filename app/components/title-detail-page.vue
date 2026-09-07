@@ -1,16 +1,15 @@
 <script setup lang="ts">
 /* eslint-disable style/quote-props */
-import type { RatingLabel } from '#server/db/schema/rating'
-import type { WatchStatus } from '#server/db/schema/title-status'
-import type { Kind } from '#server/tmdb/types'
+import type { Kind } from '#shared/kind/kind'
+import type { RatingLabel, WatchStatus } from '#shared/personal-tracking/personal-tracking'
 import { ArrowLeft } from '@lucide/vue'
 import { computed, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { defineOgImage, useHead, useRoute, useSiteConfig } from '#imports'
 import { useMediaLightboxState } from '../composables/use-media-lightbox'
+import { usePersonalTracking } from '../composables/use-personal-tracking'
 import { useTitleDetail } from '../composables/use-title-detail'
-import { useTitleRating } from '../composables/use-title-rating'
-import { useTitleStatus } from '../composables/use-title-status'
+import { useToast } from '../composables/use-toast'
 import { useTrailerState } from '../composables/use-trailer'
 import { authClient } from '../lib/auth-client'
 import { backdropUrl, posterUrl } from '../lib/images'
@@ -135,8 +134,11 @@ defineOgImage('SpudTube', { title: ogImageTitle, description: ogImageDescription
 const session = authClient.useSession()
 const signedIn = computed(() => session.value.data?.user != null)
 
-const { label: rating, pending: ratingPending, rate, clear } = useTitleRating(props.kind, titleId, signedIn)
-const { status, pending: statusPending, set, clear: clearStatus } = useTitleStatus(props.kind, titleId, signedIn)
+const { state: tracking, pending: trackingPending, rate, setStatus, clear } = usePersonalTracking(props.kind, titleId, signedIn)
+const { showToast } = useToast()
+
+const rating = computed(() => tracking.value.rating)
+const status = computed(() => tracking.value.status)
 
 const trailerOpen = shallowRef(false)
 const { open: openTrailerGlobal, close: closeTrailerGlobal } = useTrailerState()
@@ -171,15 +173,48 @@ function onSelectRating(label: RatingLabel): void {
 }
 
 function onClearRating(): void {
-  void clear()
+  void clear('rating')
 }
 
-function onSetStatus(next: WatchStatus): void {
-  void set(next)
+function statusToastMessage(next: WatchStatus | null, target: WatchStatus): string {
+  if (target === 'WATCHLISTED')
+    return next ? t('watchStatus.toast.watchlistAdded') : t('watchStatus.toast.watchlistRemoved')
+  return next ? t('watchStatus.toast.watchedAdded') : t('watchStatus.toast.watchedRemoved')
 }
 
-function onClearStatus(): void {
-  void clearStatus()
+async function onSetStatus(next: WatchStatus): Promise<void> {
+  const previous = tracking.value.status
+  await setStatus(next)
+  const settled = tracking.value.status
+  if (settled === previous)
+    return
+  showToast({
+    message: statusToastMessage(settled, next),
+    actionLabel: t('watchStatus.toast.undo'),
+    onAction: () => {
+      if (previous == null)
+        void clear('status')
+      else
+        void setStatus(previous)
+    },
+  })
+}
+
+async function onClearStatus(): Promise<void> {
+  const previous = tracking.value.status
+  if (previous == null)
+    return
+  await clear('status')
+  const settled = tracking.value.status
+  if (settled === previous)
+    return
+  showToast({
+    message: statusToastMessage(settled, previous),
+    actionLabel: t('watchStatus.toast.undo'),
+    onAction: () => {
+      void setStatus(previous)
+    },
+  })
 }
 
 const authModalOpen = shallowRef(false)
@@ -226,8 +261,8 @@ const failed = computed(() => {
         :rating="rating"
         :status="status"
         :signed-in="signedIn"
-        :rating-pending="ratingPending"
-        :status-pending="statusPending"
+        :rating-pending="trackingPending"
+        :status-pending="trackingPending"
         @select-rating="onSelectRating"
         @clear-rating="onClearRating"
         @set-status="onSetStatus"

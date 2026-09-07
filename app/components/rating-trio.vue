@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { RatingLabel } from '#server/db/schema/rating'
+import type { RatingLabel } from '#shared/personal-tracking/personal-tracking'
 import { Star, ThumbsDown, ThumbsUp } from '@lucide/vue'
 import { AnimatePresence, motion } from 'motion-v'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
@@ -134,19 +134,20 @@ function onOptionClick(option: RatingLabel): void {
   }
   if (bouncing.value)
     return
+  // The emit stays synchronous so callers reconcile immediately; the bounce
+  // below is purely visual and never gates the selection.
   bouncing.value = option
-  const durationMs = getBounceDuration(option) * 1000
   if (bounceTimer)
     clearTimeout(bounceTimer)
   bounceTimer = setTimeout(() => {
     bouncing.value = null
     bounceTimer = null
-    if (props.label === option)
-      emit('clear')
-    else
-      emit('select', option)
-    open.value = false
-  }, durationMs)
+  }, getBounceDuration(option) * 1000)
+  if (props.label === option)
+    emit('clear')
+  else
+    emit('select', option)
+  open.value = false
 }
 </script>
 

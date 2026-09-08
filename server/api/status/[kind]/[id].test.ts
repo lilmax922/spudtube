@@ -108,6 +108,15 @@ describe('status routes (seam S2)', () => {
     expect(await findTitleStatus(db, fixture.userId, 'MOVIE', 424)).toBeUndefined()
   })
 
+  it('rejects PUT { status: null } with 400 and writes nothing', async () => {
+    const fixture = await createSessionFixture(db)
+
+    const response = await statusCall('PUT', fixture.cookie, { status: null })
+
+    expect(response.status).toBe(400)
+    expect(await findTitleStatus(db, fixture.userId, 'MOVIE', 424)).toBeUndefined()
+  })
+
   it('rejects an invalid payload shape with 400 { issues } before any business logic', async () => {
     const fixture = await createSessionFixture(db)
 

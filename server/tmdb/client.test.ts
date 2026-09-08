@@ -790,6 +790,44 @@ describe('tmdb client — language support', () => {
     expect(en?.trailerKey).toBe('enTrailerKey')
   })
 
+  it('drops hostile trailer keys and falls through to the next valid trailer', async () => {
+    const MOVIE_HOSTILE_VIDEOS = {
+      ...MOVIE_DETAIL,
+      videos: {
+        results: [
+          { key: 'evil/key?x=1', site: 'YouTube', type: 'Trailer', official: true, iso_639_1: 'zh' },
+          { key: '"><script', site: 'YouTube', type: 'Trailer', official: false, iso_639_1: 'zh' },
+          { key: 'goodFallback_1-2', site: 'YouTube', type: 'Trailer', official: false, iso_639_1: 'en' },
+        ],
+      },
+    }
+    const { fetchJson } = createFakeTransport({
+      '/3/movie/419430': MOVIE_HOSTILE_VIDEOS,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const detail = await client.title('MOVIE', 419430, 'zh-TW')
+    expect(detail?.trailerKey).toBe('goodFallback_1-2')
+  })
+
+  it('maps trailerKey to null when every trailer key is hostile', async () => {
+    const MOVIE_ALL_HOSTILE_VIDEOS = {
+      ...MOVIE_DETAIL,
+      videos: {
+        results: [
+          { key: 'evil/key?x=1', site: 'YouTube', type: 'Trailer', official: true, iso_639_1: 'zh' },
+        ],
+      },
+    }
+    const { fetchJson } = createFakeTransport({
+      '/3/movie/419430': MOVIE_ALL_HOSTILE_VIDEOS,
+    })
+    const client = createTmdbClient({ token: 'test-token', fetchJson })
+
+    const detail = await client.title('MOVIE', 419430, 'zh-TW')
+    expect(detail?.trailerKey).toBeNull()
+  })
+
   it('falls back to opposite locale for overview when base is empty', async () => {
     const MOVIE_BOTH_TRANSLATED = {
       id: 999002,

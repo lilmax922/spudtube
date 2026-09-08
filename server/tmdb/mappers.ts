@@ -77,13 +77,19 @@ export function mapGenres(raw: z.infer<typeof rawGenreSchema>[], language: TmdbL
   return localizeGenres(genres, language)
 }
 
+// YouTube video IDs use this charset. Anything else from upstream is
+// treated as no-trailer rather than embedded. Length is intentionally NOT
+// enforced: test fixtures and future ID formats vary; charset is what
+// keeps the embed URL safe.
+const TRAILER_KEY_PATTERN = /^[\w-]{1,64}$/
+
 export function pickTrailerKey(
   videos: z.infer<typeof rawMovieDetailSchema>['videos'],
   preferred: TmdbLanguage = 'zh-TW',
 ): string | null {
   const results = videos?.results ?? []
   const trailers = results.filter(
-    video => video.site === 'YouTube' && video.type === 'Trailer',
+    video => video.site === 'YouTube' && video.type === 'Trailer' && TRAILER_KEY_PATTERN.test(video.key),
   )
   const primary = preferred === 'zh-TW' ? 'zh' : 'en'
   const fallback = preferred === 'zh-TW' ? 'en' : 'zh'

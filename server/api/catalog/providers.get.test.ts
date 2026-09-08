@@ -115,6 +115,16 @@ describe('gET /api/catalog/providers', () => {
     expect(fakeClient.watchProviders).not.toHaveBeenCalled()
   })
 
+  it('rejects more than MAX_IDS ids with 400', async () => {
+    const ids = Array.from({ length: 21 }, (_, index) => index + 1).join(',')
+    const response = await call(
+      new Request(`http://localhost/api/catalog/providers?kind=movie&ids=${ids}`),
+    )
+
+    expect(response.status).toBe(400)
+    expect(fakeClient.watchProviders).not.toHaveBeenCalled()
+  })
+
   it('rejects an unknown kind', async () => {
     const response = await call(
       new Request('http://localhost/api/catalog/providers?kind=book&ids=1'),

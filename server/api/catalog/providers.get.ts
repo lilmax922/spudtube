@@ -12,11 +12,14 @@ import { kindFromSegment } from '../../tmdb/mappers'
 import { languageParam, mediaSegmentParam } from '../../utils/params'
 import { parseOrThrow } from '../../utils/validation'
 
+const MAX_IDS = 20
+
 const providersQuerySchema = z.object({
   kind: mediaSegmentParam,
   ids: z
     .string()
-    .regex(/^\d+(,\d+)*$/, 'must be a comma-separated list of TMDB ids'),
+    .regex(/^\d+(,\d+)*$/, 'must be a comma-separated list of TMDB ids')
+    .refine(value => value.split(',').length <= MAX_IDS, { message: `at most ${MAX_IDS} ids per request` }),
   language: languageParam,
 })
 

@@ -88,7 +88,10 @@ const ldJsonContent = computed(() => {
       worstRating: 0,
     }
   }
-  return JSON.stringify(base)
+  // Escape `<` so a TMDB-controlled string can never break out of the
+  // application/ld+json script block. `\u003c` is valid JSON and parses
+  // back to `<`, so consumers are unaffected.
+  return JSON.stringify(base).replace(/</g, '\\u003c')
 })
 
 useHead(() => {

@@ -2,7 +2,7 @@ import type { Ref } from 'vue'
 import type { TitleDetail } from '#server/tmdb/types'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import { MOVIE_DETAIL } from '../lib/title-detail-fixtures'
@@ -43,6 +43,26 @@ vi.mock('../composables/use-trailer', () => ({
 vi.mock('../composables/use-media-lightbox', () => ({
   useMediaLightboxState: () => ({ isOpen: ref(false), open: vi.fn(), close: vi.fn() }),
 }))
+
+const headSnapshots = vi.hoisted(() => [] as unknown[])
+
+mockNuxtImport('useHead', async () => {
+  const actual = await vi.importActual('#imports') as Record<string, unknown>
+  const realUseHead = actual.useHead as (input: unknown) => unknown
+  return (input: unknown) => {
+    if (typeof input === 'function') {
+      const getter = input as () => unknown
+      const wrapped = () => {
+        const resolved = getter()
+        headSnapshots.push(resolved)
+        return resolved
+      }
+      return realUseHead(wrapped)
+    }
+    headSnapshots.push(input)
+    return realUseHead(input)
+  }
+})
 
 const detailRef: Ref<TitleDetail | null> = ref(null)
 const pendingRef = ref(false)
@@ -114,6 +134,7 @@ beforeEach(async () => {
   detailRef.value = null
   pendingRef.value = false
   errorRef.value = null
+  headSnapshots.length = 0
   // ensure no bleed from previous test's head
   for (const el of document.head.querySelectorAll('script[type="application/ld+json"]'))
     el.remove()
@@ -239,6 +260,34 @@ describe('title-detail-page SEO', () => {
     const jsonStr = JSON.stringify(ldJson()!)
     // Should be TVSeries, not Movie
     expect(jsonStr.toLowerCase().includes('tvseries') || jsonStr.toLowerCase().includes('tv_series') || jsonStr.toLowerCase().includes('tv')).toBe(true)
+  })
+
+  it('escapes a script-breaking name in the JSON-LD payload without losing data', async () => {
+    const evilName = 'X</script><script>alert(1)</script>'
+    detailRef.value = {
+      ...MOVIE_DETAIL,
+      kind: 'MOVIE',
+      name: evilName,
+      releaseDate: '2021-10-22',
+      voteAverage: 7.8,
+      genres: [{ id: 878, name: '科幻' }],
+      posterPath: '/poster.jpg',
+    }
+
+    await mountSuspended(TitleDetailPage, { route: '/movie/419430', props: { kind: 'MOVIE' as const } })
+
+    await vi.waitFor(() => expect(ldJson()).toBeTruthy(), { timeout: 3000 })
+    await new Promise(r => setTimeout(r, 100))
+    // primary gate: the serialized payload handed to useHead (sink output)
+    const payloads = headSnapshots.filter(s => (s as { script?: unknown }).script != null)
+    const last = payloads.at(-1) as { script: { innerHTML: string }[] } | undefined
+    const raw = last?.script[0]?.innerHTML ?? ''
+    expect(raw.length).toBeGreaterThan(0)
+    expect(raw.includes('</script')).toBe(false)
+    expect((JSON.parse(raw) as Record<string, unknown>).name).toBe(evilName)
+    // secondary: the rendered tag carries no literal script-close either
+    const rendered = document.head.querySelector('script[type="application/ld+json"]')?.textContent ?? ''
+    expect(rendered.includes('</script')).toBe(false)
   })
 
   it('sets og:locale correctly on detail (reactive to locale)', async () => {

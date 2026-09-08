@@ -9,8 +9,6 @@ import {
   SEARCH_TTL_MS,
   TMDB_BASE_URL,
 } from './constants'
-import { TmdbApiError } from './errors'
-import { fetchWithTimeout, TMDB_FETCH_TIMEOUT_MS } from './fetch-timeout'
 import { localizeGenres } from './genres'
 import {
   mapMovieDetail,
@@ -34,12 +32,19 @@ import {
 
 export interface FetchJsonInit {
   headers?: Record<string, string>
-  signal?: AbortSignal
 }
 
 export type FetchJson = (url: string, init?: FetchJsonInit) => Promise<unknown>
 
-export { TmdbApiError }
+export class TmdbApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'TmdbApiError'
+  }
+}
 
 export interface TmdbClientDeps {
   token: string
@@ -104,23 +109,7 @@ export interface TmdbClient {
 }
 
 const defaultFetchJson: FetchJson = async (url, init) => {
-  // Load-bearing: the upstream fetch must not hang forever. A stalled TMDB
-  // response would otherwise pin the cache in-flight slot (and the API
-  // route) indefinitely. Timeouts surface as 504 so routes map them to 502.
-  let response: Response
-  try {
-    response = await fetchWithTimeout(
-      url,
-      { headers: init?.headers, signal: init?.signal },
-      (requestUrl, requestInit) => fetch(requestUrl, requestInit),
-      TMDB_FETCH_TIMEOUT_MS,
-    )
-  }
-  catch (error) {
-    if (error instanceof Error && error.name === 'TimeoutError')
-      throw new TmdbApiError(504, `TMDB request timeout after ${TMDB_FETCH_TIMEOUT_MS}ms`)
-    throw error
-  }
+  const response = await fetch(url, init)
   if (!response.ok) {
     throw new TmdbApiError(response.status, `TMDB request failed: ${response.status}`)
   }

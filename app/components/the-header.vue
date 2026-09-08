@@ -233,7 +233,7 @@ onBeforeUnmount(() => {
           type="button"
           :aria-label="t('search.open')"
           aria-keyshortcuts="Meta+K Control+K"
-          class="ghost headerSearchBtn"
+          class="headerSearchBtn"
           @click="openSearch"
         >
           <Search :size="18" :stroke-width="1.75" aria-hidden="true" />
@@ -241,6 +241,13 @@ onBeforeUnmount(() => {
         <span class="headerLangDesktop">
           <LanguageSwitcher />
         </span>
+        <NuxtLink
+          v-if="props.user"
+          to="/my-list"
+          class="headerMyListDesktop"
+        >
+          {{ t('myList.heading') }}
+        </NuxtLink>
         <AccountMenu
           :user="props.user ?? null"
           @sign-in="emit('signIn')"
@@ -335,49 +342,47 @@ onBeforeUnmount(() => {
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   text-decoration: none;
 }
-#appnav a.ghost,
-#appnav .ghost {
+/* Desktop My List mirrors KindSwitch idle/hover (.kindSwitchBtn in kind-switch.vue):
+   same 32px height, 8px radius, button-md type, white 72% idle,
+   white 8% hover. Plain navigate link with no route selected state.
+   Keep in sync, do not restyle freely. */
+#appnav a.headerMyListDesktop {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: none;
   background: transparent;
-  border: 1px solid transparent;
-  color: var(--muted-foreground);
+  font-size: var(--text-button-md);
+  line-height: var(--leading-button-md);
+  letter-spacing: var(--tracking-button-md);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
 }
-#appnav a.ghost:hover,
-#appnav .ghost:hover {
-  background: var(--muted);
-  color: var(--foreground);
+#appnav a.headerMyListDesktop:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
-#appnav a.outline,
-#appnav .outline {
+/* Header icon trigger mirrors KindSwitch idle/hover (.kindSwitchBtn in kind-switch.vue):
+   32px box, 8px radius, white 72% idle, white 8% hover.
+   Keep in sync, do not restyle freely. */
+#searchOpenBtn {
   background: transparent;
-  border: 1px solid var(--border);
-  color: var(--foreground);
-}
-#appnav a.outline:hover,
-#appnav .outline:hover {
-  background: var(--muted);
-  border-color: var(--ring);
-}
-#appnav a.on {
-  color: var(--foreground);
-  background: var(--muted);
-  border-color: var(--border);
-}
-#searchOpenBtn.ghost {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--muted-foreground);
-  width: 38px;
-  height: 38px;
-  border-radius: 9999px;
+  border: none;
+  color: rgba(255, 255, 255, 0.72);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background 0.16s, color 0.16s;
 }
-#searchOpenBtn.ghost:hover {
-  background: var(--muted);
-  color: var(--foreground);
+#searchOpenBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 @media (max-width: 880px) {
   .headerHamburger {
@@ -388,6 +393,9 @@ onBeforeUnmount(() => {
   }
   .headerLangDesktop {
     display: none;
+  }
+  .headerMyListDesktop {
+    display: none !important;
   }
   .header-inner {
     gap: 8px;

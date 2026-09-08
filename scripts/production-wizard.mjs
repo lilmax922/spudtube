@@ -225,8 +225,10 @@ async function main() {
   }
   else {
     info('Skipped writing .dev.vars. Copy .dev.vars.example → .dev.vars manually if needed.')
-    info('Content that would have been written:')
-    println(devVarsContent)
+    // Never print devVarsContent: it holds full secret values. The variable
+    // names are already documented in .dev.vars.example; fill them in from
+    // the values entered earlier in this session (see the step 8 preview).
+    info('Fill in TMDB_TOKEN, BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from your password manager.')
   }
 
   heading('9 — Apply migrations to production')

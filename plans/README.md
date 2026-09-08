@@ -14,14 +14,14 @@ and Hyperdrive-under-load probing were NOT part of this audit.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001  | Stop printing full secrets from the production wizard | P1 | S | — | TODO |
-| 002  | Isolate per-title failures in hero enrichment | P1 | S | — | TODO |
-| 003  | Cap unauthenticated fan-out inputs (provider ids, search query) | P1 | S | — | TODO |
+| 001  | Stop printing full secrets from the production wizard | P1 | S | — | DONE |
+| 002  | Isolate per-title failures in hero enrichment | P1 | S | — | DONE |
+| 003  | Cap unauthenticated fan-out inputs (provider ids, search query) | P1 | S | — | DONE |
 | 004  | Bound the TMDB TTL cache (LRU cap, key hygiene, in-flight dedup) | P1 | M | — | TODO |
-| 005  | Split the shared pending flag in personal tracking | P1 | S | — | TODO |
-| 006  | Escape JSON-LD before innerHTML injection | P1 | S | — | TODO |
+| 005  | Split the shared pending flag in personal tracking | P1 | S | — | DONE |
+| 006  | Escape JSON-LD before innerHTML injection | P1 | S | — | DONE |
 | 007  | Validate the upstream trailer key before iframe embed | P1 | S | — | TODO |
-| 008  | Reject null status on the status PUT route | P1 | S | — | TODO |
+| 008  | Reject null status on the status PUT route | P1 | S | — | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 

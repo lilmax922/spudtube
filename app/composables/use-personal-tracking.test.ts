@@ -158,23 +158,44 @@ describe('use-personal-tracking', () => {
     expect(deleteStatus).toHaveBeenCalledTimes(1)
   })
 
-  it('serializes mutations through the single pending flag', async () => {
-    const { fetcher, putRating, putStatus, deleteRating } = createFakeFetcher()
+  it('lets rating and status mutate concurrently', async () => {
+    const { fetcher, putRating, putStatus } = createFakeFetcher()
+    const flight = deferred<RatingLabel>()
+    putRating.mockReturnValueOnce(flight.promise)
+    putStatus.mockResolvedValue('WATCHED')
+    const tracking = usePersonalTracking('MOVIE', ref('424'), ref(true), fetcher)
+
+    const rating = tracking.rate('GOOD')
+    await tracking.setStatus('WATCHED')
+
+    expect(putRating).toHaveBeenCalledTimes(1)
+    expect(putStatus).toHaveBeenCalledWith('WATCHED')
+    expect(tracking.pending.value).toBe(true)
+
+    flight.resolve('GOOD')
+    await rating
+
+    expect(tracking.state.value).toEqual({ rating: 'GOOD', status: 'WATCHED' })
+    expect(tracking.pending.value).toBe(false)
+  })
+
+  it('drops a second rating issued while the first is still in flight', async () => {
+    const { fetcher, putRating } = createFakeFetcher()
     const flight = deferred<RatingLabel>()
     putRating.mockReturnValueOnce(flight.promise)
     const tracking = usePersonalTracking('MOVIE', ref('424'), ref(true), fetcher)
 
     const rating = tracking.rate('GOOD')
-    await tracking.setStatus('WATCHED')
-    await tracking.clear('rating')
+    await tracking.rate('AWESOME')
 
     expect(putRating).toHaveBeenCalledTimes(1)
-    expect(putStatus).not.toHaveBeenCalled()
-    expect(deleteRating).not.toHaveBeenCalled()
     expect(tracking.state.value.rating).toBe('GOOD')
 
     flight.resolve('GOOD')
     await rating
+
+    expect(tracking.state.value.rating).toBe('GOOD')
+    expect(tracking.pending.value).toBe(false)
   })
 
   it('mutations are no-ops for signed-out visitors', async () => {

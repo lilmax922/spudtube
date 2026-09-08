@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { integer, pgEnum, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod'
+import { z } from 'zod'
 import { WATCH_STATUSES } from '../../../shared/personal-tracking/personal-tracking'
 import { user } from './auth'
 import { kindEnum } from './kind'
@@ -41,4 +42,8 @@ export const SelectTitleStatusSchema = createSelectSchema(titleStatus)
 export const UpdateTitleStatusSchema = createUpdateSchema(titleStatus)
   .omit({ createdAt: true, updatedAt: true, userId: true, kind: true, tmdbId: true })
 
-export const UpdateTitleStatusBodySchema = UpdateTitleStatusSchema.pick({ status: true }).required()
+// The column stays nullable (clearing sets NULL in place per ADR 0003), but the
+// PUT body accepts only real statuses — NULL is reachable solely via DELETE.
+export const UpdateTitleStatusBodySchema = z.object({
+  status: z.enum(WATCH_STATUSES),
+})

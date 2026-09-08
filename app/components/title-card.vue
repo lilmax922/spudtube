@@ -1,79 +1,22 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
+import type { TitleCardFeed } from '../composables/use-title-card-data'
 import { Clapperboard } from '@lucide/vue'
 import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useAvailability } from '../composables/use-availability'
-import { useDiscoveryBadges } from '../composables/use-discovery-badges'
-import { useRegion } from '../composables/use-region'
-import { posterSrcSet, posterUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
-import { kindLabelKey, titleDetailPath } from '../lib/kind'
+import { useTitleCardData } from '../composables/use-title-card-data'
+import { resolveHoverDescription } from '../lib/card-display'
+import { titleDetailPath } from '../lib/kind'
 
-const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean, overview?: string }>(), {
+const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean, feed?: TitleCardFeed }>(), {
   showKind: false,
-  overview: undefined,
+  feed: undefined,
 })
-
-const { t } = useI18n()
 
 const imageFailed = ref(false)
 
-const posterSrc = computed(() =>
-  props.title.posterPath ? posterUrl(props.title.posterPath) : null,
-)
+const { kindLabel, discoveryBadge, ratingText, year, poster, providerLogos, markInspected } = useTitleCardData(() => props.title, () => props.feed)
 
-const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
-
-const kindLabel = computed(() => t(kindLabelKey(props.title.kind)))
-
-const HOVER_PROVIDER_LIMIT = 6
-
-const { badges } = useDiscoveryBadges(props.title.kind)
-
-// Labels only ever come from real TMDB list membership (/trending/{kind}/week, /{kind}/top_rated);
-// there is deliberately no vote-threshold fallback because that would fabricate status.
-const discoveryBadge = computed(() => {
-  const sets = badges.data.value
-  if (!sets)
-    return ''
-  const id = props.title.tmdbId
-  if (sets.trendingIds.includes(id))
-    return t('card.badges.trending')
-  if (sets.topRatedIds.includes(id))
-    return t('card.badges.topRated')
-  return ''
-})
-
-const ratingText = computed(() => {
-  const v = props.title.voteAverage
-  return v != null ? v.toFixed(1) : '—'
-})
-
-const hoverDescription = computed(() => {
-  const overview = props.overview ?? props.title.overview ?? null
-  return overview != null && overview.trim().length > 0 ? overview : null
-})
-
-const { region } = useRegion()
-const { catalog: availability, loadCatalog } = useAvailability(props.title.kind, props.title.tmdbId, { immediate: false })
-
-const inspected = ref(false)
-
-function markInspected(): void {
-  if (inspected.value)
-    return
-  inspected.value = true
-  void loadCatalog()
-}
-
-const hoverProviders = computed(() => {
-  const entry = availability.data.value?.[region.value]
-  if (!entry)
-    return []
-  const streamable = [...entry.groups.subscription, ...entry.groups.free]
-    .filter(provider => provider.logoPath != null)
-  return streamable.slice(0, HOVER_PROVIDER_LIMIT)
-})
+const hoverDescription = computed(() => resolveHoverDescription(props.title.overview))
 </script>
 
 <template>
@@ -102,9 +45,9 @@ const hoverProviders = computed(() => {
       </span>
 
       <NuxtImg
-        v-if="posterSrc && !imageFailed"
-        :src="posterSrc"
-        :srcset="posterSrcSet(props.title.posterPath)"
+        v-if="poster && !imageFailed"
+        :src="poster.src"
+        :srcset="poster.srcset"
         sizes="240px sm:240px md:320px"
         :alt="title.name"
         loading="lazy"
@@ -125,12 +68,12 @@ const hoverProviders = computed(() => {
           {{ title.name }}
         </div>
 
-        <div v-if="hoverProviders.length > 0" data-testid="provider-strip" class="flex items-center gap-1.5">
+        <div v-if="providerLogos.length > 0" data-testid="provider-strip" class="flex items-center gap-1.5">
           <NuxtImg
-            v-for="provider in hoverProviders"
+            v-for="provider in providerLogos"
             :key="provider.id"
-            :src="providerLogoUrl(provider.logoPath) ?? undefined"
-            :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
+            :src="provider.src"
+            :srcset="provider.srcset"
             sizes="24px"
             :alt="provider.name"
             :title="provider.name"

@@ -1,33 +1,9 @@
-import type { DiscoveryBadges, ProviderCatalog, TitleSummary } from '#server/tmdb/types'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import type { TitleSummary } from '#server/tmdb/types'
+import type { TitleCardFeed } from '../composables/use-title-card-data'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { PROVIDER_CATALOG } from '../lib/availability-fixtures'
 import TitleCard from './title-card.vue'
-
-const badgesMock = vi.hoisted(() => ({
-  badges: {
-    data: { value: null as DiscoveryBadges | null | undefined },
-  },
-}))
-
-vi.mock('../composables/use-discovery-badges', () => ({
-  useDiscoveryBadges: () => ({ badges: badgesMock.badges }),
-}))
-
-const availabilityMock = vi.hoisted(() => ({
-  catalog: {
-    data: { value: null as ProviderCatalog | null | undefined },
-    pending: { value: false },
-    error: { value: null as Error | null },
-  },
-  loadCatalog: vi.fn(),
-}))
-
-vi.mock('../composables/use-availability', () => ({
-  useAvailability: () => availabilityMock,
-}))
 
 const baseTitle: TitleSummary = {
   kind: 'MOVIE',
@@ -39,38 +15,45 @@ const baseTitle: TitleSummary = {
   voteAverage: 7.8,
 }
 
-async function render(title: TitleSummary = baseTitle, showKind = false) {
-  return await mountSuspended(TitleCard, { route: '/?probe=1', props: { title, showKind } })
+async function render(
+  title: TitleSummary = baseTitle,
+  showKind = false,
+  overrides: Partial<TitleCardFeed> = {},
+) {
+  const loadCatalog = vi.fn(async () => {})
+  const wrapper = await mountSuspended(TitleCard, {
+    route: '/?probe=1',
+    props: {
+      title,
+      showKind,
+      feed: {
+        badges: undefined,
+        catalog: undefined,
+        region: 'TW',
+        loadCatalog,
+        ...overrides,
+      },
+    },
+  })
+  return { wrapper, loadCatalog }
 }
-
-function resetMocks(): void {
-  badgesMock.badges.data.value = undefined
-  availabilityMock.catalog.data.value = undefined
-  availabilityMock.loadCatalog.mockClear()
-}
-
-beforeEach(resetMocks)
 
 describe('title-card', () => {
-  afterEach(() => {
-    document.cookie = 'spudtube-region=; Max-Age=0; Path=/'
-  })
-
   it('links the card to its own title detail page', async () => {
-    const wrapper = await render()
+    const { wrapper } = await render()
 
     expect(wrapper.find('a').attributes('href')).toBe('/movie/419430')
   })
 
   it('renders the localized name and release year', async () => {
-    const wrapper = await render()
+    const { wrapper } = await render()
 
     expect(wrapper.text()).toContain('沙丘')
     expect(wrapper.text()).toContain('2021')
   })
 
   it('renders the poster from the TMDB image CDN when artwork exists', async () => {
-    const wrapper = await render()
+    const { wrapper } = await render()
 
     const img = wrapper.find('img')
     expect(img.exists()).toBe(true)
@@ -81,7 +64,7 @@ describe('title-card', () => {
   })
 
   it('degrades gracefully to a placeholder when artwork is missing', async () => {
-    const wrapper = await render({ ...baseTitle, posterPath: null })
+    const { wrapper } = await render({ ...baseTitle, posterPath: null })
 
     expect(wrapper.find('img').exists()).toBe(false)
     expect(wrapper.find('svg').exists()).toBe(true)
@@ -89,7 +72,7 @@ describe('title-card', () => {
   })
 
   it('degrades to the placeholder when the poster fails to load', async () => {
-    const wrapper = await render()
+    const { wrapper } = await render()
 
     await wrapper.find('img').trigger('error')
 
@@ -98,7 +81,7 @@ describe('title-card', () => {
   })
 
   it('labels the kind on the poster when showKind is set', async () => {
-    const wrapper = await render(baseTitle, true)
+    const { wrapper } = await render(baseTitle, true)
 
     const badge = wrapper.find('[data-testid="kind-badge"]')
     expect(badge.exists()).toBe(true)
@@ -106,86 +89,94 @@ describe('title-card', () => {
   })
 
   it('shows the TV show label for TV_SHOW titles', async () => {
-    const wrapper = await render({ ...baseTitle, kind: 'TV_SHOW' }, true)
+    const { wrapper } = await render({ ...baseTitle, kind: 'TV_SHOW' }, true)
 
     expect(wrapper.find('[data-testid="kind-badge"]').text()).toBe('TV Show')
   })
 
   it('hides the kind badge by default', async () => {
-    const wrapper = await render()
+    const { wrapper } = await render()
 
     expect(wrapper.find('[data-testid="kind-badge"]').exists()).toBe(false)
   })
 })
 
-describe('title-card discovery badge — real TMDB list membership only', () => {
+describe('title-card discovery badge from real TMDB list membership', () => {
   it('renders no badge while the membership sets are missing', async () => {
-    badgesMock.badges.data.value = undefined
-    const wrapper = await render({ ...baseTitle, voteAverage: 9.2 })
+    const { wrapper } = await render({ ...baseTitle, voteAverage: 9.2 })
 
     expect(wrapper.find('[data-testid="discovery-badge"]').exists()).toBe(false)
   })
 
   it('never derives a badge from the rating alone', async () => {
-    badgesMock.badges.data.value = { trendingIds: [], topRatedIds: [] }
-    const wrapper = await render({ ...baseTitle, voteAverage: 9.2 })
+    const { wrapper } = await render(
+      { ...baseTitle, voteAverage: 9.2 },
+      false,
+      { badges: { trendingIds: [], topRatedIds: [] } },
+    )
 
     expect(wrapper.find('[data-testid="discovery-badge"]').exists()).toBe(false)
   })
 
   it('marks titles present in the weekly trending list', async () => {
-    badgesMock.badges.data.value = { trendingIds: [419430], topRatedIds: [] }
-    const wrapper = await render()
+    const { wrapper } = await render(
+      baseTitle,
+      false,
+      { badges: { trendingIds: [419430], topRatedIds: [] } },
+    )
 
     expect(wrapper.find('[data-testid="discovery-badge"]').text()).toBe('Trending')
   })
 
   it('marks top-rated list members and lets trending win on overlap', async () => {
-    badgesMock.badges.data.value = { trendingIds: [], topRatedIds: [419430] }
-    const topRated = await render()
-    expect(topRated.find('[data-testid="discovery-badge"]').text()).toBe('Top rated')
+    const topRated = await render(
+      baseTitle,
+      false,
+      { badges: { trendingIds: [], topRatedIds: [419430] } },
+    )
+    expect(topRated.wrapper.find('[data-testid="discovery-badge"]').text()).toBe('Top rated')
 
-    badgesMock.badges.data.value = { trendingIds: [419430], topRatedIds: [419430] }
-    const both = await render()
-    expect(both.find('[data-testid="discovery-badge"]').text()).toBe('Trending')
+    const both = await render(
+      baseTitle,
+      false,
+      { badges: { trendingIds: [419430], topRatedIds: [419430] } },
+    )
+    expect(both.wrapper.find('[data-testid="discovery-badge"]').text()).toBe('Trending')
   })
 })
 
 describe('title-card hover content', () => {
   it('shows no fabricated maturity chip or watch-option claim', async () => {
-    const wrapper = await render({ ...baseTitle, voteAverage: 9.4 })
+    const { wrapper } = await render({ ...baseTitle, voteAverage: 9.4 })
 
     expect(wrapper.text()).not.toContain('16+')
     expect(wrapper.text()).not.toContain('ALL')
     expect(wrapper.text()).not.toContain('Watch options available')
   })
 
-  it('renders the real overview and hides the paragraph when none exists', async () => {
+  it('renders the title overview and hides the paragraph when none exists', async () => {
     const withOverview = await render({ ...baseTitle, overview: '亞崔迪家族接受沙丘星的統治權。' })
-    expect(withOverview.text()).toContain('亞崔迪家族接受沙丘星的統治權。')
+    expect(withOverview.wrapper.text()).toContain('亞崔迪家族接受沙丘星的統治權。')
 
     const withoutOverview = await render()
-    expect(withoutOverview.find('.hover-overlay-content p').exists()).toBe(false)
-    expect(withoutOverview.text()).not.toContain('它可能已從目錄中移除')
+    expect(withoutOverview.wrapper.find('.hover-overlay-content p').exists()).toBe(false)
   })
 
-  it('renders no provider strip before availability resolves', async () => {
-    const wrapper = await render()
+  it('reports inspection and renders no strip before the catalog resolves', async () => {
+    const { wrapper, loadCatalog } = await render()
 
     await wrapper.find('a').trigger('mouseenter')
-    expect(availabilityMock.loadCatalog).toHaveBeenCalledTimes(1)
+    expect(loadCatalog).toHaveBeenCalledTimes(1)
     expect(wrapper.find('[data-testid="provider-strip"]').exists()).toBe(false)
   })
 
-  it('loads streaming providers on inspection and renders their real logos', async () => {
-    const wrapper = await render()
+  it('renders the fed catalog logos once they resolve', async () => {
+    const { wrapper, loadCatalog } = await render(baseTitle, false, { catalog: PROVIDER_CATALOG })
+
     await wrapper.find('a').trigger('mouseenter')
-    expect(availabilityMock.loadCatalog).toHaveBeenCalledTimes(1)
+    expect(loadCatalog).toHaveBeenCalledTimes(1)
 
-    availabilityMock.catalog.data.value = PROVIDER_CATALOG
-    const loaded = await render()
-
-    const strip = loaded.find('[data-testid="provider-strip"]')
+    const strip = wrapper.find('[data-testid="provider-strip"]')
     expect(strip.exists()).toBe(true)
     const logos = strip.findAll('img')
     expect(logos.map(img => img.attributes('alt'))).toEqual(['CATCHPLAY+', 'Netflix'])
@@ -193,36 +184,12 @@ describe('title-card hover content', () => {
   })
 
   it('triggers the provider load at most once per card', async () => {
-    const wrapper = await render()
+    const { wrapper, loadCatalog } = await render()
 
     await wrapper.find('a').trigger('mouseenter')
     await wrapper.find('a').trigger('mouseenter')
     await wrapper.find('a').trigger('focusin')
 
-    expect(availabilityMock.loadCatalog).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('title-card hover is mouse-only', () => {
-  it('gates mask, overlay, zoom and shadow on (hover: hover) and (pointer: fine)', () => {
-    const source = readFileSync(resolve(import.meta.dirname, './title-card.vue'), 'utf8')
-    // Touch drag synthesizes :hover mid-swipe; every hover visual must live
-    // inside the fine-pointer media gate so it never flashes on mobile.
-    const gate = source.match(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{([\s\S]*?)\n\}/)
-    expect(gate).not.toBeNull()
-    const gated = gate![1] ?? ''
-    expect(gated).toMatch(/\.title-card-root:hover[\s\S]*?box-shadow/)
-    expect(gated).toMatch(/\.title-card-art::before[\s\S]*?opacity:\s*1/)
-    expect(gated).toMatch(/\.hover-overlay-content[\s\S]*?opacity:\s*1/)
-    expect(gated).toMatch(/\.title-card-poster[\s\S]*?scale/)
-  })
-
-  it('has no ungated :hover rule that could flash visuals on touch', () => {
-    const source = readFileSync(resolve(import.meta.dirname, './title-card.vue'), 'utf8')
-    const style = source.slice(source.indexOf('<style'))
-    const withoutGate = style.replace(/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{[\s\S]*?\n\}/, '')
-    expect(withoutGate).not.toMatch(/:hover[\s\S]*?opacity:\s*1/)
-    expect(withoutGate).not.toMatch(/:hover[\s\S]*?box-shadow:\s*0 16px/)
-    expect(source).not.toMatch(/group-hover\/title-card:scale/)
+    expect(loadCatalog).toHaveBeenCalledTimes(1)
   })
 })

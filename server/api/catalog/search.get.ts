@@ -6,7 +6,7 @@ import { languageParam } from '../../utils/params'
 import { parseOrThrow } from '../../utils/validation'
 
 const searchQuerySchema = z.object({
-  query: z.string().trim().min(1),
+  query: z.string().trim().min(1).max(64),
   page: z.coerce.number().int().min(1).default(1),
   language: languageParam,
 })

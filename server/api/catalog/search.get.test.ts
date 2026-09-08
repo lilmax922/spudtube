@@ -78,4 +78,14 @@ describe('gET /api/catalog/search', () => {
     expect(body.data?.issues).toMatchObject({ fieldErrors: { query: expect.any(Array) } })
     expect(fakeClient.searchMulti).not.toHaveBeenCalled()
   })
+
+  it('rejects an overlong query with 400', async () => {
+    const response = await call(new Request(`http://localhost/api/catalog/search?query=${'x'.repeat(65)}`))
+
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.statusCode).toBe(400)
+    expect(body.data?.issues).toMatchObject({ fieldErrors: { query: expect.any(Array) } })
+    expect(fakeClient.searchMulti).not.toHaveBeenCalled()
+  })
 })

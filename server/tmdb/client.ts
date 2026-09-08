@@ -182,12 +182,7 @@ export function createTmdbClient({
 
   return {
     searchMulti(query: string, page = 1, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Page<TitleSummary>> {
-      // Normalize for key construction only: the upstream `query` param below
-      // is sent exactly as received. Trims whitespace variants and caps
-      // length (64 matches the route-level .max(64)) so distinct raw inputs
-      // that mean the same thing share one bounded cache bucket.
-      const keyQuery = query.trim().replace(/\s+/g, ' ').slice(0, 64)
-      return cache.wrap(`search-multi:${language}:${keyQuery}:${page}`, SEARCH_TTL_MS, async () => {
+      return cache.wrap(`search-multi:${language}:${query}:${page}`, SEARCH_TTL_MS, async () => {
         const raw = rawListPageSchema.parse(
           await request('/search/multi', {
             query,

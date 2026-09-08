@@ -115,6 +115,27 @@ describe('gET /api/catalog/[kind]/hero', () => {
     expect(body.results[0].genres).toEqual([])
   })
 
+  it('keeps the title in the payload even if its detail lookup rejects', async () => {
+    fakeClient.trending.mockResolvedValue({
+      page: 1,
+      results: [{ kind: 'MOVIE', tmdbId: 9, name: 'Gone', posterPath: null, backdropPath: null, releaseDate: null, voteAverage: 7, genreIds: [] }],
+      totalPages: 1,
+      totalResults: 1,
+    })
+    fakeClient.title.mockRejectedValueOnce(new Error('tmdb 500'))
+    fakeClient.watchProviders.mockResolvedValue({})
+
+    const response = await call(new Request('http://localhost/api/catalog/movie/hero'))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.results[0].tmdbId).toBe(9)
+    expect(body.results[0].runtimeMinutes).toBeNull()
+    expect(body.results[0].contentRating).toBeNull()
+    expect(body.results[0].genres).toEqual([])
+    expect(body.results[0].providers).toEqual([])
+  })
+
   it('attaches providers for the resolved region to each result', async () => {
     fakeClient.trending.mockResolvedValue({
       page: 1,

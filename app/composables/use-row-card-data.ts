@@ -1,12 +1,12 @@
-import type { MaybeRefOrGetter, Ref } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 import type { ProviderCatalog, TitleSummary } from '#server/tmdb/types'
 import type { TitleCardFeed } from './use-title-card-data'
 import { ref, toValue, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { $fetch } from '#imports'
-import { toMediaSegment } from '../lib/kind'
+import { toMediaSegment } from '#shared/kind/kind'
 import { useDiscoveryBadges } from './use-discovery-badges'
 import { useRegion } from './use-region'
+import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface RowCardData {
   feedFor: (item: TitleSummary) => TitleCardFeed
@@ -23,28 +23,20 @@ export function useRowCardData(items: MaybeRefOrGetter<TitleSummary[]>): RowCard
   const { badges } = useDiscoveryBadges(rowKind)
   const { region } = useRegion()
 
-  // Defensive locale read mirrors use-availability: mounts without the i18n
-  // plugin fall back to English instead of throwing.
-  let localeRef: Ref<string>
-  try {
-    localeRef = (useI18n().locale as unknown) as Ref<string>
-  }
-  catch {
-    localeRef = ref('en')
-  }
+  const tmdbLanguage = useTmdbLanguage()
 
   const catalogs = ref(new Map<string, ProviderCatalog>())
   const inflight = new Map<string, Promise<void>>()
 
-  // Mirror useAvailability locale reactivity: a DisplayLocale switch drops
+  // Same locale reactivity as useAvailability: a DisplayLocale switch drops
   // cached catalogs so provider names reload in the new locale on next
   // inspection instead of lingering in the old one.
-  watch(localeRef, () => {
+  watch(tmdbLanguage, () => {
     catalogs.value.clear()
   })
 
   function catalogKey(item: TitleSummary): string {
-    return `${item.kind}:${item.tmdbId}:${localeRef.value}`
+    return `${item.kind}:${item.tmdbId}:${tmdbLanguage.value}`
   }
 
   function loadCatalogFor(item: TitleSummary): Promise<void> {
@@ -58,7 +50,7 @@ export function useRowCardData(items: MaybeRefOrGetter<TitleSummary[]>): RowCard
     // silent on failure and the strip simply never appears.
     const task = $fetch<ProviderCatalog>(
       `/api/catalog/${toMediaSegment(item.kind)}/${item.tmdbId}/providers`,
-      { query: { language: localeRef.value } },
+      { query: { language: tmdbLanguage.value } },
     ).then(
       (catalog: ProviderCatalog) => {
         catalogs.value.set(key, catalog)

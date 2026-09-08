@@ -1,3 +1,4 @@
+import type { TimedJsonResult } from './fetch-timeout'
 import type { Genre, Kind, Page, Provider, ProviderCatalog, TitleDetail, TitleSummary, TmdbLanguage } from './types'
 import process from 'node:process'
 import { toMediaSegment } from '../../shared/kind/kind'
@@ -6,11 +7,11 @@ import {
   DEFAULT_TMDB_LANGUAGE,
   DETAIL_TTL_MS,
   NOT_FOUND_TTL_MS,
+  resolveTmdbBaseUrl,
   SEARCH_TTL_MS,
-  TMDB_BASE_URL,
 } from './constants'
 import { TmdbApiError } from './errors'
-import { fetchWithTimeout, TMDB_FETCH_TIMEOUT_MS } from './fetch-timeout'
+import { fetchJsonWithTimeout, TMDB_FETCH_TIMEOUT_MS } from './fetch-timeout'
 import { localizeGenres } from './genres'
 import {
   mapMovieDetail,
@@ -107,9 +108,12 @@ const defaultFetchJson: FetchJson = async (url, init) => {
   // Load-bearing: the upstream fetch must not hang forever. A stalled TMDB
   // response would otherwise pin the cache in-flight slot (and the API
   // route) indefinitely. Timeouts surface as 504 so routes map them to 502.
-  let response: Response
+  // fetchJsonWithTimeout carries one total budget over headers AND body:
+  // a dripping body (headers fast, bytes trickle) resolves fetch and would
+  // hang a bare json() where abort does not cancel body reading.
+  let result: TimedJsonResult
   try {
-    response = await fetchWithTimeout(
+    result = await fetchJsonWithTimeout(
       url,
       { headers: init?.headers, signal: init?.signal },
       (requestUrl, requestInit) => fetch(requestUrl, requestInit),
@@ -121,10 +125,10 @@ const defaultFetchJson: FetchJson = async (url, init) => {
       throw new TmdbApiError(504, `TMDB request timeout after ${TMDB_FETCH_TIMEOUT_MS}ms`)
     throw error
   }
-  if (!response.ok) {
-    throw new TmdbApiError(response.status, `TMDB request failed: ${response.status}`)
+  if (!result.ok) {
+    throw new TmdbApiError(result.status, `TMDB request failed: ${result.status}`)
   }
-  return await response.json()
+  return result.body
 }
 
 async function readKindPage(
@@ -175,7 +179,7 @@ export function createTmdbClient({
     path: string,
     params: Record<string, string>,
   ): Promise<unknown> {
-    const url = new URL(`${TMDB_BASE_URL}${path}`)
+    const url = new URL(`${resolveTmdbBaseUrl()}${path}`)
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value)
     return await fetchJson(url.toString(), { headers })
   }

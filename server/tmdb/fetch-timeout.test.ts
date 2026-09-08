@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fetchWithTimeout, TMDB_FETCH_TIMEOUT_MS } from './fetch-timeout'
+import { fetchJsonWithTimeout, fetchWithTimeout, TMDB_FETCH_TIMEOUT_MS } from './fetch-timeout'
 
 describe('fetchWithTimeout', () => {
   it('resolves the response when fetch settles in time', async () => {
@@ -56,5 +56,62 @@ describe('fetchWithTimeout', () => {
   it('exposes a sane default timeout budget', () => {
     expect(TMDB_FETCH_TIMEOUT_MS).toBeGreaterThan(0)
     expect(TMDB_FETCH_TIMEOUT_MS).toBeLessThanOrEqual(15_000)
+  })
+})
+
+describe('fetchJsonWithTimeout', () => {
+  // Tarpit shapes from the production incident, with real timers and small
+  // budgets so the suite stays fast: silent socket (fetch never settles)
+  // and dripping body (headers fast, json() never settles because abort
+  // does not cancel body reading in every runtime).
+  it('rejects on a silent socket within budget without abort propagation', async () => {
+    // Hostile double: ignores the abort signal entirely, like a hung
+    // socket in runtimes where abort does not settle the fetch.
+    const fetchMock = vi.fn(() => new Promise<Response>(() => {}))
+    const startedAt = Date.now()
+    await expect(
+      fetchJsonWithTimeout('https://example.test/silent', {}, fetchMock, 150),
+    ).rejects.toThrow(/timeout/i)
+    expect(Date.now() - startedAt).toBeLessThan(5_000)
+  })
+
+  it('rejects on a dripping body within budget', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: () => new Promise<unknown>(() => {}),
+    } as Response))
+    const startedAt = Date.now()
+    await expect(
+      fetchJsonWithTimeout('https://example.test/drip', {}, fetchMock, 150),
+    ).rejects.toThrow(/timeout/i)
+    expect(Date.now() - startedAt).toBeLessThan(5_000)
+  })
+
+  it('returns status, ok and body on the happy path', async () => {
+    const fetchMock = vi.fn(async () => new Response('{"page":1}', { status: 200 }))
+    await expect(
+      fetchJsonWithTimeout('https://example.test/ok', {}, fetchMock, 1_000),
+    ).resolves.toEqual({ status: 200, ok: true, body: { page: 1 } })
+  })
+
+  it('best-effort cancels a stalled body on timeout without masking it', async () => {
+    const cancel = vi.fn(async () => {})
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      body: { cancel },
+      json: () => new Promise<unknown>(() => {}),
+    } as unknown as Response))
+    await expect(
+      fetchJsonWithTimeout('https://example.test/drip', {}, fetchMock, 150),
+    ).rejects.toThrow(/timeout/i)
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('surfaces non-ok statuses without treating them as timeouts', async () => {
+    const fetchMock = vi.fn(async () => new Response('{"e":1}', { status: 429 }))
+    const result = await fetchJsonWithTimeout('https://example.test/rl', {}, fetchMock, 1_000)
+    expect(result).toEqual({ status: 429, ok: false, body: { e: 1 } })
   })
 })

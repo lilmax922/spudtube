@@ -5,6 +5,7 @@ import type { CarouselVariant } from '../composables/use-carousel'
 import { computed, provide, ref } from 'vue'
 import { CarouselItem } from '@/components/ui/carousel'
 import { useContentGutter } from '../composables/use-carousel'
+import { useRowCardData } from '../composables/use-row-card-data'
 import { EXPANDABLE_SHIFT_KEY, MIN_EXPANDABLE_TITLES } from './constants'
 import ExpandableTitleCard from './expandable-title-card.vue'
 import SectionHeader from './section-header.vue'
@@ -48,6 +49,8 @@ const sectionStyle = computed<CSSProperties | undefined>(() =>
 )
 
 const gutter = useContentGutter()
+
+const { feedFor } = useRowCardData(displayItems)
 </script>
 
 <template>
@@ -65,8 +68,8 @@ const gutter = useContentGutter()
         class="pl-0 basis-auto shrink-0 snap-start max-[880px]:w-[168px] max-[560px]:w-[152px]"
         :class="useExpandableCards ? 'expandable-carousel-item w-[240px]' : 'w-[180px]'"
       >
-        <ExpandableTitleCard v-if="useExpandableCards" :title="item" :edge-margin="gutter" />
-        <TitleCard v-else :title="item" />
+        <ExpandableTitleCard v-if="useExpandableCards" :title="item" :edge-margin="gutter" :feed="feedFor(item)" />
+        <TitleCard v-else :title="item" :feed="feedFor(item)" />
       </CarouselItem>
     </TitleCarousel>
   </section>

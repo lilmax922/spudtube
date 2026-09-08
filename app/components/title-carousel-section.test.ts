@@ -2,6 +2,7 @@ import type { VueWrapper } from '@vue/test-utils'
 import type { TitleSummary } from '#server/tmdb/types'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { afterEach, describe, expect, it } from 'vitest'
+import ExpandableTitleCard from './expandable-title-card.vue'
 import TitleCard from './title-card.vue'
 import TitleCarouselSection from './title-carousel-section.vue'
 
@@ -215,5 +216,39 @@ describe('title-carousel-section item widths', () => {
     expect(items.length).toBeGreaterThan(0)
     for (const item of items)
       expect(item.classes()).toContain('w-[180px]')
+  })
+})
+
+describe('title-carousel-section card feeds', () => {
+  it('feeds each standard card its row data', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Trending', items: sixUsable, variant: 'standard' },
+    })
+    mountedWrappers.push(wrapper)
+
+    const cards = wrapper.findAllComponents(TitleCard)
+    expect(cards.length).toBe(6)
+    for (const card of cards) {
+      const feed = card.props('feed') as { region?: unknown, loadCatalog?: unknown, badges?: unknown } | undefined
+      expect(feed).toBeDefined()
+      expect(typeof feed?.region).toBe('string')
+      expect(typeof feed?.loadCatalog).toBe('function')
+    }
+  })
+
+  it('feeds each expandable card its row data', async () => {
+    const wrapper = await mountSuspended(TitleCarouselSection, {
+      props: { title: 'Horror', items: sixUsable, variant: 'expandable' },
+    })
+    mountedWrappers.push(wrapper)
+
+    const cards = wrapper.findAllComponents(ExpandableTitleCard)
+    expect(cards.length).toBe(6)
+    for (const card of cards) {
+      const feed = card.props('feed') as { region?: unknown, loadCatalog?: unknown } | undefined
+      expect(feed).toBeDefined()
+      expect(typeof feed?.region).toBe('string')
+      expect(typeof feed?.loadCatalog).toBe('function')
+    }
   })
 })

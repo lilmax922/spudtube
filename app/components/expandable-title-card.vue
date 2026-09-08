@@ -1,71 +1,28 @@
 <script setup lang="ts">
 import type { TitleSummary } from '#server/tmdb/types'
+import type { TitleCardFeed } from '../composables/use-title-card-data'
 import { Clapperboard } from '@lucide/vue'
 import { computed, inject, onBeforeUnmount, ref, shallowRef } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useAvailability } from '../composables/use-availability'
-import { useDiscoveryBadges } from '../composables/use-discovery-badges'
 import { EXPANDABLE_HOVER_DELAY_MS, EXPANDABLE_VIEWPORT_MARGIN, matchesExpandableMedia, useExpandableShift } from '../composables/use-expandable-geometry'
-import { useRegion } from '../composables/use-region'
-import { backdropSrcSet, backdropUrl, posterSrcSet, posterUrl, providerLogoSrcSet, providerLogoUrl } from '../lib/images'
-import { kindLabelKey, titleDetailPath } from '../lib/kind'
+import { useTitleCardData } from '../composables/use-title-card-data'
+import { backdropSrcSet, backdropUrl } from '../lib/images'
+import { titleDetailPath } from '../lib/kind'
 import { EXPANDABLE_SHIFT_KEY } from './constants'
 
-const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean, edgeMargin?: number }>(), {
+const props = withDefaults(defineProps<{ title: TitleSummary, showKind?: boolean, edgeMargin?: number, feed?: TitleCardFeed }>(), {
   showKind: false,
   edgeMargin: EXPANDABLE_VIEWPORT_MARGIN,
+  feed: undefined,
 })
-
-const { t } = useI18n()
 
 const posterFailed = ref(false)
 const backdropFailed = ref(false)
 
-const posterSrc = computed(() =>
-  props.title.posterPath && !posterFailed.value ? posterUrl(props.title.posterPath) : null,
-)
+const { kindLabel, discoveryBadge, ratingText, year, poster, providerLogos, markInspected } = useTitleCardData(() => props.title, () => props.feed)
 
 const backdropSrc = computed(() =>
   props.title.backdropPath && !backdropFailed.value ? backdropUrl(props.title.backdropPath) : null,
 )
-
-const year = computed(() => props.title.releaseDate?.slice(0, 4) ?? null)
-
-const kindLabel = computed(() => t(kindLabelKey(props.title.kind)))
-
-const HOVER_PROVIDER_LIMIT = 6
-
-const { badges } = useDiscoveryBadges(props.title.kind)
-
-// Same source as TitleCard: real TMDB list membership only, never the rating.
-const discoveryBadge = computed(() => {
-  const sets = badges.data.value
-  if (!sets)
-    return ''
-  const id = props.title.tmdbId
-  if (sets.trendingIds.includes(id))
-    return t('card.badges.trending')
-  if (sets.topRatedIds.includes(id))
-    return t('card.badges.topRated')
-  return ''
-})
-
-const ratingText = computed(() => {
-  const v = props.title.voteAverage
-  return v != null ? v.toFixed(1) : '—'
-})
-
-const { region } = useRegion()
-const { catalog: availability, loadCatalog } = useAvailability(props.title.kind, props.title.tmdbId, { immediate: false })
-
-const inspected = ref(false)
-
-function markInspected(): void {
-  if (inspected.value)
-    return
-  inspected.value = true
-  void loadCatalog()
-}
 
 const artRef = shallowRef<HTMLElement | null>(null)
 const { shift, refreshShift } = useExpandableShift(artRef, () => props.edgeMargin)
@@ -132,15 +89,6 @@ function onLeaveFocus(event: FocusEvent): void {
 }
 
 onBeforeUnmount(() => clearExpandTimer())
-
-const hoverProviders = computed(() => {
-  const entry = availability.data.value?.[region.value]
-  if (!entry)
-    return []
-  const streamable = [...entry.groups.subscription, ...entry.groups.free]
-    .filter(provider => provider.logoPath != null)
-  return streamable.slice(0, HOVER_PROVIDER_LIMIT)
-})
 </script>
 
 <template>
@@ -171,9 +119,9 @@ const hoverProviders = computed(() => {
       </span>
 
       <NuxtImg
-        v-if="posterSrc"
-        :src="posterSrc"
-        :srcset="posterSrcSet(props.title.posterPath)"
+        v-if="poster && !posterFailed"
+        :src="poster.src"
+        :srcset="poster.srcset"
         sizes="240px md:320px"
         :alt="title.name"
         loading="lazy"
@@ -195,7 +143,7 @@ const hoverProviders = computed(() => {
         @error="backdropFailed = true"
       />
       <div
-        v-if="!posterSrc && !backdropSrc"
+        v-if="(poster == null || posterFailed) && backdropSrc == null"
         class="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center text-muted-foreground"
       >
         <Clapperboard :size="24" :stroke-width="1.75" aria-hidden="true" />
@@ -207,12 +155,12 @@ const hoverProviders = computed(() => {
           {{ title.name }}
         </div>
 
-        <div v-if="hoverProviders.length > 0" data-testid="provider-strip" class="flex items-center gap-1.5">
+        <div v-if="providerLogos.length > 0" data-testid="provider-strip" class="flex items-center gap-1.5">
           <NuxtImg
-            v-for="provider in hoverProviders"
+            v-for="provider in providerLogos"
             :key="provider.id"
-            :src="providerLogoUrl(provider.logoPath) ?? undefined"
-            :srcset="providerLogoSrcSet(provider.logoPath) ?? undefined"
+            :src="provider.src"
+            :srcset="provider.srcset"
             sizes="32px"
             :alt="provider.name"
             :title="provider.name"

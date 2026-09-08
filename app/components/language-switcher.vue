@@ -62,10 +62,11 @@ onBeforeUnmount(() => {
     ref="wrapRef"
     class="relative"
   >
+    <!-- Trigger mirrors KindSwitch idle/hover (.kindSwitchBtn in kind-switch.vue): keep in sync, do not restyle freely. -->
     <button
       id="langBtn"
       type="button"
-      class="inline-flex h-[38px] items-center gap-1.5 rounded-full border border-transparent bg-transparent px-3 text-caption-md font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+      class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-transparent bg-transparent px-3 text-button-md font-semibold text-[rgba(255,255,255,0.72)] transition-colors hover:bg-[rgba(255,255,255,0.08)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
       aria-haspopup="menu"
       :aria-expanded="isOpen"
       :aria-label="t('language.label')"

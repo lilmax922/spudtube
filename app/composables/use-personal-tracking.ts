@@ -78,11 +78,12 @@ const EMPTY_TRACKING: TrackingSnapshot = { rating: null, status: null }
 
 // One deep module for per-title personal tracking. Rating and WatchStatus stay
 // independent values (including their divergent delete semantics) but share one
-// seam: one snapshot, one pending flag, one version guard per field. Mutations
-// serialize through the single pending flag so concurrent flips cannot interleave,
-// and every refresh or mutation carries its field version so a response that
-// started under a previous title, or before sign-out, never overwrites the
-// current snapshot.
+// seam: one snapshot, one pending flag per field, one version guard per field.
+// Mutations serialize within their field through its pending flag and version
+// guard, while the two fields mutate independently so a status click during a
+// rating flight (or vice versa) is never dropped. Every refresh or mutation
+// carries its field version so a response that started under a previous title,
+// or before sign-out, never overwrites the current snapshot.
 export function usePersonalTracking(
   kind: Kind,
   id: Ref<string | string[]>,
@@ -90,7 +91,11 @@ export function usePersonalTracking(
   fetcher: PersonalTrackingFetcher = createApiPersonalTrackingFetcher(kind, id),
 ): PersonalTrackingState {
   const state = ref<TrackingSnapshot>({ ...EMPTY_TRACKING })
-  const pending = ref(false)
+  const pendingRating = ref(false)
+  const pendingStatus = ref(false)
+  // Union of the per-field flags for button-disabled state; the mutators below
+  // check only their own flag so cross-field mutations never block each other.
+  const pending = computed(() => pendingRating.value || pendingStatus.value)
   let ratingVersion = 0
   let statusVersion = 0
 
@@ -145,12 +150,12 @@ export function usePersonalTracking(
   }, { flush: 'sync' })
 
   async function mutateRating(next: RatingLabel | null, persist: () => Promise<RatingLabel | null>): Promise<void> {
-    if (!signedIn.value || pending.value)
+    if (!signedIn.value || pendingRating.value)
       return
     const version = ++ratingVersion
     const previous = state.value.rating
     state.value = { ...state.value, rating: next }
-    pending.value = true
+    pendingRating.value = true
     try {
       const settled = (await persist()) ?? null
       if (version === ratingVersion)
@@ -161,17 +166,17 @@ export function usePersonalTracking(
         state.value = { ...state.value, rating: previous }
     }
     finally {
-      pending.value = false
+      pendingRating.value = false
     }
   }
 
   async function mutateStatus(next: WatchStatus | null, persist: () => Promise<WatchStatus | null>): Promise<void> {
-    if (!signedIn.value || pending.value)
+    if (!signedIn.value || pendingStatus.value)
       return
     const version = ++statusVersion
     const previous = state.value.status
     state.value = { ...state.value, status: next }
-    pending.value = true
+    pendingStatus.value = true
     try {
       const settled = (await persist()) ?? null
       if (version === statusVersion)
@@ -182,7 +187,7 @@ export function usePersonalTracking(
         state.value = { ...state.value, status: previous }
     }
     finally {
-      pending.value = false
+      pendingStatus.value = false
     }
   }
 

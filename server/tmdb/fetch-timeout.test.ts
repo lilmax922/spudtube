@@ -95,6 +95,20 @@ describe('fetchJsonWithTimeout', () => {
     ).resolves.toEqual({ status: 200, ok: true, body: { page: 1 } })
   })
 
+  it('best-effort cancels a stalled body on timeout without masking it', async () => {
+    const cancel = vi.fn(async () => {})
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      body: { cancel },
+      json: () => new Promise<unknown>(() => {}),
+    } as unknown as Response))
+    await expect(
+      fetchJsonWithTimeout('https://example.test/drip', {}, fetchMock, 150),
+    ).rejects.toThrow(/timeout/i)
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
+
   it('surfaces non-ok statuses without treating them as timeouts', async () => {
     const fetchMock = vi.fn(async () => new Response('{"e":1}', { status: 429 }))
     const result = await fetchJsonWithTimeout('https://example.test/rl', {}, fetchMock, 1_000)

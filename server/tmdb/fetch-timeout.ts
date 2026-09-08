@@ -42,8 +42,7 @@ export async function fetchWithTimeout(
   // Load-bearing: the timer promise below rejects on its own. Abort is
   // best-effort resource cleanup only — a hung socket in some runtimes
   // never settles its fetch even after abort, so the timeout must never
-  // depend on abort propagation. (Proven by the drip-tarpit harness:
-  // abort alone left the body reader hanging until the cache backstop.)
+  // depend on abort propagation (see scripts/tarpit-harness.mjs).
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       timedOut = true
@@ -87,12 +86,13 @@ export async function fetchWithTimeout(
   }
 }
 
-// Total-budget fetch+JSON with an abort-independent timeout. Covers what
+// Total-budget fetch+JSON with an abort-independent timeout (see
+// scripts/tarpit-harness.mjs for the runnable socket proof). Covers what
 // fetchWithTimeout cannot: a dripping body (headers arrive fast so fetch
 // resolves, then bytes trickle forever). In runtimes where abort does not
 // cancel an in-progress body stream, only this outer timer bounds the
-// read — verified against the drip-tarpit harness (15s before, ~budget
-// after). Callers map TimeoutError to their own status (TMDB: 504).
+// read — covered by server/tmdb/tarpit-harness.test.ts (run it with
+// pnpm test:tarpit). Callers map TimeoutError to their own status (TMDB: 504).
 export async function fetchJsonWithTimeout(
   url: string,
   init: RequestInit,
@@ -103,13 +103,27 @@ export async function fetchJsonWithTimeout(
   const budget = new Promise<never>((_, reject) => {
     budgetTimer = setTimeout(() => reject(createTimeoutError(ms, url)), ms)
   })
+  let response: Response | undefined
   try {
-    const response = await Promise.race([
+    response = await Promise.race([
       fetchWithTimeout(url, init, fetchFn, ms),
       budget,
     ])
     const body = await Promise.race([response.json(), budget])
     return { status: response.status, ok: response.ok, body }
+  }
+  catch (error) {
+    // Best-effort: when the budget won after headers arrived, release the
+    // stalled body so its socket does not linger. Never masks the timeout.
+    if (error instanceof Error && error.name === 'TimeoutError' && response) {
+      try {
+        await response.body?.cancel()
+      }
+      catch {
+        // ignore: cleanup must not change the timeout outcome
+      }
+    }
+    throw error
   }
   finally {
     if (budgetTimer !== undefined)

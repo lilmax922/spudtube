@@ -60,7 +60,7 @@ export default defineEventHandler(async (event): Promise<HeroPayload> => {
 
   const enrichedPool = await Promise.all(pool.map(async (title): Promise<HeroTitle> => {
     const [detail, catalog] = await Promise.all([
-      client.title(title.kind, title.tmdbId, locale),
+      client.title(title.kind, title.tmdbId, locale).catch(() => null),
       client.watchProviders(title.kind, title.tmdbId, locale).catch(() => null),
     ])
     if (!detail)

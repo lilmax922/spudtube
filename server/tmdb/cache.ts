@@ -1,8 +1,12 @@
+import { TmdbApiError } from './errors'
+import { DEFAULT_CACHE_WRAP_TIMEOUT_MS } from './fetch-timeout'
+
 export interface TtlCache {
   wrap: <T>(
     key: string,
     ttl: number | ((value: T) => number),
     loader: () => Promise<T>,
+    opts?: { timeoutMs?: number },
   ) => Promise<T>
 }
 
@@ -31,6 +35,7 @@ export function createTtlCache({ now }: { now: () => number }): TtlCache {
       key: string,
       ttl: number | ((value: T) => number),
       loader: () => Promise<T>,
+      opts?: { timeoutMs?: number },
     ): Promise<T> {
       const hit = entries.get(key)
       if (hit && hit.expiresAt > now())
@@ -38,18 +43,39 @@ export function createTtlCache({ now }: { now: () => number }): TtlCache {
       const inFlight = pending.get(key)
       if (inFlight)
         return inFlight as Promise<T>
-      const task = loader().then((value) => {
-        const ttlMs = typeof ttl === 'function' ? ttl(value) : ttl
-        store(key, value, ttlMs)
-        return value
-      })
+      // Anti-hang: a stalled loader must reject instead of pinning the
+      // in-flight slot forever (every later same-key load would hang with it).
+      const timeoutMs = opts?.timeoutMs ?? DEFAULT_CACHE_WRAP_TIMEOUT_MS
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const task = (async (): Promise<T> => {
+        try {
+          const value = await Promise.race([
+            loader(),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(new TmdbApiError(504, `tmdb cache load timeout after ${timeoutMs}ms: ${key}`)),
+                timeoutMs,
+              )
+            }),
+          ])
+          const ttlMs = typeof ttl === 'function' ? ttl(value) : ttl
+          store(key, value, ttlMs)
+          return value
+        }
+        finally {
+          if (timer !== undefined)
+            clearTimeout(timer)
+        }
+      })()
       pending.set(key, task)
       try {
         return await task
       }
       finally {
         // Load-bearing: a leaked entry would hang all future same-key loads.
-        pending.delete(key)
+        // Identity-checked so a late loser never evicts the winner's slot.
+        if (pending.get(key) === task)
+          pending.delete(key)
       }
     },
   }

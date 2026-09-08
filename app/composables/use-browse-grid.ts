@@ -143,30 +143,38 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   )
 
   async function refresh(): Promise<void> {
-    try {
-      // Popular-only by default: small curated set instead of 805 providers
-      const fetchPopular = actualFetcher.fetchProviderList
-        ? actualFetcher.fetchProviderList(kind.value, tmdbLanguage.value, { popular: true }).catch(() => [] as Provider[])
-        : Promise.resolve([] as Provider[])
-      const [genreList, popularList, applied] = await Promise.all([
-        actualFetcher.fetchGenres(kind.value, tmdbLanguage.value),
-        fetchPopular,
-        loadFirstPage(),
-      ])
-      if (applied) {
-        genres.value = genreList
-        popularProviders.value = popularList
-        providerListRaw.value = popularList
-      }
-      else {
-        popularProviders.value = popularList
-        providerListRaw.value = popularList
-        genres.value = genreList
-      }
-    }
-    catch {
-      paged.markFailed(paged.attempt())
-    }
+    // Popular-only by default: small curated set instead of 805 providers
+    const fetchProviderList = actualFetcher.fetchProviderList
+    // Deferred invocation: a synchronously-throwing fetcher must surface as
+    // a leg rejection (handled below), never as an escaped throw that skips
+    // the other legs. Promise.resolve() assimilates sync values exactly as
+    // before; production fetchers always return real promises.
+    const fetchPopular = fetchProviderList
+      ? Promise.resolve()
+          .then(() => fetchProviderList(kind.value, tmdbLanguage.value, { popular: true }))
+          .catch(() => [] as Provider[])
+      : Promise.resolve([] as Provider[])
+    // Fault isolation: each leg assigns as it settles. A stalled discover
+    // must not hold genres/providers hostage (that hides the whole filter
+    // bar); a rejected genres leg still flags the grid error as before.
+    // Promise.resolve().then() defers the call so a sync throw becomes a
+    // rejection; .then() still assimilates sync values as before.
+    const genreTask = Promise.resolve()
+      .then(() => actualFetcher.fetchGenres(kind.value, tmdbLanguage.value))
+      .then(
+        (genreList) => {
+          genres.value = genreList
+        },
+        () => {
+          paged.markFailed(paged.attempt())
+        },
+      )
+    const popularTask = fetchPopular.then((popularList) => {
+      popularProviders.value = popularList
+      providerListRaw.value = popularList
+    })
+    const discoverTask = loadFirstPage()
+    await Promise.allSettled([genreTask, popularTask, discoverTask])
   }
 
   let providerSearchToken = 0

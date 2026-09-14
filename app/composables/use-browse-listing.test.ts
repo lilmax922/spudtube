@@ -75,7 +75,7 @@ beforeEach(() => {
 })
 
 describe('use-browse-listing', () => {
-  it('loads sections on an unfiltered refresh without firing discover or filter data', async () => {
+  it('prefetches filter metadata on an unfiltered refresh without firing discover', async () => {
     const { fetchers, fetchGenres, fetchDiscover, fetchProviderList, fetchSections } = createFakes()
 
     const listing = useBrowseListing(fetchers)
@@ -83,9 +83,11 @@ describe('use-browse-listing', () => {
 
     expect(listing.mode.value).toBe('browse')
     expect(fetchSections).toHaveBeenCalledWith('MOVIE', 'en')
-    expect(fetchGenres).not.toHaveBeenCalled()
+    // Genres and provider-list prefetch on mount so the filter options
+    // render immediately; discover still waits for a filter selection.
+    expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
+    expect(fetchProviderList).toHaveBeenCalled()
     expect(fetchDiscover).not.toHaveBeenCalled()
-    expect(fetchProviderList).not.toHaveBeenCalled()
     expect(listing.rows.value).toHaveLength(2)
     expect(listing.rows.value[0]).toMatchObject({
       key: 'movie.horror',
@@ -95,13 +97,14 @@ describe('use-browse-listing', () => {
     expect(listing.rows.value[1]).toMatchObject({ key: 'movie.trending', canSeeMore: false })
   })
 
-  it('loads filter data lazily and discovers once a filter is applied', async () => {
+  it('mounts filter metadata on refresh and discovers once a filter is applied', async () => {
     const { fetchers, fetchGenres, fetchDiscover } = createFakes()
 
     const listing = useBrowseListing(fetchers)
     await listing.refresh()
     expect(fetchDiscover).not.toHaveBeenCalled()
 
+    // Mount prefetch already loaded the metadata; the explicit call is a no-op.
     await listing.ensureFilterData()
     expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
     expect(fetchDiscover).not.toHaveBeenCalled()

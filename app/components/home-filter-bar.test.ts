@@ -37,22 +37,18 @@ afterEach(() => {
 })
 
 describe('homeFilterBar', () => {
-  it('shows a filter entry button on desktop when genres are not loaded yet', async () => {
-    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ genres: [], availableProviders: [] }) })
-    mounted.push(wrapper)
+  it('shows genre and provider skeletons while metadata loads, chips once loaded', async () => {
+    const loading = await mountSuspended(HomeFilterBar, { props: props({ genres: [], availableProviders: [], filterMetadataLoading: true }) })
+    mounted.push(loading)
 
-    const entry = wrapper.find('[data-testid="filter-expand"]')
-    expect(entry.exists()).toBe(true)
-    await entry.trigger('click')
+    expect(loading.find('[data-testid="genre-skeleton"]').exists()).toBe(true)
+    expect(loading.find('[data-testid="provider-skeleton"]').exists()).toBe(true)
 
-    expect(wrapper.emitted('expand')).toBeTruthy()
-  })
+    const loaded = await mountSuspended(HomeFilterBar, { props: props({ filterMetadataLoading: false }) })
+    mounted.push(loaded)
 
-  it('hides the filter entry button once genres are loaded', async () => {
-    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
-    mounted.push(wrapper)
-
-    expect(wrapper.find('[data-testid="filter-expand"]').exists()).toBe(false)
+    expect(loaded.find('[data-testid="genre-skeleton"]').exists()).toBe(false)
+    expect(loaded.find('[data-testid="provider-skeleton"]').exists()).toBe(false)
   })
 
   it('renders the rating chips with the All / 7+ / 8+ labels', async () => {
@@ -138,14 +134,15 @@ describe('homeFilterBar', () => {
     expect(root.querySelector('[title="Netflix"]') ?? wrapper.element.querySelector('[title="Netflix"]')).toBeTruthy()
   })
 
-  it('hides the provider cluster button when no providers are available', async () => {
+  it('hides the provider cluster button once metadata loads with no providers', async () => {
     const wrapper = await mountSuspended(HomeFilterBar, {
-      props: props({ availableProviders: [] }),
+      props: props({ availableProviders: [], filterMetadataLoading: false }),
     })
     mounted.push(wrapper)
 
     const trigger = wrapper.find('button[aria-controls="home-filter-bar-detail"]')
     expect(trigger.exists()).toBe(false)
+    expect(wrapper.find('[data-testid="provider-skeleton"]').exists()).toBe(false)
   })
 
   it('emits toggleProvider when a provider logo is clicked', async () => {

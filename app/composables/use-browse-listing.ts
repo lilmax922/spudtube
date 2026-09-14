@@ -40,6 +40,7 @@ export interface BrowseListing {
   providerSearchQuery: Ref<string>
   providerSearchLoading: Ref<boolean>
   genres: Ref<BrowseGridState['genres']['value']>
+  filterMetadataLoading: Ref<boolean>
   ensureFilterData: () => Promise<void>
   refresh: () => Promise<void>
   loadMore: () => Promise<void>
@@ -154,6 +155,7 @@ export function useBrowseListing(fetchers?: BrowseListingFetchers): BrowseListin
     providerSearchQuery: grid.providerSearchQuery,
     providerSearchLoading: grid.providerSearchLoading,
     genres: grid.genres,
+    filterMetadataLoading: grid.filterMetadataLoading,
     ensureFilterData: grid.ensureFilterData,
     refresh,
     loadMore,

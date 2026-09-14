@@ -81,6 +81,7 @@ export interface BrowseGridState {
   providerSearchQuery: Ref<string>
   providerSearchLoading: Ref<boolean>
   genres: Ref<Genre[]>
+  filterMetadataLoading: Ref<boolean>
   items: Ref<TitleSummary[]>
   page: Ref<number>
   totalPages: Ref<number>
@@ -119,6 +120,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const providerSearchQuery = ref('')
   const providerSearchLoading = ref(false)
   const genres = ref<Genre[]>([])
+  const filterMetadataLoading = ref(true)
   const tmdbLanguage = useTmdbLanguage()
 
   let regionRef: Ref<string>
@@ -149,9 +151,9 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
       || selectedProviderIds.value.length > 0
   }
 
-  // Filter metadata (genres + popular providers) loads once per kind+language,
-  // the first time the filter bar expands. The unfiltered home shows Hero +
-  // server-driven rows and never needs it.
+  // Filter metadata (genres + popular providers) prefetches on mount so the
+  // filter options render immediately. The unfiltered home shows Hero +
+  // server-driven rows and never needs discover.
   let filterDataKey: string | undefined
   let filterDataGeneration = 0
   let filterDataInflight: { key: string, generation: number, promise: Promise<void> } | undefined
@@ -168,6 +170,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     }
     const startKind = kind.value
     const startLanguage = tmdbLanguage.value
+    filterMetadataLoading.value = true
     const promise = (async (): Promise<void> => {
       // Popular-only by default: small curated set instead of 805 providers
       const fetchPopular = actualFetcher.fetchProviderList
@@ -195,6 +198,8 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     finally {
       if (filterDataInflight?.promise === promise)
         filterDataInflight = undefined
+      if (filterDataGeneration === seen && kind.value === startKind && tmdbLanguage.value === startLanguage)
+        filterMetadataLoading.value = false
     }
   }
 
@@ -204,13 +209,16 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     genres.value = []
     popularProviders.value = []
     providerListRaw.value = []
+    filterMetadataLoading.value = true
   }
 
   async function refresh(): Promise<void> {
-    // Unfiltered browse renders the cached section rows; discover only fires
-    // once the visitor actually picks a filter.
+    // Unfiltered browse renders the cached section rows; filter metadata
+    // prefetches on mount while discover only fires once the visitor
+    // actually picks a filter.
     if (!hasActiveFilters()) {
       paged.reset()
+      await ensureFilterData().catch(() => {})
       return
     }
     try {
@@ -337,6 +345,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     providerSearchQuery,
     providerSearchLoading,
     genres,
+    filterMetadataLoading,
     ensureFilterData,
     refresh,
     loadMore: async () => {

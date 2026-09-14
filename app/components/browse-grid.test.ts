@@ -222,8 +222,7 @@ describe('browse-grid', () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
     await listing.refresh()
-    // Genre chips render once the filter bar expands and loads filter data.
-    await listing.ensureFilterData()
+    // Filter metadata prefetches on mount, so genre chips render immediately.
     await wrapper.vm.$nextTick()
 
     await wrapper.findAll('button').find(button => button.text() === '科幻')!.trigger('click')

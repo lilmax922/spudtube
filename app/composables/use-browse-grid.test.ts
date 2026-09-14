@@ -45,23 +45,7 @@ const genres: Genre[] = [
 describe('use-browse-grid', () => {
   const baseOptions = { genreIds: [] as number[], minRating: null as number | null, providerIds: [] as number[], page: 1, language: 'en' }
 
-  it('skips discover, genres, and provider-list on an unfiltered refresh', async () => {
-    const { fetcher, fetchGenres, fetchDiscover, fetchProviderList } = createFakeFetcher()
-    fetchGenres.mockResolvedValue(genres)
-    fetchDiscover.mockResolvedValue(page([dune], 5))
-
-    const grid = useBrowseGrid(fetcher)
-    await grid.refresh()
-
-    // The unfiltered home shows Hero + server-driven rows; nothing here fires.
-    expect(grid.kind.value).toBe('MOVIE')
-    expect(fetchGenres).not.toHaveBeenCalled()
-    expect(fetchDiscover).not.toHaveBeenCalled()
-    expect(fetchProviderList).not.toHaveBeenCalled()
-    expect(grid.items.value).toEqual([])
-  })
-
-  it('loads filter data lazily through ensureFilterData, once per kind', async () => {
+  it('prefetches filter metadata on the first unfiltered refresh without firing discover', async () => {
     const { fetcher, fetchGenres, fetchDiscover, fetchProviderList } = createFakeFetcher()
     fetchGenres.mockResolvedValue(genres)
     fetchProviderList.mockResolvedValue([{ id: 8, name: 'Netflix', logoPath: '/n.jpg' }])
@@ -69,9 +53,27 @@ describe('use-browse-grid', () => {
 
     const grid = useBrowseGrid(fetcher)
     await grid.refresh()
-    expect(fetchGenres).not.toHaveBeenCalled()
 
-    await grid.ensureFilterData()
+    // The unfiltered home shows Hero + server-driven rows; genres and
+    // provider-list prefetch on mount so the filter options render
+    // immediately, but discover never fires without a filter.
+    expect(grid.kind.value).toBe('MOVIE')
+    expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
+    expect(fetchProviderList).toHaveBeenCalledWith('MOVIE', 'en', { popular: true })
+    expect(fetchDiscover).not.toHaveBeenCalled()
+    expect(grid.genres.value).toEqual(genres)
+    expect(grid.items.value).toEqual([])
+  })
+
+  it('loads filter data on mount prefetch, once per kind', async () => {
+    const { fetcher, fetchGenres, fetchDiscover, fetchProviderList } = createFakeFetcher()
+    fetchGenres.mockResolvedValue(genres)
+    fetchProviderList.mockResolvedValue([{ id: 8, name: 'Netflix', logoPath: '/n.jpg' }])
+    fetchDiscover.mockResolvedValue(page([dune], 5))
+
+    const grid = useBrowseGrid(fetcher)
+    // Mount prefetch fires on the first unfiltered refresh.
+    await grid.refresh()
     expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
     expect(fetchProviderList).toHaveBeenCalledWith('MOVIE', 'en', { popular: true })
     expect(grid.genres.value).toEqual(genres)

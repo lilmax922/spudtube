@@ -30,6 +30,7 @@ const {
   providerSearchQuery,
   providerSearchLoading,
   genres,
+  filterMetadataLoading,
   rows: listingRows,
   refresh,
   loadMore,
@@ -117,6 +118,7 @@ void refresh()
       :provider-search-results="providerSearchResults"
       :provider-search-query="providerSearchQuery"
       :provider-search-loading="providerSearchLoading"
+      :filter-metadata-loading="filterMetadataLoading"
       @toggle-genre="toggleGenre"
       @set-min-rating="setMinRating"
       @toggle-provider="toggleProvider"

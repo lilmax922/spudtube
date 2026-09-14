@@ -34,6 +34,7 @@ const {
   refresh,
   loadMore,
   applySection,
+  ensureFilterData,
   toggleGenre,
   setMinRating,
   toggleProvider,
@@ -122,6 +123,7 @@ void refresh()
       @clear-filters="clearFilters"
       @search-providers="searchProviders"
       @clear-provider-search="clearProviderSearch"
+      @expand="ensureFilterData"
     />
 
     <div class="browseGridBody">

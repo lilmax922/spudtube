@@ -5,6 +5,8 @@ import { createTtlCache } from './cache'
 import {
   DEFAULT_TMDB_LANGUAGE,
   DETAIL_TTL_MS,
+  GENRE_TTL_MS,
+  LIST_TTL_MS,
   NOT_FOUND_TTL_MS,
   SEARCH_TTL_MS,
   TMDB_BASE_URL,
@@ -124,7 +126,7 @@ async function readKindPage(
   cache: ReturnType<typeof createTtlCache>,
   request: (path: string, params: Record<string, string>) => Promise<unknown>,
 ): Promise<Page<TitleSummary>> {
-  return cache.wrap(cacheKey, SEARCH_TTL_MS, async () => {
+  return cache.wrap(cacheKey, LIST_TTL_MS, async () => {
     const raw = rawListPageSchema.parse(await request(path, params))
     return mapPage(raw, raw.results.map(item =>
       kind === 'MOVIE'
@@ -358,7 +360,7 @@ export function createTmdbClient({
 
     genres(kind: Kind, language: TmdbLanguage = DEFAULT_TMDB_LANGUAGE): Promise<Genre[]> {
       const segment = toMediaSegment(kind)
-      return cache.wrap(`genres:${language}:${segment}`, DETAIL_TTL_MS, async () => {
+      return cache.wrap(`genres:${language}:${segment}`, GENRE_TTL_MS, async () => {
         const raw = rawGenreListSchema.parse(await request(`/genre/${segment}/list`, { language }))
         const genres = raw.genres.map(genre => ({ id: genre.id, name: genre.name }))
         return localizeGenres(genres, language)

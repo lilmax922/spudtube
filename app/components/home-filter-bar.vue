@@ -33,6 +33,7 @@ const emit = defineEmits<{
   clearFilters: []
   searchProviders: [query: string]
   clearProviderSearch: []
+  expand: []
 }>()
 
 const { t } = useI18n()
@@ -73,6 +74,9 @@ const isFiltered = computed(() =>
 
 function onOpenUpdate(value: boolean): void {
   open.value = value
+  // Filter metadata loads on first expansion; the unfiltered home never needs it.
+  if (value)
+    emit('expand')
 }
 
 function focusSearchInput(): void {
@@ -210,6 +214,7 @@ function clearDrawerProviderSearchInput(): void {
 
 function openDrawer(): void {
   drawerOpen.value = true
+  emit('expand')
 }
 
 function onDrawerOpenChange(value: boolean): void {

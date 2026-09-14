@@ -199,19 +199,22 @@ describe('browse-grid', () => {
     expect(links.map(link => link.attributes('href'))).toEqual(expect.arrayContaining(['/movie/419430', '/movie/693134']))
   })
 
-  it('switches kind and refetches the grid for the other catalog', async () => {
+  it('switches kind and refetches the rows for the other catalog without firing discover', async () => {
     const listing = seedListing()
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
     await listing.refresh()
     fakes.fetchDiscover.mockClear()
+    fakes.fetchSections.mockClear()
 
     listing.setKind('TV_SHOW')
 
     await vi.waitFor(() =>
-      expect(fakes.fetchDiscover).toHaveBeenCalledWith('TV_SHOW', expect.objectContaining({ page: 1 })),
+      expect(fakes.fetchSections).toHaveBeenCalledWith('TV_SHOW', 'en'),
     )
     expect(listing.kind.value).toBe('TV_SHOW')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(fakes.fetchDiscover).not.toHaveBeenCalled()
   })
 
   it('toggles a genre chip and refetches with the selection', async () => {
@@ -219,6 +222,9 @@ describe('browse-grid', () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
     await listing.refresh()
+    // Genre chips render once the filter bar expands and loads filter data.
+    await listing.ensureFilterData()
+    await wrapper.vm.$nextTick()
 
     await wrapper.findAll('button').find(button => button.text() === '科幻')!.trigger('click')
 
@@ -414,17 +420,18 @@ describe('browse-grid', () => {
     const wrapper = await mountSuspended(BrowseGrid)
     mountedWrappers.push(wrapper)
     await listing.refresh()
-    // Hold the next refresh open so the loading overlay has items to cover.
+    // Hold the next filtered refresh open so the loading overlay has items to cover.
     let release!: (value: Page<TitleSummary>) => void
     fakes.fetchDiscover.mockReturnValueOnce(new Promise<Page<TitleSummary>>(resolve => release = resolve))
-    const pending = listing.refresh()
+    listing.toggleGenre(28)
+    await vi.waitFor(() => expect(listing.loading.value).toBe(true))
     await wrapper.vm.$nextTick()
 
     const busyEl = wrapper.element.querySelector('[aria-busy="true"]')
     expect(busyEl).toBeTruthy()
 
     release(page(titles))
-    await pending
+    await vi.waitFor(() => expect(listing.loading.value).toBe(false))
   })
 
   it('keeps the empty state hidden while loading with no items yet', async () => {
@@ -434,13 +441,14 @@ describe('browse-grid', () => {
     await listing.refresh()
     let release!: (value: Page<TitleSummary>) => void
     fakes.fetchDiscover.mockReturnValueOnce(new Promise<Page<TitleSummary>>(resolve => release = resolve))
-    const pending = listing.refresh()
+    listing.toggleGenre(28)
+    await vi.waitFor(() => expect(listing.loading.value).toBe(true))
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).not.toContain('No titles found')
 
     release(page(titles))
-    await pending
+    await vi.waitFor(() => expect(listing.loading.value).toBe(false))
   })
 
   it('shows See more on a genre-bound row and replays it with one refresh', async () => {

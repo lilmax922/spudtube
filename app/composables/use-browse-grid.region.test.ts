@@ -54,10 +54,8 @@ describe('use-browse-grid — region watch (geolocation)', () => {
     fetchDiscover.mockResolvedValue(page([]))
 
     const grid = useBrowseGrid(fetcher)
-    await grid.refresh()
-    const initialCalls = fetchProviderList.mock.calls.length
-    expect(initialCalls).toBeGreaterThanOrEqual(1)
-    expect(fetchProviderList).toHaveBeenCalledWith('MOVIE', expect.any(String), expect.objectContaining({ popular: true }))
+    grid.toggleGenre(28)
+    await vi.waitFor(() => expect(fetchProviderList).toHaveBeenCalledWith('MOVIE', expect.any(String), expect.objectContaining({ popular: true })))
 
     fetchProviderList.mockClear()
     fetchGenres.mockClear()

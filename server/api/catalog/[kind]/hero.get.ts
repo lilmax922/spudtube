@@ -1,5 +1,6 @@
 import type { Provider, TitleSummary } from '../../../tmdb/types'
-import { defineEventHandler, getCookie, getHeader, getQuery, getRouterParam } from 'h3'
+import { getCookie, getHeader, getQuery, getRouterParam } from 'h3'
+import { defineCachedEventHandler } from 'nitropack/runtime'
 import { z } from 'zod'
 import { COUNTRY_HEADER } from '../../../../shared/i18n/locale'
 import {
@@ -43,7 +44,7 @@ function resolveRegion(event: Parameters<Parameters<typeof defineEventHandler>[0
   }
 }
 
-export default defineEventHandler(async (event): Promise<HeroPayload> => {
+export default defineCachedEventHandler(async (event): Promise<HeroPayload> => {
   const query = getQuery(event)
   const { kind, page, language } = parseOrThrow(heroQuerySchema, {
     kind: getRouterParam(event, 'kind'),
@@ -96,4 +97,15 @@ export default defineEventHandler(async (event): Promise<HeroPayload> => {
     : enrichedPool.slice(0, HERO_LIMIT)
 
   return { results }
+}, {
+  // Providers vary by region, so the region joins the key: without it a cached
+  // TW payload would be served to US visitors.
+  maxAge: 21600,
+  swr: false,
+  getKey: (event) => {
+    const query = getQuery(event)
+    const language = (Array.isArray(query.language) ? query.language[0] : query.language) ?? getRequestLocale(event)
+    const page = Array.isArray(query.page) ? query.page[0] : query.page ?? '1'
+    return `hero:${getRouterParam(event, 'kind')}:${resolveRegion(event)}:${language}:${page}`
+  },
 })

@@ -32,6 +32,11 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
+    // Browse rows and genre lists are identical for every visitor at the same
+    // URL (kind + language ride in the query). max-age lets the browser serve
+    // repeat kind switches from disk; swr:false keeps the header deterministic.
+    '/api/browse/sections': { cache: { maxAge: 21600, swr: false } },
+    '/api/catalog/genres': { cache: { maxAge: 604800, swr: false } },
     '/search': { robots: 'noindex, nofollow' },
     '/search/**': { robots: 'noindex, nofollow' },
     '/my-list': { robots: 'noindex, nofollow' },

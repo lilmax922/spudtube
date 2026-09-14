@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTmdbClient, TmdbApiError } from './client'
 import {
   DETAIL_TTL_MS,
+  GENRE_TTL_MS,
+  LIST_TTL_MS,
   NOT_FOUND_TTL_MS,
   SEARCH_TTL_MS,
 } from './constants'
@@ -1054,5 +1056,80 @@ describe('tmdb client — response caching', () => {
     await expect(client.title('MOVIE', 123)).rejects.toThrow(TmdbApiError)
 
     expect(fetchCount).toBe(3)
+  })
+
+  it('caches catalog lists for the 6h list TTL, matching the front-end disk cache', async () => {
+    let nowMs = 1_000_000
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/trending/movie/week': DISCOVER_MOVIE_PAGE,
+      '/3/discover/movie': DISCOVER_MOVIE_PAGE,
+    })
+    const client = createTmdbClient({
+      token: 'test-token',
+      fetchJson,
+      now: () => nowMs,
+    })
+
+    await client.trending('MOVIE')
+    await client.trending('MOVIE')
+    await client.discover('MOVIE')
+    await client.discover('MOVIE')
+    expect(requests).toHaveLength(2)
+
+    nowMs += SEARCH_TTL_MS + 1
+    await client.trending('MOVIE')
+    await client.discover('MOVIE')
+    expect(requests).toHaveLength(2)
+
+    nowMs += LIST_TTL_MS - SEARCH_TTL_MS
+    await client.trending('MOVIE')
+    await client.discover('MOVIE')
+    expect(requests).toHaveLength(4)
+  })
+
+  it('caches genres for the 7d genre TTL, matching the front-end disk cache', async () => {
+    let nowMs = 1_000_000
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/genre/movie/list': MOVIE_GENRES,
+    })
+    const client = createTmdbClient({
+      token: 'test-token',
+      fetchJson,
+      now: () => nowMs,
+    })
+
+    await client.genres('MOVIE')
+    await client.genres('MOVIE')
+    expect(requests).toHaveLength(1)
+
+    nowMs += DETAIL_TTL_MS + 1
+    await client.genres('MOVIE')
+    expect(requests).toHaveLength(1)
+
+    nowMs += GENRE_TTL_MS - DETAIL_TTL_MS
+    await client.genres('MOVIE')
+    expect(requests).toHaveLength(2)
+  })
+
+  it('keeps site search on the short 5min TTL and detail on 24h', async () => {
+    let nowMs = 1_000_000
+    const { fetchJson, requests } = createFakeTransport({
+      '/3/search/multi': SEARCH_MULTI_PAGE,
+      '/3/movie/419430': MOVIE_DETAIL,
+    })
+    const client = createTmdbClient({
+      token: 'test-token',
+      fetchJson,
+      now: () => nowMs,
+    })
+
+    await client.searchMulti('dune')
+    await client.title('MOVIE', 419430)
+    expect(requests).toHaveLength(2)
+
+    nowMs += SEARCH_TTL_MS + 1
+    await client.searchMulti('dune')
+    await client.title('MOVIE', 419430)
+    expect(requests).toHaveLength(3)
   })
 })

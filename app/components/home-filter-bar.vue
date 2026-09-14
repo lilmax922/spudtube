@@ -479,6 +479,18 @@ watch(() => props.providerSearchQuery, (value) => {
         />
       </div>
 
+      <button
+        v-else
+        type="button"
+        data-testid="filter-expand"
+        class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-muted px-3 text-caption-md font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20"
+        :aria-label="t('browse.filterTitle')"
+        @click="emit('expand')"
+      >
+        <Filter :size="14" :stroke-width="1.75" aria-hidden="true" />
+        {{ t('browse.filterTitle') }}
+      </button>
+
       <span
         v-if="selectedGenreIds.length > 0"
         class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-secondary px-1.5 text-caption-sm font-bold tabular-nums text-foreground ring-1 ring-background"

@@ -1,5 +1,6 @@
 import { createApp, createRouter, toWebHandler } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { __resetNitropackRuntimeCache } from '../../../vitest.stubs/nitropack-runtime'
 
 const { fakeClient, TmdbApiError } = vi.hoisted(() => ({
   fakeClient: {
@@ -32,6 +33,7 @@ describe('gET /api/catalog/discover', () => {
 
   afterEach(() => {
     fakeClient.discover.mockReset()
+    __resetNitropackRuntimeCache()
   })
 
   it('discovers by kind with OR-ed genre ids and page, resolving TW geo to zh-TW', async () => {
@@ -75,14 +77,14 @@ describe('gET /api/catalog/discover', () => {
   it('auto-detects en without geo and cookie overrides', async () => {
     fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
 
-    await call(new Request('http://localhost/api/catalog/discover?kind=movie'))
-    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, minRating: undefined, page: 1, language: 'en' })
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&page=2'))
+    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, minRating: undefined, page: 2, language: 'en' })
 
     fakeClient.discover.mockClear()
-    await call(new Request('http://localhost/api/catalog/discover?kind=movie', {
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&page=3', {
       headers: { 'cf-ipcountry': 'TW', 'cookie': 'spudtube-locale=en' },
     }))
-    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, minRating: undefined, page: 1, language: 'en' })
+    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', { genreIds: undefined, minRating: undefined, page: 3, language: 'en' })
   })
 
   it('rejects an unknown kind', async () => {
@@ -149,5 +151,36 @@ describe('gET /api/catalog/discover', () => {
 
     expect(response.status).toBe(400)
     expect(await response.json()).toMatchObject({ statusCode: 400 })
+  })
+
+  it('serves a repeat filtered visit from the 6h cache without hitting TMDB again', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    const first = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
+    const second = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(await second.json()).toEqual(await first.json())
+    expect(fakeClient.discover).toHaveBeenCalledTimes(1)
+  })
+
+  it('keys the cache by region so a region switch refetches provider-filtered discover', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&providers=8&language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&providers=8&language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    expect(fakeClient.discover).toHaveBeenCalledTimes(1)
+
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&providers=8&language=en', { headers: { 'cf-ipcountry': 'US' } }))
+    expect(fakeClient.discover).toHaveBeenCalledTimes(2)
+  })
+
+  it('emits a 6h max-age cache-control so browsers keep filtered results on disk', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    const response = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
+
+    expect(response.headers.get('cache-control')).toContain('max-age=21600')
   })
 })

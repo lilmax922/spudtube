@@ -4,6 +4,19 @@ import { effectScope, ref } from 'vue'
 import { resetHeroTitlesForTest, setHeroTitlesFetcherForTest, useHeroTitles } from './use-hero-titles'
 
 const localeRef = ref('en')
+const regionRef = ref('TW')
+
+vi.mock('./use-region', async () => {
+  const actual = await vi.importActual<typeof import('./use-region')>('./use-region')
+  return {
+    ...actual,
+    useRegion: () => ({
+      region: regionRef,
+      curatedRegions: ['TW', 'US'],
+      setRegion: vi.fn(),
+    }),
+  }
+})
 
 vi.mock('vue-i18n', async () => {
   const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
@@ -43,6 +56,7 @@ describe('use-hero-titles', () => {
   beforeEach(() => {
     resetHeroTitlesForTest()
     localeRef.value = 'en'
+    regionRef.value = 'TW'
   })
 
   afterEach(() => {
@@ -160,6 +174,22 @@ describe('use-hero-titles', () => {
     await vi.waitFor(() => expect(fetchHero).toHaveBeenCalledWith('TV_SHOW', 'en'))
     await vi.waitFor(() => expect(second.titles.value[0]!.name).toBe('Winter Coming'))
     secondScope.stop()
+  })
+
+  it('refetches when the region changes', async () => {
+    const { fetcher, fetchHero } = createFetcher()
+    fetchHero.mockResolvedValue({ results: sampleHero })
+
+    const kind = ref<'MOVIE' | 'TV_SHOW'>('MOVIE')
+    const state = useHeroTitles(kind, fetcher)
+    void state
+
+    await vi.waitFor(() => expect(fetchHero).toHaveBeenCalledWith('MOVIE', 'en'))
+    const callsAfterFirst = fetchHero.mock.calls.length
+
+    regionRef.value = 'US'
+    await vi.waitFor(() => expect(fetchHero.mock.calls.length).toBeGreaterThan(callsAfterFirst))
+    expect(fetchHero).toHaveBeenLastCalledWith('MOVIE', 'en')
   })
 
   it('maps zh-TW through and narrows other DisplayLocales to en', async () => {

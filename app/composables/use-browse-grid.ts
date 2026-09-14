@@ -201,13 +201,18 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   function invalidateFilterData(): void {
     filterDataGeneration++
     filterDataKey = undefined
+    genres.value = []
+    popularProviders.value = []
+    providerListRaw.value = []
   }
 
   async function refresh(): Promise<void> {
     // Unfiltered browse renders the cached section rows; discover only fires
     // once the visitor actually picks a filter.
-    if (!hasActiveFilters())
+    if (!hasActiveFilters()) {
+      paged.reset()
       return
+    }
     try {
       await ensureFilterData()
       await loadFirstPage()

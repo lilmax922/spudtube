@@ -37,6 +37,24 @@ afterEach(() => {
 })
 
 describe('homeFilterBar', () => {
+  it('shows a filter entry button on desktop when genres are not loaded yet', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props({ genres: [], availableProviders: [] }) })
+    mounted.push(wrapper)
+
+    const entry = wrapper.find('[data-testid="filter-expand"]')
+    expect(entry.exists()).toBe(true)
+    await entry.trigger('click')
+
+    expect(wrapper.emitted('expand')).toBeTruthy()
+  })
+
+  it('hides the filter entry button once genres are loaded', async () => {
+    const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
+    mounted.push(wrapper)
+
+    expect(wrapper.find('[data-testid="filter-expand"]').exists()).toBe(false)
+  })
+
   it('renders the rating chips with the All / 7+ / 8+ labels', async () => {
     const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
     mounted.push(wrapper)

@@ -240,6 +240,48 @@ describe('use-browse-grid', () => {
     expect(grid.loadingMore.value).toBe(false)
   })
 
+  it('clears paged state when the last filter is cleared after a failure', async () => {
+    const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()
+    fetchGenres.mockResolvedValue(genres)
+    fetchDiscover.mockRejectedValue(new Error('tmdb 500'))
+
+    const grid = useBrowseGrid(fetcher)
+    grid.toggleGenre(28)
+    await vi.waitFor(() => expect(grid.error.value).toBe(true))
+    expect(grid.items.value).toEqual([])
+    expect(fetchDiscover).toHaveBeenCalledTimes(1)
+
+    grid.clearGenres()
+    expect(grid.selectedGenreIds.value).toEqual([])
+    expect(grid.error.value).toBe(false)
+    expect(grid.items.value).toEqual([])
+    fetchDiscover.mockClear()
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(fetchDiscover).not.toHaveBeenCalled()
+  })
+
+  it('clears stale kind metadata when the kind changes', async () => {
+    const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()
+    const movieGenres: Genre[] = [{ id: 28, name: 'Action' }]
+    const tvGenres: Genre[] = [{ id: 10759, name: 'Action & Adventure' }]
+    fetchGenres.mockImplementation(async (kind: string) => kind === 'MOVIE' ? movieGenres : tvGenres)
+    fetchDiscover.mockResolvedValue(page([dune], 5))
+
+    const grid = useBrowseGrid(fetcher)
+    grid.setMinRating(7)
+    await vi.waitFor(() => expect(grid.genres.value).toEqual(movieGenres))
+    expect(grid.popularProviders.value).toEqual([])
+
+    grid.setKind('TV_SHOW')
+    expect(grid.genres.value).toEqual([])
+    expect(grid.popularProviders.value).toEqual([])
+    expect(grid.minRating.value).toBe(7)
+
+    await grid.ensureFilterData()
+    expect(grid.genres.value).toEqual(tvGenres)
+    expect(fetchGenres).toHaveBeenLastCalledWith('TV_SHOW', 'en')
+  })
+
   it('toggles provider filter and refetches discover with providerIds', async () => {
     const { fetcher, fetchDiscover } = createFakeFetcher()
     fetchDiscover.mockResolvedValue(page([dune], 1))

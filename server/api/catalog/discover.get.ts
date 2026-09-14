@@ -1,4 +1,6 @@
-import { createError, defineEventHandler, getCookie, getHeader, getQuery } from 'h3'
+import type { H3Event } from 'h3'
+import { createError, getCookie, getHeader, getQuery } from 'h3'
+import { defineCachedEventHandler } from 'nitropack/runtime'
 import { z } from 'zod'
 import { COUNTRY_HEADER } from '../../../shared/i18n/locale'
 import { DEFAULT_REGION, REGION_COOKIE, resolveSelectedRegion } from '../../../shared/region/region'
@@ -17,7 +19,7 @@ const discoverQuerySchema = z.object({
   language: languageParam,
 })
 
-function resolveRegion(event: Parameters<Parameters<typeof defineEventHandler>[0]>[0]): string {
+function resolveRegion(event: H3Event): string {
   const cookieRegion = getCookie(event, REGION_COOKIE)
   const detectedCountry = getHeader(event, COUNTRY_HEADER) ?? getHeader(event, 'cf-ipcountry')
   try {
@@ -28,7 +30,7 @@ function resolveRegion(event: Parameters<Parameters<typeof defineEventHandler>[0
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
   const { kind, genres, minRating, providers, page, language } = parseOrThrow(discoverQuerySchema, getQuery(event))
   const locale = language ?? getRequestLocale(event)
   const watchRegion = providers && providers.length > 0 ? resolveRegion(event) : undefined
@@ -46,4 +48,13 @@ export default defineEventHandler(async (event) => {
     }
     throw error
   }
+}, {
+  maxAge: 21600,
+  swr: false,
+  getKey: (event) => {
+    const query = getQuery(event)
+    const first = (value: unknown): string | undefined => Array.isArray(value) ? value[0] as string : value as string | undefined
+    const language = first(query.language) ?? getRequestLocale(event)
+    return `discover:${first(query.kind) ?? ''}:${first(query.genres) ?? ''}:${first(query.minRating) ?? ''}:${first(query.providers) ?? ''}:${first(query.page) ?? '1'}:${language}:${resolveRegion(event)}`
+  },
 })

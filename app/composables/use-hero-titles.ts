@@ -8,6 +8,7 @@ import { $fetch } from '#imports'
 import { toMediaSegment } from '#shared/kind/kind'
 import { DEFAULT_REGION } from '#shared/region/region'
 import { useRegion } from './use-region'
+import { clearSsrDataForTest, useSsrData } from './use-ssr-data'
 import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface HeroTitle {
@@ -47,14 +48,8 @@ export interface HeroTitlesState {
 }
 
 let heroInstance: HeroTitlesState | undefined
+let heroInstanceKey: string | undefined
 let heroFetcher: HeroFetcher | undefined
-let heroObservedKind: Ref<'MOVIE' | 'TV_SHOW'> | undefined
-let heroObservedLocale: ComputedRef<TmdbLanguage> | undefined
-let heroObservedRegion: ComputedRef<Region> | undefined
-let heroGeneration = 0
-let heroLoadedKind: 'MOVIE' | 'TV_SHOW' | undefined
-let heroLoadedLanguage: TmdbLanguage | undefined
-let heroLoadedRegion: Region | undefined
 let heroTestFetcher: HeroFetcher | undefined
 
 function resolveLocaleRef(): ComputedRef<TmdbLanguage> {
@@ -87,40 +82,12 @@ function mapHeroPayload(payload: HeroPayload): HeroTitle[] {
   }))
 }
 
-// Single-flight reload for the shared instance. Generation guards stale
-// responses when kind flips twice before the first fetch resolves. The loaded
-// markers move only on success so a failed first fetch retries on remount.
-async function reloadSharedHero(): Promise<void> {
-  const state = heroInstance
-  const fetcher = heroTestFetcher ?? heroFetcher
-  const kindRef = heroObservedKind
-  const tmdbLanguage = heroObservedLocale
-  const regionRef = heroObservedRegion
-  if (!state || !fetcher || !kindRef || !tmdbLanguage)
-    return
-  const current = ++heroGeneration
-  const kindValue = kindRef.value
-  const languageValue = tmdbLanguage.value
-  state.loading.value = true
-  state.error.value = false
-  try {
-    const payload = await fetcher.fetchHero(kindValue, languageValue)
-    if (current !== heroGeneration)
-      return
-    state.titles.value = mapHeroPayload(payload)
-    heroLoadedKind = kindValue
-    heroLoadedLanguage = tmdbLanguage.value
-    heroLoadedRegion = regionRef?.value
-  }
-  catch {
-    if (current === heroGeneration)
-      state.error.value = true
-  }
-  finally {
-    if (current === heroGeneration)
-      state.loading.value = false
-  }
-}
+// Shared hero state is SSR-tracked under kind + language: the server awaits
+// it before painting, and the payload seeds hydration, so both sides render
+// the same hero instead of racing a skeleton against the carousel. A context
+// change selects the entry for the new combination and fetches it, which
+// also resyncs remounts after a drift (for example setKind from the header
+// while home was unmounted) without any remount bookkeeping here.
 
 export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetcher): HeroTitlesState {
   if (fetcher !== undefined) {
@@ -160,49 +127,55 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
     return { titles, loading, error, refresh: load }
   }
 
-  // Shared singleton path used by the landing page. The watcher binds to the
-  // calling scope, so every mount re-registers it and resyncs when kind or
-  // locale drifted while the page was unmounted (for example setKind from
-  // the header on another page before navigating home).
+  // Shared singleton path used by the landing page. The instance is shared
+  // on the client only: reusing it across SSR requests would paint one
+  // visitor's hero into another's HTML and mismatch hydration. Remounts
+  // with an unchanged context reuse the settled combination without
+  // refetching; a drifted context selects the entry for the new combination
+  // and fetches it, so no remount bookkeeping is needed beyond the key.
+  // Region is not part of the key: hero content never varies by region, so
+  // a region switch correctly leaves the settled hero alone.
   const tmdbLanguage = resolveLocaleRef()
-  const region = resolveRegionRef()
-  if (heroInstance) {
-    heroObservedKind = kind
-    heroObservedLocale = tmdbLanguage
-    heroObservedRegion = region
-    watch([heroObservedKind, heroObservedLocale, heroObservedRegion], () => {
-      void reloadSharedHero()
+  const entryKey = `spud:hero:${kind.value}:${tmdbLanguage.value}`
+  if (!import.meta.server && heroInstance && heroInstanceKey === entryKey) {
+    watch([kind, tmdbLanguage], () => {
+      void heroInstance?.refresh()
     })
-    if (heroLoadedKind !== kind.value || heroLoadedLanguage !== tmdbLanguage.value || heroLoadedRegion !== region.value)
-      void reloadSharedHero()
+    void heroInstance.refresh()
     return heroInstance
   }
-  heroFetcher = heroTestFetcher ?? createApiHeroFetcher()
-  heroObservedKind = kind
-  heroObservedLocale = tmdbLanguage
-  heroObservedRegion = region
-  const titles = ref<HeroTitle[]>([])
-  const loading = ref(false)
-  const error = ref(false)
-  heroInstance = { titles, loading, error, refresh: reloadSharedHero }
-  watch([heroObservedKind, heroObservedLocale, heroObservedRegion], () => {
-    void reloadSharedHero()
+  // The fetcher itself is stateless, so sharing it across SSR requests is
+  // safe; only the loaded titles stay per-request through the keyed entry.
+  const sharedFetcher = (): HeroFetcher => heroTestFetcher ?? (heroFetcher ??= createApiHeroFetcher())
+  const remote = useSsrData<HeroPayload>(
+    'spud:hero',
+    () => ({ kind: kind.value, lang: tmdbLanguage.value }),
+    () => sharedFetcher().fetchHero(kind.value, tmdbLanguage.value),
+  )
+  const titles: Ref<HeroTitle[]> = computed<HeroTitle[]>(() => remote.data.value ? mapHeroPayload(remote.data.value) : [])
+  const loading: Ref<boolean> = computed<boolean>(() => remote.pending.value)
+  const error: Ref<boolean> = computed<boolean>(() => remote.failed.value)
+  async function refreshShared(): Promise<void> {
+    await remote.ensure()
+  }
+  const state: HeroTitlesState = { titles, loading, error, refresh: refreshShared }
+  if (!import.meta.server) {
+    heroInstance = state
+    heroInstanceKey = entryKey
+  }
+  watch([kind, tmdbLanguage], () => {
+    void state.refresh()
   })
-  void reloadSharedHero()
-  return heroInstance
+  void state.refresh()
+  return state
 }
 
 export function resetHeroTitlesForTest(): void {
   heroInstance = undefined
+  heroInstanceKey = undefined
   heroFetcher = undefined
-  heroObservedKind = undefined
-  heroObservedLocale = undefined
-  heroObservedRegion = undefined
-  heroGeneration = 0
-  heroLoadedKind = undefined
-  heroLoadedLanguage = undefined
-  heroLoadedRegion = undefined
   heroTestFetcher = undefined
+  clearSsrDataForTest()
 }
 
 export function setHeroTitlesFetcherForTest(fetcher: HeroFetcher | undefined): void {

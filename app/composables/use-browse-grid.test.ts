@@ -1,7 +1,8 @@
 import type { Genre, Page, TitleSummary } from '#server/tmdb/types'
 import type { BrowseFetcher } from './use-browse-grid'
-import { describe, expect, it, vi } from 'vitest'
-import { useBrowseGrid } from './use-browse-grid'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useNuxtApp } from '#imports'
+import { resetBrowseGridForTest, useBrowseGrid } from './use-browse-grid'
 
 function createFakeFetcher() {
   const fetchGenres = vi.fn<BrowseFetcher['fetchGenres']>().mockResolvedValue([])
@@ -44,6 +45,12 @@ const genres: Genre[] = [
 
 describe('use-browse-grid', () => {
   const baseOptions = { genreIds: [] as number[], minRating: null as number | null, providerIds: [] as number[], page: 1, language: 'en' }
+
+  // Filter metadata is SSR-cached by kind + language: clear the Nuxt data
+  // cache between tests so each grid fetches from its own fake fetcher.
+  beforeEach(() => {
+    resetBrowseGridForTest()
+  })
 
   it('prefetches filter metadata on the first unfiltered refresh without firing discover', async () => {
     const { fetcher, fetchGenres, fetchDiscover, fetchProviderList } = createFakeFetcher()
@@ -326,6 +333,27 @@ describe('use-browse-grid', () => {
     expect(grid.availableProviders.value.map(p => p.id).sort((a, b) => a - b)).toEqual([8, 119, 337])
     // Should not be derived from current page's ids (dune alone would only give its own providers)
     expect(fetchProviderList).toHaveBeenCalled()
+  })
+
+  it('seeds hydration from the SSR payload without refetching (server and client agree)', async () => {
+    const { fetcher, fetchGenres, fetchProviderList } = createFakeFetcher()
+    // Simulate hydration: the server already awaited this entry, so the
+    // client must render the same genres immediately with zero fetches.
+    const nuxtApp = useNuxtApp()
+    nuxtApp.isHydrating = true
+    nuxtApp.payload.data['spud:filter-meta:MOVIE:en'] = { genres, providers: [] }
+    try {
+      const grid = useBrowseGrid(fetcher)
+
+      expect(grid.genres.value).toEqual(genres)
+      expect(grid.filterMetadataLoading.value).toBe(false)
+      await grid.ensureFilterData()
+      expect(fetchGenres).not.toHaveBeenCalled()
+      expect(fetchProviderList).not.toHaveBeenCalled()
+    }
+    finally {
+      nuxtApp.isHydrating = false
+    }
   })
 
   it('clearFilters resets the selection and returns to rows without refetching', async () => {

@@ -1,6 +1,7 @@
 import type { HeroFetcher } from './use-hero-titles'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, ref } from 'vue'
+import { useNuxtApp } from '#imports'
 import { resetHeroTitlesForTest, setHeroTitlesFetcherForTest, useHeroTitles } from './use-hero-titles'
 
 const localeRef = ref('en')
@@ -144,7 +145,9 @@ describe('use-hero-titles', () => {
 
     const returnScope = effectScope()
     const second = returnScope.run(() => useHeroTitles(kind))!
-    expect(second).toBe(first)
+    // A drifted context rebuilds the shared state instead of reusing the
+    // settled entry, so identity is not preserved across a context change.
+    expect(second).not.toBe(first)
     await vi.waitFor(() => expect(fetchHero).toHaveBeenCalledWith('TV_SHOW', 'en'))
     await vi.waitFor(() => expect(second.titles.value[0]!.name).toBe('Winter Coming'))
     returnScope.stop()
@@ -190,6 +193,28 @@ describe('use-hero-titles', () => {
     regionRef.value = 'US'
     await vi.waitFor(() => expect(fetchHero.mock.calls.length).toBeGreaterThan(callsAfterFirst))
     expect(fetchHero).toHaveBeenLastCalledWith('MOVIE', 'en')
+  })
+
+  it('seeds hydration from the SSR payload without refetching (server and client agree)', async () => {
+    const fetchHero = vi.fn<HeroFetcher['fetchHero']>()
+    setHeroTitlesFetcherForTest({ fetchHero })
+    // Simulate hydration: the server already awaited this entry, so the
+    // client must render the same hero immediately with zero fetches.
+    const nuxtApp = useNuxtApp()
+    nuxtApp.isHydrating = true
+    nuxtApp.payload.data['spud:hero:MOVIE:en'] = { results: sampleHero }
+    try {
+      const kind = ref<'MOVIE' | 'TV_SHOW'>('MOVIE')
+      const state = useHeroTitles(kind)
+
+      expect(state.titles.value).toHaveLength(1)
+      expect(state.titles.value[0]).toMatchObject({ tmdbId: 419430 })
+      expect(state.loading.value).toBe(false)
+      expect(fetchHero).not.toHaveBeenCalled()
+    }
+    finally {
+      nuxtApp.isHydrating = false
+    }
   })
 
   it('maps zh-TW through and narrows other DisplayLocales to en', async () => {

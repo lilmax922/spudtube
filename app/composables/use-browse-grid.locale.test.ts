@@ -1,6 +1,6 @@
 import type { Genre, Page, TitleSummary } from '#server/tmdb/types'
 import type { BrowseFetcher } from './use-browse-grid'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 
 const localeRef = ref('en')
@@ -21,7 +21,11 @@ vi.mock('vue-i18n', async () => {
   }
 })
 
-const { useBrowseGrid } = await import('./use-browse-grid')
+const { resetBrowseGridForTest, useBrowseGrid } = await import('./use-browse-grid')
+
+beforeEach(() => {
+  resetBrowseGridForTest()
+})
 
 function createFakeFetcher(): { fetcher: BrowseFetcher, fetchGenres: ReturnType<typeof vi.fn>, fetchDiscover: ReturnType<typeof vi.fn>, fetchProviders: ReturnType<typeof vi.fn>, fetchProviderList: ReturnType<typeof vi.fn> } {
   const fetchGenres = vi.fn<BrowseFetcher['fetchGenres']>()

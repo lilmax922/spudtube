@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ConfigProvider } from 'reka-ui'
 import { computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { defineOgImage, navigateTo, useFetch, useHead, useSiteConfig } from '#imports'
@@ -37,6 +38,17 @@ defineOgImage('SpudTube', { title: localeTitle, description: localeDescription }
 
 const { data: session } = await authClient.useSession(useFetch)
 
+// Reka generates element IDs from Vue's useId, whose async-boundary
+// namespace differs between SSR and hydration (payload-shortcircuited
+// fetches mark fewer boundaries on the client). A per-app counter makes
+// every generated ID deterministic: the counter resets with each SSR
+// request and replays in the same component order on hydration.
+let rekaIdCounter = 0
+function stableRekaUseId(): string {
+  rekaIdCounter += 1
+  return `spud-reka-${rekaIdCounter}`
+}
+
 const isSearchOpen = shallowRef(false)
 const overlayQuery = shallowRef('')
 const { isOpen: isTrailerOpen } = useTrailerState()
@@ -74,33 +86,35 @@ async function onSignOut(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col bg-background">
-    <TheHeader
-      :user="session?.user ?? null"
-      :is-overlay-open="isOverlayOpen"
-      @sign-in="onSignIn"
-      @sign-out="onSignOut"
-      @open-search="openSearch"
-      @toggle-search="toggleSearch"
-    />
-    <SearchOverlay
-      :query="overlayQuery"
-      :open="isSearchOpen"
-      :clearable="false"
-      @update:query="onSearchInput"
-      @clear="onClearSearch"
-      @close="closeSearch"
-    />
-    <main class="flex-1 pt-[var(--header-h)]">
-      <NuxtPage />
-    </main>
-    <Toaster
-      position="bottom-right"
-      theme="dark"
-      rich-colors
-      close-button
-      close-button-position="top-right"
-    />
-    <TheFooter />
-  </div>
+  <ConfigProvider :use-id="stableRekaUseId">
+    <div class="flex min-h-dvh flex-col bg-background">
+      <TheHeader
+        :user="session?.user ?? null"
+        :is-overlay-open="isOverlayOpen"
+        @sign-in="onSignIn"
+        @sign-out="onSignOut"
+        @open-search="openSearch"
+        @toggle-search="toggleSearch"
+      />
+      <SearchOverlay
+        :query="overlayQuery"
+        :open="isSearchOpen"
+        :clearable="false"
+        @update:query="onSearchInput"
+        @clear="onClearSearch"
+        @close="closeSearch"
+      />
+      <main class="flex-1 pt-[var(--header-h)]">
+        <NuxtPage />
+      </main>
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        rich-colors
+        close-button
+        close-button-position="top-right"
+      />
+      <TheFooter />
+    </div>
+  </ConfigProvider>
 </template>

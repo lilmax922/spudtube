@@ -5,7 +5,7 @@ import type { BrowseFetcher, BrowseGridState } from './use-browse-grid'
 import type { SectionsFetcher } from './use-browse-sections'
 import type { KeywordSearchState, SearchFetcher } from './use-keyword-search'
 import { computed, watch } from 'vue'
-import { useBrowseGrid } from './use-browse-grid'
+import { resetBrowseGridForTest, useBrowseGrid } from './use-browse-grid'
 import { useBrowseSections } from './use-browse-sections'
 import { useKeywordSearch } from './use-keyword-search'
 
@@ -66,7 +66,9 @@ let listingInstance: BrowseListing | undefined
 // cross the same seam with fakes. Rows carry titleKey, never translated
 // labels: DisplayLocale stays a view concern.
 export function useBrowseListing(fetchers?: BrowseListingFetchers): BrowseListing {
-  if (fetchers === undefined && listingInstance)
+  // Like the grid and hero singletons below, the shared listing must not
+  // cross SSR requests: each server render builds its own session.
+  if (!import.meta.server && fetchers === undefined && listingInstance)
     return listingInstance
 
   const grid = useBrowseGrid(fetchers?.browse)
@@ -174,10 +176,12 @@ export function useBrowseListing(fetchers?: BrowseListingFetchers): BrowseListin
   }
   // Last writer wins: tests seed the shared instance with fakes before
   // mounting, and every consumer sees the same session. Reset per test.
-  listingInstance = listing
+  if (!import.meta.server)
+    listingInstance = listing
   return listing
 }
 
 export function resetBrowseListingForTest(): void {
   listingInstance = undefined
+  resetBrowseGridForTest()
 }

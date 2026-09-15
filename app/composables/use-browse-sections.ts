@@ -2,9 +2,10 @@ import type { Ref } from 'vue'
 import type { BrowseSection } from '#server/api/browse/sections.get'
 import type { TmdbLanguage } from '#server/tmdb/types'
 import type { Kind } from '#shared/kind/kind'
-import { ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '#shared/kind/kind'
+import { useSsrData } from './use-ssr-data'
 import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface SectionsFetcher {
@@ -32,22 +33,24 @@ export interface BrowseSectionsState {
 export function useBrowseSections(kind: Ref<Kind>, fetcher: SectionsFetcher = createApiSectionsFetcher()): BrowseSectionsState {
   const tmdbLanguage = useTmdbLanguage()
 
-  const sections = ref<BrowseSection[]>([])
-  const loading = ref(false)
-  const error = ref(false)
+  // The rows are SSR-tracked under kind + language: the server awaits them
+  // before painting, and the payload seeds hydration, so both sides render
+  // the same rows instead of racing a skeleton against content. A key change
+  // rebuilds and refetches the entry on its own; settled rows stay on
+  // screen while the reload runs, so a setup refresh never flashes a
+  // skeleton over server-rendered rows.
+  const remote = useSsrData<BrowseSection[]>(
+    'spud:sections',
+    () => ({ kind: kind.value, lang: tmdbLanguage.value }),
+    () => fetcher.fetchSections(kind.value, tmdbLanguage.value),
+  )
+
+  const sections: Ref<BrowseSection[]> = computed<BrowseSection[]>(() => remote.data.value ?? [])
+  const loading: Ref<boolean> = computed<boolean>(() => remote.pending.value)
+  const error: Ref<boolean> = computed<boolean>(() => remote.failed.value)
 
   async function refresh(): Promise<void> {
-    loading.value = true
-    error.value = false
-    try {
-      sections.value = await fetcher.fetchSections(kind.value, tmdbLanguage.value)
-    }
-    catch {
-      error.value = true
-    }
-    finally {
-      loading.value = false
-    }
+    await remote.reload()
   }
 
   watch([kind, tmdbLanguage], () => {

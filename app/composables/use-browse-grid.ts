@@ -7,6 +7,7 @@ import { toMediaSegment } from '#shared/kind/kind'
 import { DEFAULT_REGION } from '#shared/region/region'
 import { usePagedResults } from './use-paged-results'
 import { useRegion } from './use-region'
+import { clearSsrDataForTest, useSsrData } from './use-ssr-data'
 import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface FetchProviderListOptions {
@@ -103,24 +104,28 @@ export interface BrowseGridState {
   clearProviderSearch: () => void
 }
 
+interface FilterMetadata {
+  genres: Genre[]
+  providers: Provider[]
+}
+
 let browseGridInstance: BrowseGridState | undefined
 
 export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const isDefault = fetcher === undefined
-  if (isDefault && browseGridInstance)
+  // Module singletons leak across SSR requests on the server (and across
+  // Cloudflare isolate reuses): one visitor's genres would render into
+  // another's HTML and mismatch hydration. Share only on the client.
+  if (!import.meta.server && isDefault && browseGridInstance)
     return browseGridInstance
   const actualFetcher = fetcher ?? createApiBrowseFetcher()
   const kind = ref<Kind>('MOVIE')
   const selectedGenreIds = ref<number[]>([])
   const minRating = ref<number | null>(null)
   const selectedProviderIds = ref<number[]>([])
-  const providerListRaw = ref<Provider[]>([])
-  const popularProviders = ref<Provider[]>([])
   const providerSearchResults = ref<Provider[]>([])
   const providerSearchQuery = ref('')
   const providerSearchLoading = ref(false)
-  const genres = ref<Genre[]>([])
-  const filterMetadataLoading = ref(true)
   const tmdbLanguage = useTmdbLanguage()
 
   let regionRef: Ref<string>
@@ -130,10 +135,6 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   catch {
     regionRef = ref(DEFAULT_REGION) as Ref<string>
   }
-
-  const availableProviders = computed<Provider[]>(() => {
-    return [...providerListRaw.value].sort((a, b) => a.name.localeCompare(b.name))
-  })
 
   const { loadFirstPage, loadNextPage, ...paged } = usePagedResults<TitleSummary>(page =>
     actualFetcher.fetchDiscover(kind.value, {
@@ -152,26 +153,18 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   }
 
   // Filter metadata (genres + popular providers) prefetches on mount so the
-  // filter options render immediately. The unfiltered home shows Hero +
-  // server-driven rows and never needs discover.
-  let filterDataKey: string | undefined
-  let filterDataGeneration = 0
-  let filterDataInflight: { key: string, generation: number, promise: Promise<void> } | undefined
-
-  async function ensureFilterData(): Promise<void> {
-    const key = `${kind.value}:${tmdbLanguage.value}`
-    if (filterDataKey === key)
-      return
-    const seen = filterDataGeneration
-    const inflight = filterDataInflight
-    if (inflight && inflight.key === key && inflight.generation === seen) {
-      await inflight.promise
-      return
-    }
-    const startKind = kind.value
-    const startLanguage = tmdbLanguage.value
-    filterMetadataLoading.value = true
-    const promise = (async (): Promise<void> => {
+  // filter options render immediately. It is SSR-tracked under kind +
+  // language: the server awaits it before painting, and the payload seeds
+  // hydration, so both sides render the same filter bar instead of racing a
+  // skeleton against content. A key change selects the entry for the new
+  // combination and fetches it; the outgoing entry is cleared synchronously
+  // so the next paint shows skeletons, never stale options. Region shares
+  // the entry (it never changes the fetch) but still forces one refetch
+  // through the watcher below.
+  const filterMeta = useSsrData<FilterMetadata>(
+    'spud:filter-meta',
+    () => ({ kind: kind.value, lang: tmdbLanguage.value }),
+    async () => {
       // Popular-only by default: small curated set instead of 805 providers.
       // Both legs tolerate upstream failure with empty lists so a metadata
       // outage never blocks the discover query that actually decides the grid.
@@ -183,36 +176,21 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
         fetchGenreList,
         fetchPopular,
       ])
-      // A kind/language/region switch mid-flight invalidates the payload: drop
-      // it so the retry fetches for the current context instead.
-      if (filterDataGeneration !== seen)
-        return
-      if (kind.value !== startKind || tmdbLanguage.value !== startLanguage)
-        return
-      genres.value = genreList
-      popularProviders.value = popularList
-      providerListRaw.value = popularList
-      filterDataKey = key
-    })()
-    filterDataInflight = { key, generation: seen, promise }
-    try {
-      await promise
-    }
-    finally {
-      if (filterDataInflight?.promise === promise)
-        filterDataInflight = undefined
-      if (filterDataGeneration === seen && kind.value === startKind && tmdbLanguage.value === startLanguage)
-        filterMetadataLoading.value = false
-    }
-  }
+      return { genres: genreList, providers: popularList }
+    },
+    [kind, tmdbLanguage, regionRef],
+  )
 
-  function invalidateFilterData(): void {
-    filterDataGeneration++
-    filterDataKey = undefined
-    genres.value = []
-    popularProviders.value = []
-    providerListRaw.value = []
-    filterMetadataLoading.value = true
+  const genres: Ref<Genre[]> = computed<Genre[]>(() => filterMeta.data.value?.genres ?? [])
+  const popularProviders: Ref<Provider[]> = computed<Provider[]>(() => filterMeta.data.value?.providers ?? [])
+  const providerListRaw: Ref<Provider[]> = computed<Provider[]>(() => filterMeta.data.value?.providers ?? [])
+  const filterMetadataLoading: Ref<boolean> = computed<boolean>(() => filterMeta.pending.value)
+  const availableProviders = computed<Provider[]>(() => {
+    return [...providerListRaw.value].sort((a, b) => a.name.localeCompare(b.name))
+  })
+
+  async function ensureFilterData(): Promise<void> {
+    await filterMeta.ensure()
   }
 
   async function refresh(): Promise<void> {
@@ -275,7 +253,6 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
 
   watch([tmdbLanguage, regionRef], () => {
     clearProviderSearch()
-    invalidateFilterData()
     void refresh()
   })
 
@@ -286,7 +263,6 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     selectedGenreIds.value = []
     selectedProviderIds.value = []
     clearProviderSearch()
-    invalidateFilterData()
     void refresh()
   }
 
@@ -366,11 +342,12 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     searchProviders,
     clearProviderSearch,
   }
-  if (isDefault)
+  if (!import.meta.server && isDefault)
     browseGridInstance = state
   return state
 }
 
 export function resetBrowseGridForTest(): void {
   browseGridInstance = undefined
+  clearSsrDataForTest()
 }

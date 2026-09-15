@@ -4,6 +4,7 @@ import type { BrowseFetcher } from './use-browse-grid'
 import type { SectionsFetcher } from './use-browse-sections'
 import type { SearchFetcher } from './use-keyword-search'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useNuxtApp } from '#imports'
 import { resetBrowseListingForTest, useBrowseListing } from './use-browse-listing'
 
 function title(tmdbId: number, name: string): TitleSummary {
@@ -161,6 +162,25 @@ describe('use-browse-listing', () => {
     expect(listing.mode.value).toBe('browse')
     // The search session cleared the filter, so browse is back to rows.
     expect(listing.selectedGenreIds.value).toEqual([])
+  })
+
+  it('seeds hydration from the SSR payload without refetching (server and client agree)', async () => {
+    const { fetchers, fetchSections } = createFakes()
+    // Simulate hydration: the server already awaited this entry, so the
+    // client must render the same rows immediately with zero fetches.
+    const nuxtApp = useNuxtApp()
+    nuxtApp.isHydrating = true
+    nuxtApp.payload.data['spud:sections:MOVIE:en'] = [horrorRow(), trendingRow()]
+    try {
+      const listing = useBrowseListing(fetchers)
+
+      expect(listing.rows.value).toHaveLength(2)
+      expect(listing.rows.value[0]).toMatchObject({ key: 'movie.horror' })
+      expect(fetchSections).not.toHaveBeenCalled()
+    }
+    finally {
+      nuxtApp.isHydrating = false
+    }
   })
 
   it('routes loadMore to the active mode only', async () => {

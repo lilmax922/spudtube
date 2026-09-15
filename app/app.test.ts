@@ -118,6 +118,24 @@ describe('app shell', () => {
     browseState.genres.value = []
   })
 
+  it('renders deterministic reka IDs across independent mounts (SSR/hydration agreement)', async () => {
+    browseState.availableProviders.value = [{ id: 8, name: 'Netflix', logoPath: '/n.jpg' }]
+    try {
+      const first = await mountSuspended(App, { route: '/' })
+      const firstIds = first.findAll('[id*="spud-reka-"]').map(el => el.attributes('id'))
+      expect(firstIds.length).toBeGreaterThan(0)
+      first.unmount()
+
+      const second = await mountSuspended(App, { route: '/' })
+      const secondIds = second.findAll('[id*="spud-reka-"]').map(el => el.attributes('id'))
+      expect(secondIds).toEqual(firstIds)
+      second.unmount()
+    }
+    finally {
+      browseState.availableProviders.value = []
+    }
+  })
+
   it('renders brand and lands directly on the browse grid', async () => {
     browseState.items.value = titles
     browseState.genres.value = genres

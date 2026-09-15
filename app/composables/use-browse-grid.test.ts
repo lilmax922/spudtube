@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { useBrowseGrid } from './use-browse-grid'
 
 function createFakeFetcher() {
-  const fetchGenres = vi.fn<BrowseFetcher['fetchGenres']>()
+  const fetchGenres = vi.fn<BrowseFetcher['fetchGenres']>().mockResolvedValue([])
   const fetchDiscover = vi.fn<BrowseFetcher['fetchDiscover']>()
   const fetchProviders = vi.fn<BrowseFetcher['fetchProviders']>()
   const fetchProviderList = vi.fn<BrowseFetcher['fetchProviderList']>()
@@ -204,16 +204,19 @@ describe('use-browse-grid', () => {
     expect(fetchDiscover).toHaveBeenCalledTimes(2)
   })
 
-  it('flags an error when the first filtered page fails to load', async () => {
+  it('still discovers when the genre list fails but discover is healthy', async () => {
     const { fetcher, fetchGenres, fetchDiscover } = createFakeFetcher()
     fetchGenres.mockRejectedValue(new Error('boom'))
     fetchDiscover.mockResolvedValue(page([dune], 5))
 
     const grid = useBrowseGrid(fetcher)
-    grid.toggleGenre(28)
+    grid.setMinRating(7)
 
-    await vi.waitFor(() => expect(grid.error.value).toBe(true))
-    expect(grid.loading.value).toBe(false)
+    // A genre outage must not block an unrelated rating filter: discover
+    // still decides the outcome with empty genre metadata.
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ minRating: 7 })))
+    expect(grid.error.value).toBe(false)
+    expect(grid.items.value).toEqual([dune])
   })
 
   it('discards an in-flight page append when the filter changes', async () => {

@@ -102,6 +102,10 @@ export default defineCachedEventHandler(async (event): Promise<HeroPayload> => {
   // TW payload would be served to US visitors.
   maxAge: 21600,
   swr: false,
+  // varies keeps the region inputs visible to the handler: Nitro strips every
+  // non-varies header before the handler runs, which would blind resolveRegion
+  // while getKey (built on the original event) still keyed by region.
+  varies: ['cookie', 'cf-ipcountry'],
   getKey: (event) => {
     const query = getQuery(event)
     const language = (Array.isArray(query.language) ? query.language[0] : query.language) ?? getRequestLocale(event)

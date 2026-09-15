@@ -172,12 +172,15 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     const startLanguage = tmdbLanguage.value
     filterMetadataLoading.value = true
     const promise = (async (): Promise<void> => {
-      // Popular-only by default: small curated set instead of 805 providers
+      // Popular-only by default: small curated set instead of 805 providers.
+      // Both legs tolerate upstream failure with empty lists so a metadata
+      // outage never blocks the discover query that actually decides the grid.
       const fetchPopular = actualFetcher.fetchProviderList
         ? actualFetcher.fetchProviderList(kind.value, tmdbLanguage.value, { popular: true }).catch(() => [] as Provider[])
         : Promise.resolve([] as Provider[])
+      const fetchGenreList = actualFetcher.fetchGenres(kind.value, tmdbLanguage.value).catch(() => [] as Genre[])
       const [genreList, popularList] = await Promise.all([
-        actualFetcher.fetchGenres(kind.value, tmdbLanguage.value),
+        fetchGenreList,
         fetchPopular,
       ])
       // A kind/language/region switch mid-flight invalidates the payload: drop

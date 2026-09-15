@@ -117,6 +117,12 @@ describe('gET /api/catalog/provider-list', () => {
     expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(2)
   })
 
+  it('declares cookie and cf-ipcountry as cache varies so the handler resolves the keyed region', async () => {
+    const fs = await import('node:fs')
+    const source = fs.readFileSync(`${process.cwd()}/server/api/catalog/provider-list.get.ts`, 'utf-8')
+    expect(source).toMatch(/varies:\s*\[.*cookie.*cf-ipcountry.*\]/s)
+  })
+
   it('bypasses the cache for typed search so keystrokes always hit fresh data', async () => {
     fakeClient.watchProviderList.mockResolvedValue(allProviders)
 

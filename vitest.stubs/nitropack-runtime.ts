@@ -11,6 +11,7 @@ import { setResponseHeader } from 'h3'
 export interface CachedEventHandlerOptions {
   maxAge?: number
   swr?: boolean
+  varies?: string[]
   getKey?: (event: H3Event) => string | Promise<string>
   shouldBypassCache?: (event: H3Event) => boolean | Promise<boolean>
 }

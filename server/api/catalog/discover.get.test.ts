@@ -176,6 +176,12 @@ describe('gET /api/catalog/discover', () => {
     expect(fakeClient.discover).toHaveBeenCalledTimes(2)
   })
 
+  it('declares cookie and cf-ipcountry as cache varies so the handler resolves the keyed region', async () => {
+    const fs = await import('node:fs')
+    const source = fs.readFileSync(`${process.cwd()}/server/api/catalog/discover.get.ts`, 'utf-8')
+    expect(source).toMatch(/varies:\s*\[.*cookie.*cf-ipcountry.*\]/s)
+  })
+
   it('emits a 6h max-age cache-control so browsers keep filtered results on disk', async () => {
     fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
 

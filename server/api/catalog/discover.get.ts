@@ -51,6 +51,10 @@ export default defineCachedEventHandler(async (event) => {
 }, {
   maxAge: 21600,
   swr: false,
+  // varies keeps the region inputs visible to the handler: Nitro strips every
+  // non-varies header before the handler runs, which would blind resolveRegion
+  // while getKey (built on the original event) still keyed by region.
+  varies: ['cookie', 'cf-ipcountry'],
   getKey: (event) => {
     const query = getQuery(event)
     const first = (value: unknown): string | undefined => Array.isArray(value) ? value[0] as string : value as string | undefined

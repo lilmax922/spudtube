@@ -144,6 +144,21 @@ describe('gET /api/catalog/discover', () => {
     expect(body.statusCode).toBe(502)
   })
 
+  it('retries after a 504 timeout instead of serving the error from the 6h cache', async () => {
+    // Regression for the homepage tarpit outage: a stalled TMDB upstream
+    // surfaces as 504 -> 502, and the cached handler must not pin that
+    // error payload. The retry refetches and serves the live payload.
+    fakeClient.discover.mockRejectedValueOnce(new TmdbApiError(504))
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    const failed = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
+    expect(failed.status).toBe(502)
+
+    const retried = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
+    expect(retried.status).toBe(200)
+    expect(fakeClient.discover).toHaveBeenCalledTimes(2)
+  })
+
   it('leaves non-5xx upstream client errors untouched', async () => {
     fakeClient.discover.mockRejectedValue(new TmdbApiError(400))
 

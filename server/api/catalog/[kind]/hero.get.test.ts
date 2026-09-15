@@ -378,4 +378,27 @@ describe('gET /api/catalog/[kind]/hero', () => {
 
     expect(response.headers.get('cache-control')).toContain('max-age=21600')
   })
+
+  it('retries after a 504 timeout instead of serving the error from the 6h cache', async () => {
+    // Homepage hero shares the tarpit outage shape: a stalled TMDB
+    // trending read must surface as an error and never pin a cached
+    // payload, so the retry refetches and serves the live result.
+    fakeClient.trending.mockRejectedValueOnce(new Error('TMDB request timeout after 10000ms'))
+    fakeClient.trending.mockResolvedValue({
+      page: 1,
+      results: [{ kind: 'MOVIE', tmdbId: 1, name: 'A', posterPath: null, backdropPath: '/a.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }],
+      totalPages: 1,
+      totalResults: 1,
+    })
+    fakeClient.title.mockResolvedValue(null)
+    fakeClient.watchProviders.mockResolvedValue({})
+
+    const failed = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+    expect(failed.status).toBe(500)
+
+    const retried = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+    expect(retried.status).toBe(200)
+    expect((await retried.json()).results).toHaveLength(1)
+    expect(fakeClient.trending).toHaveBeenCalledTimes(2)
+  })
 })

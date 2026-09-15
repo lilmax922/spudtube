@@ -10,6 +10,7 @@ import {
   NOT_FOUND_TTL_MS,
   SEARCH_TTL_MS,
   TMDB_BASE_URL,
+  TMDB_FETCH_TIMEOUT_MS,
 } from './constants'
 import { localizeGenres } from './genres'
 import {
@@ -34,9 +35,12 @@ import {
 
 export interface FetchJsonInit {
   headers?: Record<string, string>
+  signal?: AbortSignal
 }
 
 export type FetchJson = (url: string, init?: FetchJsonInit) => Promise<unknown>
+
+export type FetchJsonFetcher = (url: string, init?: RequestInit) => Promise<Response>
 
 export class TmdbApiError extends Error {
   constructor(
@@ -110,12 +114,104 @@ export interface TmdbClient {
   genres: (kind: Kind, language?: TmdbLanguage) => Promise<Genre[]>
 }
 
-const defaultFetchJson: FetchJson = async (url, init) => {
-  const response = await fetch(url, init)
-  if (!response.ok) {
-    throw new TmdbApiError(response.status, `TMDB request failed: ${response.status}`)
+function createTimeoutError(url: string, ms: number): TmdbApiError {
+  // TmdbApiError(504) reuses the existing 5xx-to-502 route mapping, and the
+  // Nitro cached-handler validate() gate rejects code >= 400, so a timeout
+  // never pins a 6h error payload into the edge cache.
+  return new TmdbApiError(504, `TMDB request timeout after ${ms}ms: ${url}`)
+}
+
+// Total-budget fetch+JSON with an abort-independent timeout. Covers both
+// tarpit shapes: a silent socket (fetch never settles) and a dripping body
+// (headers fast, bytes trickle: fetch resolves, json() hangs). Abort is
+// best-effort cleanup only — a hung socket in some runtimes never settles
+// its fetch even after abort, so every bound is its own timer race.
+// Without this, a stalled upstream pins the Nitro defineCachedEventHandler
+// pending slot and every same-key request (homepage hero + sections) hangs
+// with it: skeletons forever.
+export async function fetchJsonWithTimeout(
+  url: string,
+  init: RequestInit,
+  fetcher: FetchJsonFetcher,
+  ms: number = TMDB_FETCH_TIMEOUT_MS,
+): Promise<{ status: number, ok: boolean, body: unknown }> {
+  const controller = new AbortController()
+  let timedOut = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      timedOut = true
+      try {
+        controller.abort()
+      }
+      catch {
+        // ignore: the reject below carries the timeout either way
+      }
+      reject(createTimeoutError(url, ms))
+    }, ms)
+  })
+  const onCallerAbort = (): void => {
+    try {
+      controller.abort()
+    }
+    catch {
+      // ignore: caller aborts need no further handling here
+    }
   }
-  return await response.json()
+  init.signal?.addEventListener('abort', onCallerAbort, { once: true })
+  let response: Response | undefined
+  try {
+    response = await Promise.race([
+      fetcher(url, { ...init, signal: controller.signal }),
+      timeoutPromise,
+    ])
+  }
+  catch (error) {
+    if (timedOut && !(error instanceof TmdbApiError && error.status === 504))
+      throw createTimeoutError(url, ms)
+    throw error
+  }
+  finally {
+    init.signal?.removeEventListener('abort', onCallerAbort)
+    if (timer !== undefined)
+      clearTimeout(timer)
+  }
+  if (!response.ok)
+    return { status: response.status, ok: false, body: await response.json() }
+  let budgetTimer: ReturnType<typeof setTimeout> | undefined
+  const budget = new Promise<never>((_, reject) => {
+    budgetTimer = setTimeout(() => reject(createTimeoutError(url, ms)), ms)
+  })
+  try {
+    const body = await Promise.race([response.json(), budget])
+    return { status: response.status, ok: true, body }
+  }
+  catch (error) {
+    if (error instanceof TmdbApiError && error.status === 504) {
+      try {
+        await response.body?.cancel()
+      }
+      catch {
+        // ignore: body cleanup never masks the timeout
+      }
+    }
+    throw error
+  }
+  finally {
+    if (budgetTimer !== undefined)
+      clearTimeout(budgetTimer)
+  }
+}
+
+const defaultFetchJson: FetchJson = async (url, init) => {
+  const result = await fetchJsonWithTimeout(
+    url,
+    { headers: init?.headers, signal: init?.signal },
+    (requestUrl, requestInit) => fetch(requestUrl, requestInit),
+  )
+  if (!result.ok)
+    throw new TmdbApiError(result.status, `TMDB request failed: ${result.status}`)
+  return result.body
 }
 
 async function readKindPage(

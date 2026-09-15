@@ -136,11 +136,65 @@ describe('gET /api/catalog/provider-list', () => {
     expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(2)
   })
 
-  it('emits a 6h max-age cache-control so browsers keep the list on disk', async () => {
+  it('emits s-maxage plus a day of stale-while-revalidate so downstream caches serve stale during an outage', async () => {
     fakeClient.watchProviderList.mockResolvedValue(allProviders)
 
     const response = await call(new Request('http://localhost/api/catalog/provider-list?kind=movie'))
 
-    expect(response.headers.get('cache-control')).toContain('max-age=21600')
+    expect(response.headers.get('cache-control')).toContain('s-maxage=21600')
+    expect(response.headers.get('cache-control')).toContain('stale-while-revalidate=86400')
+  })
+
+  it('serves the stale provider list while TMDB stalls past entry expiry, then heals once TMDB recovers', async () => {
+    // Same PR70 source fix as the hero stale test: an expired 6h entry must
+    // not block the filter bar on a stalled upstream. Date is faked for the
+    // 6h time travel but timers stay real so h3 can settle each request.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
+    try {
+      fakeClient.watchProviderList.mockResolvedValue(allProviders)
+
+      const first = await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&popular=1'))
+      expect(first.status).toBe(200)
+      const warmBody = await first.json()
+
+      vi.setSystemTime(Date.now() + 21601 * 1000)
+      let listCalls = 0
+      let rejectStalled: ((error: unknown) => void) | undefined
+      fakeClient.watchProviderList.mockImplementation(() => {
+        listCalls++
+        return new Promise((_resolve, reject) => {
+          rejectStalled = reject
+        })
+      })
+
+      const stalled = await Promise.race([
+        call(new Request('http://localhost/api/catalog/provider-list?kind=movie&popular=1')).then(async response => ({ status: response.status, body: await response.json() })),
+        sleep(1000).then(() => 'TIMEOUT' as const),
+      ])
+      expect(stalled).not.toBe('TIMEOUT')
+      expect(stalled).toEqual({ status: 200, body: warmBody })
+      expect(listCalls).toBe(1)
+
+      const freshProviders = [{ id: 999, name: 'Fresh Flix', logoPath: '/f.jpg', displayPriority: 0 }]
+      fakeClient.watchProviderList.mockResolvedValue(freshProviders)
+      rejectStalled?.(new Error('TMDB request timeout after 10000ms'))
+      await sleep(20)
+      const healed = await (async () => {
+        const deadline = Date.now() + 5000
+        for (;;) {
+          const response = await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&popular=1'))
+          const body = await response.json() as { id?: number }[]
+          if (body[0]?.id === 999 || Date.now() > deadline)
+            return { status: response.status, body }
+          await sleep(20)
+        }
+      })()
+      expect(healed.status).toBe(200)
+      expect(healed.body).toMatchObject([{ id: 999 }])
+    }
+    finally {
+      vi.useRealTimers()
+    }
   })
 })

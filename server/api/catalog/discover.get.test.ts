@@ -204,11 +204,64 @@ describe('gET /api/catalog/discover', () => {
     }))
   })
 
-  it('emits a 6h max-age cache-control so browsers keep filtered results on disk', async () => {
+  it('emits s-maxage plus a day of stale-while-revalidate so downstream caches serve stale during an outage', async () => {
     fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
 
     const response = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
 
-    expect(response.headers.get('cache-control')).toContain('max-age=21600')
+    expect(response.headers.get('cache-control')).toContain('s-maxage=21600')
+    expect(response.headers.get('cache-control')).toContain('stale-while-revalidate=86400')
+  })
+
+  it('serves the stale discover payload while TMDB stalls past entry expiry, then heals once TMDB recovers', async () => {
+    // Same PR70 source fix as the hero stale test: an expired 6h entry must
+    // not block filtered browse on a stalled upstream. Date is faked for the
+    // 6h time travel but timers stay real so h3 can settle each request.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
+    try {
+      fakeClient.discover.mockResolvedValue({ page: 1, results: [{ id: 1 }], totalPages: 1, totalResults: 1 })
+
+      const first = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
+      expect(first.status).toBe(200)
+      const warmBody = await first.json()
+
+      vi.setSystemTime(Date.now() + 21601 * 1000)
+      let discoverCalls = 0
+      let rejectStalled: ((error: unknown) => void) | undefined
+      fakeClient.discover.mockImplementation(() => {
+        discoverCalls++
+        return new Promise((_resolve, reject) => {
+          rejectStalled = reject
+        })
+      })
+
+      const stalled = await Promise.race([
+        call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en')).then(async response => ({ status: response.status, body: await response.json() })),
+        sleep(1000).then(() => 'TIMEOUT' as const),
+      ])
+      expect(stalled).not.toBe('TIMEOUT')
+      expect(stalled).toEqual({ status: 200, body: warmBody })
+      expect(discoverCalls).toBe(1)
+
+      fakeClient.discover.mockResolvedValue({ page: 1, results: [{ id: 2 }], totalPages: 1, totalResults: 1 })
+      rejectStalled?.(new TmdbApiError(504))
+      await sleep(20)
+      const healed = await (async () => {
+        const deadline = Date.now() + 5000
+        for (;;) {
+          const response = await call(new Request('http://localhost/api/catalog/discover?kind=movie&genres=28&language=en'))
+          const body = await response.json() as { results?: { id?: number }[] }
+          if (body.results?.[0]?.id === 2 || Date.now() > deadline)
+            return { status: response.status, body }
+          await sleep(20)
+        }
+      })()
+      expect(healed.status).toBe(200)
+      expect(healed.body).toMatchObject({ results: [{ id: 2 }] })
+    }
+    finally {
+      vi.useRealTimers()
+    }
   })
 })

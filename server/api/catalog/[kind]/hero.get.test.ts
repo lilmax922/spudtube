@@ -371,12 +371,84 @@ describe('gET /api/catalog/[kind]/hero', () => {
     expect(usBody.results[0].providers).toEqual([{ id: 8, name: 'US-Flix', logoPath: '/n.jpg' }])
   })
 
-  it('emits a 6h max-age cache-control so browsers keep the payload on disk', async () => {
+  it('emits s-maxage plus a day of stale-while-revalidate so downstream caches serve stale during an outage', async () => {
     fakeClient.trending.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
 
     const response = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
 
-    expect(response.headers.get('cache-control')).toContain('max-age=21600')
+    expect(response.headers.get('cache-control')).toContain('s-maxage=21600')
+    expect(response.headers.get('cache-control')).toContain('stale-while-revalidate=86400')
+  })
+
+  it('serves the stale hero payload while TMDB stalls past entry expiry, then heals once TMDB recovers', async () => {
+    // Phase-1 loop for the PR70 skeleton-forever outage: with swr:false the
+    // expired 6h entry is discarded and the homepage blocks on the live TMDB
+    // fetch (the Nitro pending slot pins every same-key request with it).
+    // The source fix serves the stale entry instantly and revalidates in
+    // the background. Silent sockets, dripping bodies, and hung headers all
+    // collapse to one shape at this seam (the loader never settles); the
+    // socket shapes are pinned at the client seam by fetchJsonWithTimeout's
+    // silent/drip tests. Date is faked for the 6h time travel but timers
+    // stay real: h3 needs live timers to settle a request, and the budget
+    // race below must be driven by a real clock.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
+    try {
+      const warmTitle = { kind: 'MOVIE', tmdbId: 1, name: 'Warm', posterPath: null, backdropPath: '/warm.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }
+      fakeClient.trending.mockResolvedValue({ page: 1, results: [warmTitle], totalPages: 1, totalResults: 1 })
+      fakeClient.title.mockResolvedValue(null)
+      fakeClient.watchProviders.mockResolvedValue({})
+
+      const first = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+      expect(first.status).toBe(200)
+      const warmBody = await first.json()
+
+      // The 6h entry expires while TMDB stalls.
+      vi.setSystemTime(Date.now() + 21601 * 1000)
+      let trendingCalls = 0
+      let rejectStalled: ((error: unknown) => void) | undefined
+      fakeClient.trending.mockImplementation(() => {
+        trendingCalls++
+        return new Promise((_resolve, reject) => {
+          rejectStalled = reject
+        })
+      })
+
+      const stalled = await Promise.race([
+        call(new Request('http://localhost/api/catalog/movie/hero?language=en')).then(async response => ({ status: response.status, body: await response.json() })),
+        sleep(1000).then(() => 'TIMEOUT' as const),
+      ])
+      expect(stalled).not.toBe('TIMEOUT')
+      expect(stalled).toEqual({ status: 200, body: warmBody })
+      // Exactly one background revalidation: stale is served AND refreshed,
+      // never stale-forever and never a refetch herd.
+      expect(trendingCalls).toBe(1)
+
+      // The stalled background revalidation rejects (production bounds every
+      // loader with the 10s fetch+JSON budget); the stale entry survives it.
+      // TMDB recovers: poll for the healed payload instead of sleeping a
+      // fixed span, so CI jank cannot observe the stale entry before the
+      // background heal lands. Each poll visit serves stale while triggering
+      // the next background revalidation.
+      fakeClient.trending.mockResolvedValue({ page: 1, results: [{ ...warmTitle, tmdbId: 2, name: 'Fresh' }], totalPages: 1, totalResults: 1 })
+      rejectStalled?.(new Error('TMDB request timeout after 10000ms'))
+      await sleep(20)
+      const healed = await (async () => {
+        const deadline = Date.now() + 5000
+        for (;;) {
+          const response = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+          const body = await response.json() as { results?: { tmdbId?: number }[] }
+          if (body.results?.[0]?.tmdbId === 2 || Date.now() > deadline)
+            return { status: response.status, body }
+          await sleep(20)
+        }
+      })()
+      expect(healed.status).toBe(200)
+      expect(healed.body).toMatchObject({ results: [{ tmdbId: 2 }] })
+    }
+    finally {
+      vi.useRealTimers()
+    }
   })
 
   it('retries after a 504 timeout instead of serving the error from the 6h cache', async () => {

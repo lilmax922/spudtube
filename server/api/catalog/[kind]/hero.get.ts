@@ -101,7 +101,15 @@ export default defineCachedEventHandler(async (event): Promise<HeroPayload> => {
   // Providers vary by region, so the region joins the key: without it a cached
   // TW payload would be served to US visitors.
   maxAge: 21600,
-  swr: false,
+  // Source fix for the PR70 skeleton-forever outage: swr serves the stale
+  // entry instantly while the expired slot revalidates in the background, so
+  // a stalled TMDB upstream no longer blocks the homepage on a live fetch
+  // (the Nitro pending slot pins every same-key request with it). Thrown
+  // 5xx/timeouts never populate the cache, so the stale entry survives a
+  // failed revalidation and heals on the next success. staleMaxAge bounds
+  // the downstream stale-while-revalidate window to a day.
+  swr: true,
+  staleMaxAge: 86400,
   // varies keeps the region inputs visible to the handler: Nitro strips every
   // non-varies header before the handler runs, which would blind resolveRegion
   // while getKey (built on the original event) still keyed by region.

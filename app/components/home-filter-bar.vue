@@ -483,7 +483,7 @@ watch(() => props.providerSearchQuery, (value) => {
       </div>
 
       <div
-        v-else
+        v-else-if="filterMetadataLoading"
         data-testid="genre-skeleton"
         class="flex shrink-0 items-center gap-2 overflow-hidden"
         role="status"

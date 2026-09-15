@@ -159,12 +159,29 @@ export async function fetchJsonWithTimeout(
     }
   }
   init.signal?.addEventListener('abort', onCallerAbort, { once: true })
-  let response: Response | undefined
   try {
-    response = await Promise.race([
+    const response = await Promise.race([
       fetcher(url, { ...init, signal: controller.signal }),
       timeoutPromise,
     ])
+    try {
+      const body = await Promise.race([response.json(), timeoutPromise])
+      return { status: response.status, ok: response.ok, body }
+    }
+    catch (error) {
+      if (timedOut) {
+        try {
+          await response.body?.cancel()
+        }
+        catch {
+          // ignore: body cleanup never masks the timeout
+        }
+        if (error instanceof TmdbApiError && error.status === 504)
+          throw error
+        throw createTimeoutError(url, ms)
+      }
+      throw error
+    }
   }
   catch (error) {
     if (timedOut && !(error instanceof TmdbApiError && error.status === 504))
@@ -175,31 +192,6 @@ export async function fetchJsonWithTimeout(
     init.signal?.removeEventListener('abort', onCallerAbort)
     if (timer !== undefined)
       clearTimeout(timer)
-  }
-  if (!response.ok)
-    return { status: response.status, ok: false, body: await response.json() }
-  let budgetTimer: ReturnType<typeof setTimeout> | undefined
-  const budget = new Promise<never>((_, reject) => {
-    budgetTimer = setTimeout(() => reject(createTimeoutError(url, ms)), ms)
-  })
-  try {
-    const body = await Promise.race([response.json(), budget])
-    return { status: response.status, ok: true, body }
-  }
-  catch (error) {
-    if (error instanceof TmdbApiError && error.status === 504) {
-      try {
-        await response.body?.cancel()
-      }
-      catch {
-        // ignore: body cleanup never masks the timeout
-      }
-    }
-    throw error
-  }
-  finally {
-    if (budgetTimer !== undefined)
-      clearTimeout(budgetTimer)
   }
 }
 

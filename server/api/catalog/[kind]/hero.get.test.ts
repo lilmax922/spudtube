@@ -89,7 +89,29 @@ describe('gET /api/catalog/[kind]/hero', () => {
       genreIds: [],
     }))
     fakeClient.trending.mockResolvedValue({ page: 1, results: many, totalPages: 1, totalResults: 8 })
-    fakeClient.title.mockResolvedValue(null)
+    fakeClient.title.mockImplementation(async (_kind: 'MOVIE', id: number) => ({
+      kind: 'MOVIE',
+      tmdbId: id,
+      name: `T${id}`,
+      posterPath: null,
+      backdropPath: `/t${id}.jpg`,
+      releaseDate: null,
+      voteAverage: null,
+      overview: '',
+      tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
+      genres: [],
+      runtimeMinutes: 100,
+      trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
+    }))
     fakeClient.watchProviders.mockResolvedValue({})
 
     const response = await call(new Request('http://localhost/api/catalog/movie/hero'))
@@ -99,43 +121,172 @@ describe('gET /api/catalog/[kind]/hero', () => {
   })
 
   it('keeps the title in the payload even if its detail lookup returns null', async () => {
+    // Partial enrichment failure (one title stripped, one healthy) still
+    // serves 200: only a fully detail-stripped pool throws.
     fakeClient.trending.mockResolvedValue({
       page: 1,
-      results: [{ kind: 'MOVIE', tmdbId: 9, name: 'Gone', posterPath: null, backdropPath: null, releaseDate: null, voteAverage: 7, genreIds: [] }],
+      results: [
+        { kind: 'MOVIE', tmdbId: 9, name: 'Gone', posterPath: null, backdropPath: '/g.jpg', releaseDate: null, voteAverage: 7, genreIds: [] },
+        { kind: 'MOVIE', tmdbId: 7, name: 'Fine', posterPath: null, backdropPath: '/f.jpg', releaseDate: null, voteAverage: 9, genreIds: [] },
+      ],
       totalPages: 1,
-      totalResults: 1,
+      totalResults: 2,
     })
-    fakeClient.title.mockResolvedValue(null)
-    fakeClient.watchProviders.mockResolvedValue({})
-
-    const response = await call(new Request('http://localhost/api/catalog/movie/hero'))
-    const body = await response.json()
-
-    expect(body.results[0].tmdbId).toBe(9)
-    expect(body.results[0].runtimeMinutes).toBeNull()
-    expect(body.results[0].contentRating).toBeNull()
-    expect(body.results[0].genres).toEqual([])
-  })
-
-  it('keeps the title in the payload even if its detail lookup rejects', async () => {
-    fakeClient.trending.mockResolvedValue({
-      page: 1,
-      results: [{ kind: 'MOVIE', tmdbId: 9, name: 'Gone', posterPath: null, backdropPath: null, releaseDate: null, voteAverage: 7, genreIds: [] }],
-      totalPages: 1,
-      totalResults: 1,
+    fakeClient.title.mockImplementation(async (_kind: 'MOVIE', id: number) => {
+      if (id === 9)
+        return null
+      return {
+        kind: 'MOVIE',
+        tmdbId: id,
+        name: 'Fine',
+        posterPath: null,
+        backdropPath: '/f.jpg',
+        releaseDate: null,
+        voteAverage: null,
+        overview: '',
+        tagline: null,
+        originalName: null,
+        originalLanguage: null,
+        status: null,
+        genres: [{ id: 28, name: 'Action' }],
+        runtimeMinutes: 100,
+        trailerKey: null,
+        budget: null,
+        revenue: null,
+        contentRating: 'PG-13',
+        cast: [],
+        crew: [],
+        backdrops: [],
+      }
     })
-    fakeClient.title.mockRejectedValueOnce(new Error('tmdb 500'))
     fakeClient.watchProviders.mockResolvedValue({})
 
     const response = await call(new Request('http://localhost/api/catalog/movie/hero'))
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(body.results[0].tmdbId).toBe(9)
-    expect(body.results[0].runtimeMinutes).toBeNull()
-    expect(body.results[0].contentRating).toBeNull()
-    expect(body.results[0].genres).toEqual([])
+    expect(body.results.map((r: { tmdbId: number }) => r.tmdbId).sort()).toEqual([7, 9])
+    const gone = body.results.find((r: { tmdbId: number }) => r.tmdbId === 9)
+    expect(gone.runtimeMinutes).toBeNull()
+    expect(gone.contentRating).toBeNull()
+    expect(gone.genres).toEqual([])
+  })
+
+  it('keeps the title in the payload even if its detail lookup rejects', async () => {
+    // Partial enrichment failure (one title stripped, one healthy) still
+    // serves 200: only a fully detail-stripped pool throws.
+    fakeClient.trending.mockResolvedValue({
+      page: 1,
+      results: [
+        { kind: 'MOVIE', tmdbId: 9, name: 'Gone', posterPath: null, backdropPath: '/g.jpg', releaseDate: null, voteAverage: 7, genreIds: [] },
+        { kind: 'MOVIE', tmdbId: 7, name: 'Fine', posterPath: null, backdropPath: '/f.jpg', releaseDate: null, voteAverage: 9, genreIds: [] },
+      ],
+      totalPages: 1,
+      totalResults: 2,
+    })
+    fakeClient.title.mockImplementation(async (_kind: 'MOVIE', id: number) => {
+      if (id === 9)
+        throw new Error('tmdb 500')
+      return {
+        kind: 'MOVIE',
+        tmdbId: id,
+        name: 'Fine',
+        posterPath: null,
+        backdropPath: '/f.jpg',
+        releaseDate: null,
+        voteAverage: null,
+        overview: '',
+        tagline: null,
+        originalName: null,
+        originalLanguage: null,
+        status: null,
+        genres: [],
+        runtimeMinutes: 100,
+        trailerKey: null,
+        budget: null,
+        revenue: null,
+        contentRating: null,
+        cast: [],
+        crew: [],
+        backdrops: [],
+      }
+    })
+    fakeClient.watchProviders.mockResolvedValue({})
+
+    const response = await call(new Request('http://localhost/api/catalog/movie/hero'))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.results.map((r: { tmdbId: number }) => r.tmdbId).sort()).toEqual([7, 9])
+    const gone = body.results.find((r: { tmdbId: number }) => r.tmdbId === 9)
+    expect(gone.runtimeMinutes).toBeNull()
+    expect(gone.contentRating).toBeNull()
+    expect(gone.genres).toEqual([])
+    expect(gone.providers).toEqual([])
+  })
+
+  it('rejects a fully detail-stripped payload instead of serving a cacheable degraded 200', async () => {
+    // Partial-outage shape: trending healthy, every detail lookup failing. A
+    // 200 with nulls/empties would overwrite the healthy SWR entry, so the
+    // handler throws and the stale entry survives until TMDB recovers.
+    fakeClient.trending.mockResolvedValue({
+      page: 1,
+      results: [{ kind: 'MOVIE', tmdbId: 9, name: 'Gone', posterPath: null, backdropPath: '/g.jpg', releaseDate: null, voteAverage: 7, genreIds: [] }],
+      totalPages: 1,
+      totalResults: 1,
+    })
+    fakeClient.title.mockRejectedValue(new Error('tmdb 500'))
+    fakeClient.watchProviders.mockRejectedValue(new Error('tmdb 500'))
+
+    const response = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+
+    expect(response.status).toBe(502)
+  })
+
+  it('still serves a cacheable 200 when only provider lookups fail', async () => {
+    // Narrow gate: the throw keys on detail failure, not the catalog, so a
+    // provider outage still serves (and caches) the fully detailed payload.
+    fakeClient.trending.mockResolvedValue({
+      page: 1,
+      results: [{ kind: 'MOVIE', tmdbId: 1, name: 'A', posterPath: null, backdropPath: '/a.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }],
+      totalPages: 1,
+      totalResults: 1,
+    })
+    fakeClient.title.mockResolvedValue({
+      kind: 'MOVIE',
+      tmdbId: 1,
+      name: 'A',
+      posterPath: null,
+      backdropPath: '/a.jpg',
+      releaseDate: null,
+      voteAverage: null,
+      overview: '',
+      tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
+      genres: [],
+      runtimeMinutes: 100,
+      trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
+    })
+    fakeClient.watchProviders.mockRejectedValue(new Error('tmdb 500'))
+
+    const first = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+    expect(first.status).toBe(200)
+    const body = await first.json()
+    expect(body.results[0].runtimeMinutes).toBe(100)
     expect(body.results[0].providers).toEqual([])
+
+    const second = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+    expect(second.status).toBe(200)
+    expect(await second.json()).toEqual(body)
+    expect(fakeClient.trending).toHaveBeenCalledTimes(1)
   })
 
   it('attaches providers for the resolved region to each result', async () => {
@@ -285,7 +436,29 @@ describe('gET /api/catalog/[kind]/hero', () => {
       totalPages: 1,
       totalResults: 1,
     })
-    fakeClient.title.mockResolvedValue(null)
+    fakeClient.title.mockResolvedValue({
+      kind: 'MOVIE',
+      tmdbId: 1,
+      name: 'A',
+      posterPath: null,
+      backdropPath: '/a.jpg',
+      releaseDate: null,
+      voteAverage: null,
+      overview: '',
+      tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
+      genres: [],
+      runtimeMinutes: 100,
+      trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
+    })
     fakeClient.watchProviders.mockResolvedValue({})
 
     const first = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
@@ -304,10 +477,32 @@ describe('gET /api/catalog/[kind]/hero', () => {
       totalPages: 1,
       totalResults: 1,
     })
-    fakeClient.title.mockResolvedValue(null)
+    fakeClient.title.mockResolvedValue({
+      kind: 'MOVIE',
+      tmdbId: 1,
+      name: 'A',
+      posterPath: null,
+      backdropPath: '/a.jpg',
+      releaseDate: null,
+      voteAverage: null,
+      overview: '',
+      tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
+      genres: [],
+      runtimeMinutes: 100,
+      trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
+    })
     fakeClient.watchProviders.mockResolvedValue({})
-    // Title lookup misses so providers stay empty; the region split is observed
-    // through the upstream fetch count, not the payload.
+    // The catalog stays empty so providers stay empty; the region split is
+    // observed through the upstream fetch count, not the payload.
     await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'TW' } }))
     await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'TW' } }))
     expect(fakeClient.trending).toHaveBeenCalledTimes(1)
@@ -396,7 +591,29 @@ describe('gET /api/catalog/[kind]/hero', () => {
     try {
       const warmTitle = { kind: 'MOVIE', tmdbId: 1, name: 'Warm', posterPath: null, backdropPath: '/warm.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }
       fakeClient.trending.mockResolvedValue({ page: 1, results: [warmTitle], totalPages: 1, totalResults: 1 })
-      fakeClient.title.mockResolvedValue(null)
+      fakeClient.title.mockResolvedValue({
+        kind: 'MOVIE',
+        tmdbId: 1,
+        name: 'Warm',
+        posterPath: null,
+        backdropPath: '/warm.jpg',
+        releaseDate: null,
+        voteAverage: null,
+        overview: '',
+        tagline: null,
+        originalName: null,
+        originalLanguage: null,
+        status: null,
+        genres: [],
+        runtimeMinutes: 100,
+        trailerKey: null,
+        budget: null,
+        revenue: null,
+        contentRating: null,
+        cast: [],
+        crew: [],
+        backdrops: [],
+      })
       fakeClient.watchProviders.mockResolvedValue({})
 
       const first = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
@@ -451,6 +668,87 @@ describe('gET /api/catalog/[kind]/hero', () => {
     }
   })
 
+  it('keeps the healthy stale entry while enrichment fails, then heals on recovery', async () => {
+    // Issue-72 regression: during a partial outage (trending healthy, every
+    // detail/provider lookup failing) the background revalidation must not
+    // overwrite the healthy stale entry with a detail-stripped body. Date is
+    // faked for the 6h time travel but timers stay real, mirroring the PR70
+    // SWR test above.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
+    try {
+      const warmTitle = { kind: 'MOVIE', tmdbId: 1, name: 'Warm', posterPath: null, backdropPath: '/warm.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }
+      const warmDetail = {
+        kind: 'MOVIE',
+        tmdbId: 1,
+        name: 'Warm',
+        posterPath: null,
+        backdropPath: '/warm.jpg',
+        releaseDate: null,
+        voteAverage: null,
+        overview: '',
+        tagline: null,
+        originalName: null,
+        originalLanguage: null,
+        status: null,
+        genres: [{ id: 28, name: 'Action' }],
+        runtimeMinutes: 120,
+        trailerKey: null,
+        budget: null,
+        revenue: null,
+        contentRating: 'PG-13',
+        cast: [],
+        crew: [],
+        backdrops: [],
+      }
+      fakeClient.trending.mockResolvedValue({ page: 1, results: [warmTitle], totalPages: 1, totalResults: 1 })
+      fakeClient.title.mockResolvedValue(warmDetail)
+      fakeClient.watchProviders.mockResolvedValue({})
+
+      const first = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+      expect(first.status).toBe(200)
+      const warmBody = await first.json()
+      expect(warmBody.results[0].runtimeMinutes).toBe(120)
+
+      // The 6h entry expires while enrichment fails but trending stays healthy.
+      vi.setSystemTime(Date.now() + 21601 * 1000)
+      fakeClient.title.mockRejectedValue(new Error('tmdb 500'))
+      fakeClient.watchProviders.mockRejectedValue(new Error('tmdb 500'))
+
+      const outage = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+      expect(outage.status).toBe(200)
+      expect(await outage.json()).toEqual(warmBody)
+
+      // Let the failed background revalidation settle: the healthy entry
+      // must still be served, not a detail-stripped overwrite.
+      await sleep(50)
+      const stillWarm = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+      expect(stillWarm.status).toBe(200)
+      expect(await stillWarm.json()).toEqual(warmBody)
+
+      // TMDB recovers: poll for the healed payload, as in the PR70 SWR test.
+      fakeClient.trending.mockResolvedValue({ page: 1, results: [{ ...warmTitle, tmdbId: 2, name: 'Fresh' }], totalPages: 1, totalResults: 1 })
+      fakeClient.title.mockResolvedValue({ ...warmDetail, tmdbId: 2, name: 'Fresh' })
+      fakeClient.watchProviders.mockResolvedValue({})
+      await sleep(20)
+      const healed = await (async () => {
+        const deadline = Date.now() + 5000
+        for (;;) {
+          const response = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+          const body = await response.json() as { results?: { tmdbId?: number }[] }
+          if (body.results?.[0]?.tmdbId === 2 || Date.now() > deadline)
+            return { status: response.status, body }
+          await sleep(20)
+        }
+      })()
+      expect(healed.status).toBe(200)
+      expect(healed.body).toMatchObject({ results: [{ tmdbId: 2 }] })
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('retries after a 504 timeout instead of serving the error from the 6h cache', async () => {
     // Homepage hero shares the tarpit outage shape: a stalled TMDB
     // trending read must surface as an error and never pin a cached
@@ -462,7 +760,29 @@ describe('gET /api/catalog/[kind]/hero', () => {
       totalPages: 1,
       totalResults: 1,
     })
-    fakeClient.title.mockResolvedValue(null)
+    fakeClient.title.mockResolvedValue({
+      kind: 'MOVIE',
+      tmdbId: 1,
+      name: 'A',
+      posterPath: null,
+      backdropPath: '/a.jpg',
+      releaseDate: null,
+      voteAverage: null,
+      overview: '',
+      tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
+      genres: [],
+      runtimeMinutes: 100,
+      trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
+    })
     fakeClient.watchProviders.mockResolvedValue({})
 
     const failed = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))

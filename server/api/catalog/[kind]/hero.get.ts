@@ -1,5 +1,5 @@
 import type { Provider, TitleSummary } from '../../../tmdb/types'
-import { getCookie, getHeader, getQuery, getRouterParam } from 'h3'
+import { createError, getCookie, getHeader, getQuery, getRouterParam } from 'h3'
 import { defineCachedEventHandler } from 'nitropack/runtime'
 import { z } from 'zod'
 import { COUNTRY_HEADER } from '../../../../shared/i18n/locale'
@@ -25,6 +25,11 @@ export interface HeroTitle extends TitleSummary {
 
 export interface HeroPayload {
   results: HeroTitle[]
+}
+
+interface EnrichedHero {
+  hero: HeroTitle
+  detailed: boolean
 }
 
 const heroQuerySchema = z.object({
@@ -59,13 +64,13 @@ export default defineCachedEventHandler(async (event): Promise<HeroPayload> => {
   const HERO_POOL_SIZE = 12
   const pool = sorted.slice(0, Math.min(sorted.length, HERO_POOL_SIZE))
 
-  const enrichedPool = await Promise.all(pool.map(async (title): Promise<HeroTitle> => {
+  const enrichedPool = await Promise.all(pool.map(async (title): Promise<EnrichedHero> => {
     const [detail, catalog] = await Promise.all([
       client.title(title.kind, title.tmdbId, locale).catch(() => null),
       client.watchProviders(title.kind, title.tmdbId, locale).catch(() => null),
     ])
     if (!detail)
-      return { ...title, runtimeMinutes: null, contentRating: null, genres: [], providers: [] }
+      return { hero: { ...title, runtimeMinutes: null, contentRating: null, genres: [], providers: [] }, detailed: false }
     const regionEntry = catalog?.[region]
     const providerMap = new Map<number, Provider>()
     if (regionEntry) {
@@ -82,19 +87,32 @@ export default defineCachedEventHandler(async (event): Promise<HeroPayload> => {
       }
     }
     return {
-      ...title,
-      backdropPath: detail.backdropPath ?? title.backdropPath,
-      runtimeMinutes: detail.runtimeMinutes,
-      contentRating: detail.contentRating,
-      genres: detail.genres,
-      providers: [...providerMap.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      hero: {
+        ...title,
+        backdropPath: detail.backdropPath ?? title.backdropPath,
+        runtimeMinutes: detail.runtimeMinutes,
+        contentRating: detail.contentRating,
+        genres: detail.genres,
+        providers: [...providerMap.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      },
+      detailed: true,
     }
   }))
 
-  const withBackdrop = enrichedPool.filter(item => item.backdropPath != null)
+  // Partial-outage guard: when trending succeeds but every detail lookup
+  // fails, the pool is fully detail-stripped. Throwing (instead of serving a
+  // 200 of nulls/empties) keeps the failed revalidation out of the cache, so
+  // SWR keeps serving the healthy stale entry and heals on the next success.
+  // A partially enriched pool still serves with its degraded stragglers kept.
+  if (enrichedPool.length > 0 && enrichedPool.every(entry => !entry.detailed)) {
+    throw createError({ statusCode: 502, statusMessage: 'TMDB upstream error' })
+  }
+  const heroes = enrichedPool.map(entry => entry.hero)
+
+  const withBackdrop = heroes.filter(item => item.backdropPath != null)
   const results = withBackdrop.length > 0
     ? withBackdrop.slice(0, HERO_LIMIT)
-    : enrichedPool.slice(0, HERO_LIMIT)
+    : heroes.slice(0, HERO_LIMIT)
 
   return { results }
 }, {

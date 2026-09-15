@@ -1,4 +1,5 @@
-import { defineEventHandler, getCookie, getHeader, getQuery } from 'h3'
+import { getCookie, getHeader, getQuery } from 'h3'
+import { defineCachedEventHandler } from 'nitropack/runtime'
 import { z } from 'zod'
 import { COUNTRY_HEADER } from '../../../shared/i18n/locale'
 import { DEFAULT_REGION, REGION_COOKIE, resolveSelectedRegion } from '../../../shared/region/region'
@@ -42,7 +43,7 @@ function resolveRegion(event: Parameters<Parameters<typeof defineEventHandler>[0
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineCachedEventHandler(async (event) => {
   const query = getQuery(event)
   const { kind, language, q, popular } = parseOrThrow(providerListQuerySchema, {
     kind: Array.isArray(query.kind) ? query.kind[0] : query.kind,
@@ -66,4 +67,26 @@ export default defineEventHandler(async (event) => {
   }
 
   return [...all].sort((a, b) => a.name.localeCompare(b.name))
+}, {
+  // The list varies by region, so the region joins the key: without it a cached
+  // TW list would be served to US visitors. Typed search bypasses the cache —
+  // every keystroke combination would otherwise pin its own entry.
+  maxAge: 21600,
+  swr: false,
+  // varies keeps the region inputs visible to the handler: Nitro strips every
+  // non-varies header before the handler runs, which would blind resolveRegion
+  // while getKey (built on the original event) still keyed by region.
+  varies: ['cookie', 'cf-ipcountry'],
+  getKey: (event) => {
+    const query = getQuery(event)
+    const first = (value: unknown): string | undefined => Array.isArray(value) ? value[0] as string : value as string | undefined
+    const language = first(query.language) ?? getRequestLocale(event)
+    const popular = first(query.popular) ?? ''
+    return `provider-list:${first(query.kind)}:${resolveRegion(event)}:${language}:${popular}`
+  },
+  shouldBypassCache: (event) => {
+    const q = getQuery(event).q
+    const value = Array.isArray(q) ? q[0] : q
+    return typeof value === 'string' && value.trim().length > 0
+  },
 })

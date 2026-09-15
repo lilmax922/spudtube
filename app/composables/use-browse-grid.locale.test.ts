@@ -61,17 +61,16 @@ describe('use-browse-grid — locale watch (TMDB language orthogonal)', () => {
 
     localeRef.value = 'en'
     const grid = useBrowseGrid(fetcher)
-    await grid.refresh()
-
+    grid.toggleGenre(28)
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', { ...baseOptions, genreIds: [28] }))
     expect(fetchGenres).toHaveBeenLastCalledWith('MOVIE', 'en')
-    expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', baseOptions)
 
     fetchGenres.mockClear()
     fetchDiscover.mockClear()
 
     localeRef.value = 'zh-TW'
 
-    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', { ...baseOptions, language: 'zh-TW' }))
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', { ...baseOptions, genreIds: [28], language: 'zh-TW' }))
     expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'zh-TW')
   })
 
@@ -82,9 +81,9 @@ describe('use-browse-grid — locale watch (TMDB language orthogonal)', () => {
 
     localeRef.value = 'en'
     const grid = useBrowseGrid(fetcher)
-    await grid.refresh()
-    expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', baseOptions)
-    // region is not part of fetchDiscover; verify no genre ids added
-    expect(grid.selectedGenreIds.value).toEqual([])
+    grid.toggleGenre(28)
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenLastCalledWith('MOVIE', { ...baseOptions, genreIds: [28] }))
+    // region is not part of fetchDiscover; the selection stays exactly as toggled
+    expect(grid.selectedGenreIds.value).toEqual([28])
   })
 })

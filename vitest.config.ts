@@ -6,6 +6,15 @@ export default defineConfig({
   test: {
     projects: [
       {
+        resolve: {
+          alias: {
+            // nitropack/runtime needs Nitro's storage virtual modules, which do
+            // not exist under vitest. Server handlers under test import it only
+            // for defineCachedEventHandler; the stub mirrors its TTL/key/bypass
+            // semantics with an in-memory store.
+            'nitropack/runtime': resolve('./vitest.stubs/nitropack-runtime.ts'),
+          },
+        },
         test: {
           name: 'node',
           environment: 'node',

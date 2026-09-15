@@ -30,10 +30,12 @@ const {
   providerSearchQuery,
   providerSearchLoading,
   genres,
+  filterMetadataLoading,
   rows: listingRows,
   refresh,
   loadMore,
   applySection,
+  ensureFilterData,
   toggleGenre,
   setMinRating,
   toggleProvider,
@@ -116,12 +118,14 @@ void refresh()
       :provider-search-results="providerSearchResults"
       :provider-search-query="providerSearchQuery"
       :provider-search-loading="providerSearchLoading"
+      :filter-metadata-loading="filterMetadataLoading"
       @toggle-genre="toggleGenre"
       @set-min-rating="setMinRating"
       @toggle-provider="toggleProvider"
       @clear-filters="clearFilters"
       @search-providers="searchProviders"
       @clear-provider-search="clearProviderSearch"
+      @expand="ensureFilterData"
     />
 
     <div class="browseGridBody">

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { Genre, Provider } from '#server/tmdb/types'
-import { Filter, Search, X } from '@lucide/vue'
+import { Funnel, Search, X } from '@lucide/vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Skeleton } from '@/components/ui/skeleton'
 import { providerLogoSrcSet, providerLogoUrl } from '../lib/images'
 import GenreChips from './genre-chips.vue'
 
@@ -18,12 +19,14 @@ interface Props {
   providerSearchResults?: Provider[]
   providerSearchQuery?: string
   providerSearchLoading?: boolean
+  filterMetadataLoading?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
   popularProviders: undefined,
   providerSearchResults: undefined,
   providerSearchQuery: '',
   providerSearchLoading: false,
+  filterMetadataLoading: false,
 })
 
 const emit = defineEmits<{
@@ -33,6 +36,7 @@ const emit = defineEmits<{
   clearFilters: []
   searchProviders: [query: string]
   clearProviderSearch: []
+  expand: []
 }>()
 
 const { t } = useI18n()
@@ -73,6 +77,9 @@ const isFiltered = computed(() =>
 
 function onOpenUpdate(value: boolean): void {
   open.value = value
+  // Filter metadata prefetches on mount; expansion needs no fetch.
+  if (value)
+    emit('expand')
 }
 
 function focusSearchInput(): void {
@@ -210,6 +217,7 @@ function clearDrawerProviderSearchInput(): void {
 
 function openDrawer(): void {
   drawerOpen.value = true
+  emit('expand')
 }
 
 function onDrawerOpenChange(value: boolean): void {
@@ -281,7 +289,7 @@ watch(() => props.providerSearchQuery, (value) => {
         aria-label="Open filters"
         @click="openDrawer"
       >
-        <Filter :size="14" :stroke-width="1.75" aria-hidden="true" />
+        <Funnel :size="14" :stroke-width="1.75" aria-hidden="true" />
         {{ t('browse.filterTitle') }}
         <span
           v-if="filterCount > 0"
@@ -474,6 +482,21 @@ watch(() => props.providerSearchQuery, (value) => {
         />
       </div>
 
+      <div
+        v-else-if="filterMetadataLoading"
+        data-testid="genre-skeleton"
+        class="flex shrink-0 items-center gap-2 overflow-hidden"
+        role="status"
+        :aria-label="t('browse.genresLabel')"
+      >
+        <Skeleton
+          v-for="index in 5"
+          :key="index"
+          class="h-7 shrink-0 rounded-full bg-muted"
+          :style="{ width: `${[64, 88, 56, 76, 68][index - 1]}px` }"
+        />
+      </div>
+
       <span
         v-if="selectedGenreIds.length > 0"
         class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-secondary px-1.5 text-caption-sm font-bold tabular-nums text-foreground ring-1 ring-background"
@@ -483,8 +506,23 @@ watch(() => props.providerSearchQuery, (value) => {
         {{ selectedGenreIds.length }}
       </span>
 
+      <div
+        v-if="filterMetadataLoading"
+        data-testid="provider-skeleton"
+        class="flex shrink-0 items-center"
+        role="status"
+        :aria-label="t('browse.providersLabel')"
+      >
+        <span class="flex items-center -space-x-1.5">
+          <Skeleton
+            v-for="index in 5"
+            :key="index"
+            class="size-6 shrink-0 rounded-[20%] border-2 border-background bg-muted"
+          />
+        </span>
+      </div>
       <Popover
-        v-if="availableProviders.length > 0 || (popularProviders && popularProviders.length > 0)"
+        v-else-if="availableProviders.length > 0 || (popularProviders && popularProviders.length > 0)"
         :open="open"
         @update:open="onOpenUpdate"
       >

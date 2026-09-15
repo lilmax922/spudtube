@@ -81,6 +81,7 @@ export interface BrowseGridState {
   providerSearchQuery: Ref<string>
   providerSearchLoading: Ref<boolean>
   genres: Ref<Genre[]>
+  filterMetadataLoading: Ref<boolean>
   items: Ref<TitleSummary[]>
   page: Ref<number>
   totalPages: Ref<number>
@@ -88,6 +89,7 @@ export interface BrowseGridState {
   loadingMore: Ref<boolean>
   error: Ref<boolean>
   hasMore: ComputedRef<boolean>
+  ensureFilterData: () => Promise<void>
   refresh: () => Promise<void>
   loadMore: () => Promise<void>
   setKind: (kind: Kind) => void
@@ -118,6 +120,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const providerSearchQuery = ref('')
   const providerSearchLoading = ref(false)
   const genres = ref<Genre[]>([])
+  const filterMetadataLoading = ref(true)
   const tmdbLanguage = useTmdbLanguage()
 
   let regionRef: Ref<string>
@@ -142,27 +145,88 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     }),
   )
 
-  async function refresh(): Promise<void> {
-    try {
-      // Popular-only by default: small curated set instead of 805 providers
+  function hasActiveFilters(): boolean {
+    return selectedGenreIds.value.length > 0
+      || minRating.value != null
+      || selectedProviderIds.value.length > 0
+  }
+
+  // Filter metadata (genres + popular providers) prefetches on mount so the
+  // filter options render immediately. The unfiltered home shows Hero +
+  // server-driven rows and never needs discover.
+  let filterDataKey: string | undefined
+  let filterDataGeneration = 0
+  let filterDataInflight: { key: string, generation: number, promise: Promise<void> } | undefined
+
+  async function ensureFilterData(): Promise<void> {
+    const key = `${kind.value}:${tmdbLanguage.value}`
+    if (filterDataKey === key)
+      return
+    const seen = filterDataGeneration
+    const inflight = filterDataInflight
+    if (inflight && inflight.key === key && inflight.generation === seen) {
+      await inflight.promise
+      return
+    }
+    const startKind = kind.value
+    const startLanguage = tmdbLanguage.value
+    filterMetadataLoading.value = true
+    const promise = (async (): Promise<void> => {
+      // Popular-only by default: small curated set instead of 805 providers.
+      // Both legs tolerate upstream failure with empty lists so a metadata
+      // outage never blocks the discover query that actually decides the grid.
       const fetchPopular = actualFetcher.fetchProviderList
         ? actualFetcher.fetchProviderList(kind.value, tmdbLanguage.value, { popular: true }).catch(() => [] as Provider[])
         : Promise.resolve([] as Provider[])
-      const [genreList, popularList, applied] = await Promise.all([
-        actualFetcher.fetchGenres(kind.value, tmdbLanguage.value),
+      const fetchGenreList = actualFetcher.fetchGenres(kind.value, tmdbLanguage.value).catch(() => [] as Genre[])
+      const [genreList, popularList] = await Promise.all([
+        fetchGenreList,
         fetchPopular,
-        loadFirstPage(),
       ])
-      if (applied) {
-        genres.value = genreList
-        popularProviders.value = popularList
-        providerListRaw.value = popularList
-      }
-      else {
-        popularProviders.value = popularList
-        providerListRaw.value = popularList
-        genres.value = genreList
-      }
+      // A kind/language/region switch mid-flight invalidates the payload: drop
+      // it so the retry fetches for the current context instead.
+      if (filterDataGeneration !== seen)
+        return
+      if (kind.value !== startKind || tmdbLanguage.value !== startLanguage)
+        return
+      genres.value = genreList
+      popularProviders.value = popularList
+      providerListRaw.value = popularList
+      filterDataKey = key
+    })()
+    filterDataInflight = { key, generation: seen, promise }
+    try {
+      await promise
+    }
+    finally {
+      if (filterDataInflight?.promise === promise)
+        filterDataInflight = undefined
+      if (filterDataGeneration === seen && kind.value === startKind && tmdbLanguage.value === startLanguage)
+        filterMetadataLoading.value = false
+    }
+  }
+
+  function invalidateFilterData(): void {
+    filterDataGeneration++
+    filterDataKey = undefined
+    genres.value = []
+    popularProviders.value = []
+    providerListRaw.value = []
+    filterMetadataLoading.value = true
+  }
+
+  async function refresh(): Promise<void> {
+    // Unfiltered browse renders the cached section rows; filter metadata
+    // prefetches on mount while discover only fires once the visitor
+    // actually picks a filter.
+    if (!hasActiveFilters()) {
+      paged.reset()
+      await ensureFilterData().catch(() => {})
+      return
+    }
+    try {
+      await ensureFilterData()
+      await loadFirstPage()
     }
     catch {
       paged.markFailed(paged.attempt())
@@ -211,6 +275,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
 
   watch([tmdbLanguage, regionRef], () => {
     clearProviderSearch()
+    invalidateFilterData()
     void refresh()
   })
 
@@ -221,6 +286,7 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     selectedGenreIds.value = []
     selectedProviderIds.value = []
     clearProviderSearch()
+    invalidateFilterData()
     void refresh()
   }
 
@@ -282,8 +348,12 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
     providerSearchQuery,
     providerSearchLoading,
     genres,
+    filterMetadataLoading,
+    ensureFilterData,
     refresh,
     loadMore: async () => {
+      if (!hasActiveFilters())
+        return
       await loadNextPage()
     },
     setKind,

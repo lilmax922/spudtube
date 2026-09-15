@@ -37,6 +37,20 @@ afterEach(() => {
 })
 
 describe('homeFilterBar', () => {
+  it('shows genre and provider skeletons while metadata loads, chips once loaded', async () => {
+    const loading = await mountSuspended(HomeFilterBar, { props: props({ genres: [], availableProviders: [], filterMetadataLoading: true }) })
+    mounted.push(loading)
+
+    expect(loading.find('[data-testid="genre-skeleton"]').exists()).toBe(true)
+    expect(loading.find('[data-testid="provider-skeleton"]').exists()).toBe(true)
+
+    const loaded = await mountSuspended(HomeFilterBar, { props: props({ filterMetadataLoading: false }) })
+    mounted.push(loaded)
+
+    expect(loaded.find('[data-testid="genre-skeleton"]').exists()).toBe(false)
+    expect(loaded.find('[data-testid="provider-skeleton"]').exists()).toBe(false)
+  })
+
   it('renders the rating chips with the All / 7+ / 8+ labels', async () => {
     const wrapper = await mountSuspended(HomeFilterBar, { props: props() })
     mounted.push(wrapper)
@@ -120,14 +134,15 @@ describe('homeFilterBar', () => {
     expect(root.querySelector('[title="Netflix"]') ?? wrapper.element.querySelector('[title="Netflix"]')).toBeTruthy()
   })
 
-  it('hides the provider cluster button when no providers are available', async () => {
+  it('hides the provider cluster button once metadata loads with no providers', async () => {
     const wrapper = await mountSuspended(HomeFilterBar, {
-      props: props({ availableProviders: [] }),
+      props: props({ availableProviders: [], filterMetadataLoading: false }),
     })
     mounted.push(wrapper)
 
     const trigger = wrapper.find('button[aria-controls="home-filter-bar-detail"]')
     expect(trigger.exists()).toBe(false)
+    expect(wrapper.find('[data-testid="provider-skeleton"]').exists()).toBe(false)
   })
 
   it('emits toggleProvider when a provider logo is clicked', async () => {

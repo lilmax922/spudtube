@@ -2,9 +2,12 @@ import type { ComputedRef, Ref } from 'vue'
 import type { HeroPayload } from '#server/api/catalog/[kind]/hero.get'
 import type { TmdbLanguage } from '#server/tmdb/types'
 import type { Kind } from '#shared/kind/kind'
-import { ref, watch } from 'vue'
+import type { Region } from '#shared/region/region'
+import { computed, ref, watch } from 'vue'
 import { $fetch } from '#imports'
 import { toMediaSegment } from '#shared/kind/kind'
+import { DEFAULT_REGION } from '#shared/region/region'
+import { useRegion } from './use-region'
 import { useTmdbLanguage } from './use-tmdb-language'
 
 export interface HeroTitle {
@@ -47,13 +50,24 @@ let heroInstance: HeroTitlesState | undefined
 let heroFetcher: HeroFetcher | undefined
 let heroObservedKind: Ref<'MOVIE' | 'TV_SHOW'> | undefined
 let heroObservedLocale: ComputedRef<TmdbLanguage> | undefined
+let heroObservedRegion: ComputedRef<Region> | undefined
 let heroGeneration = 0
 let heroLoadedKind: 'MOVIE' | 'TV_SHOW' | undefined
 let heroLoadedLanguage: TmdbLanguage | undefined
+let heroLoadedRegion: Region | undefined
 let heroTestFetcher: HeroFetcher | undefined
 
 function resolveLocaleRef(): ComputedRef<TmdbLanguage> {
   return useTmdbLanguage()
+}
+
+function resolveRegionRef(): ComputedRef<Region> {
+  try {
+    return useRegion().region
+  }
+  catch {
+    return computed(() => DEFAULT_REGION)
+  }
 }
 
 function mapHeroPayload(payload: HeroPayload): HeroTitle[] {
@@ -81,6 +95,7 @@ async function reloadSharedHero(): Promise<void> {
   const fetcher = heroTestFetcher ?? heroFetcher
   const kindRef = heroObservedKind
   const tmdbLanguage = heroObservedLocale
+  const regionRef = heroObservedRegion
   if (!state || !fetcher || !kindRef || !tmdbLanguage)
     return
   const current = ++heroGeneration
@@ -95,6 +110,7 @@ async function reloadSharedHero(): Promise<void> {
     state.titles.value = mapHeroPayload(payload)
     heroLoadedKind = kindValue
     heroLoadedLanguage = tmdbLanguage.value
+    heroLoadedRegion = regionRef?.value
   }
   catch {
     if (current === heroGeneration)
@@ -110,6 +126,7 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
   if (fetcher !== undefined) {
     const actualFetcher: HeroFetcher = fetcher
     const tmdbLanguage = resolveLocaleRef()
+    const region = resolveRegionRef()
     const titles = ref<HeroTitle[]>([])
     const loading = ref(false)
     const error = ref(false)
@@ -136,7 +153,7 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
     }
 
     void load()
-    watch([kind, tmdbLanguage], () => {
+    watch([kind, tmdbLanguage, region], () => {
       void load()
     })
 
@@ -148,24 +165,27 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
   // locale drifted while the page was unmounted (for example setKind from
   // the header on another page before navigating home).
   const tmdbLanguage = resolveLocaleRef()
+  const region = resolveRegionRef()
   if (heroInstance) {
     heroObservedKind = kind
     heroObservedLocale = tmdbLanguage
-    watch([heroObservedKind, heroObservedLocale], () => {
+    heroObservedRegion = region
+    watch([heroObservedKind, heroObservedLocale, heroObservedRegion], () => {
       void reloadSharedHero()
     })
-    if (heroLoadedKind !== kind.value || heroLoadedLanguage !== tmdbLanguage.value)
+    if (heroLoadedKind !== kind.value || heroLoadedLanguage !== tmdbLanguage.value || heroLoadedRegion !== region.value)
       void reloadSharedHero()
     return heroInstance
   }
   heroFetcher = heroTestFetcher ?? createApiHeroFetcher()
   heroObservedKind = kind
   heroObservedLocale = tmdbLanguage
+  heroObservedRegion = region
   const titles = ref<HeroTitle[]>([])
   const loading = ref(false)
   const error = ref(false)
   heroInstance = { titles, loading, error, refresh: reloadSharedHero }
-  watch([heroObservedKind, heroObservedLocale], () => {
+  watch([heroObservedKind, heroObservedLocale, heroObservedRegion], () => {
     void reloadSharedHero()
   })
   void reloadSharedHero()
@@ -177,9 +197,11 @@ export function resetHeroTitlesForTest(): void {
   heroFetcher = undefined
   heroObservedKind = undefined
   heroObservedLocale = undefined
+  heroObservedRegion = undefined
   heroGeneration = 0
   heroLoadedKind = undefined
   heroLoadedLanguage = undefined
+  heroLoadedRegion = undefined
   heroTestFetcher = undefined
 }
 

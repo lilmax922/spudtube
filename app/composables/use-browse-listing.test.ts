@@ -64,6 +64,7 @@ function createFakes() {
     },
     fetchGenres,
     fetchDiscover,
+    fetchProviderList,
     fetchSearch,
     fetchSections,
   }
@@ -74,17 +75,19 @@ beforeEach(() => {
 })
 
 describe('use-browse-listing', () => {
-  it('loads filters, sections, and the first grid page through one refresh', async () => {
-    const { fetchers, fetchGenres, fetchDiscover, fetchSections } = createFakes()
+  it('prefetches filter metadata on an unfiltered refresh without firing discover', async () => {
+    const { fetchers, fetchGenres, fetchDiscover, fetchProviderList, fetchSections } = createFakes()
 
     const listing = useBrowseListing(fetchers)
     await listing.refresh()
 
     expect(listing.mode.value).toBe('browse')
-    expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
-    expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ page: 1 }))
     expect(fetchSections).toHaveBeenCalledWith('MOVIE', 'en')
-    expect(listing.items.value).toEqual([dune])
+    // Genres and provider-list prefetch on mount so the filter options
+    // render immediately; discover still waits for a filter selection.
+    expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
+    expect(fetchProviderList).toHaveBeenCalled()
+    expect(fetchDiscover).not.toHaveBeenCalled()
     expect(listing.rows.value).toHaveLength(2)
     expect(listing.rows.value[0]).toMatchObject({
       key: 'movie.horror',
@@ -92,6 +95,23 @@ describe('use-browse-listing', () => {
       canSeeMore: true,
     })
     expect(listing.rows.value[1]).toMatchObject({ key: 'movie.trending', canSeeMore: false })
+  })
+
+  it('mounts filter metadata on refresh and discovers once a filter is applied', async () => {
+    const { fetchers, fetchGenres, fetchDiscover } = createFakes()
+
+    const listing = useBrowseListing(fetchers)
+    await listing.refresh()
+    expect(fetchDiscover).not.toHaveBeenCalled()
+
+    // Mount prefetch already loaded the metadata; the explicit call is a no-op.
+    await listing.ensureFilterData()
+    expect(fetchGenres).toHaveBeenCalledWith('MOVIE', 'en')
+    expect(fetchDiscover).not.toHaveBeenCalled()
+
+    listing.toggleGenre(878)
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ genreIds: [878], page: 1 })))
+    expect(listing.items.value).toEqual([dune])
   })
 
   it('replays a row with a single refresh instead of the toggle storm', async () => {
@@ -127,6 +147,8 @@ describe('use-browse-listing', () => {
 
     const listing = useBrowseListing(fetchers)
     await listing.refresh()
+    listing.toggleGenre(28)
+    await vi.waitFor(() => expect(listing.items.value).toEqual([dune]))
 
     await listing.search('dune')
 
@@ -137,7 +159,8 @@ describe('use-browse-listing', () => {
     listing.clearSearch()
 
     expect(listing.mode.value).toBe('browse')
-    expect(listing.items.value).toEqual([dune])
+    // The search session cleared the filter, so browse is back to rows.
+    expect(listing.selectedGenreIds.value).toEqual([])
   })
 
   it('routes loadMore to the active mode only', async () => {
@@ -145,6 +168,14 @@ describe('use-browse-listing', () => {
 
     const listing = useBrowseListing(fetchers)
     await listing.refresh()
+
+    // Unfiltered rows have no discover pages to append.
+    await listing.loadMore()
+    expect(fetchDiscover).not.toHaveBeenCalled()
+
+    listing.toggleGenre(28)
+    await vi.waitFor(() => expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ page: 1 })))
+    fetchDiscover.mockClear()
 
     await listing.loadMore()
     expect(fetchDiscover).toHaveBeenCalledWith('MOVIE', expect.objectContaining({ page: 2 }))

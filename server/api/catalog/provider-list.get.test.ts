@@ -1,5 +1,6 @@
 import { createApp, createRouter, toWebHandler } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { __resetNitropackRuntimeCache } from '../../../vitest.stubs/nitropack-runtime'
 
 const fakeClient = vi.hoisted(() => ({
   watchProviderList: vi.fn(),
@@ -28,6 +29,7 @@ describe('gET /api/catalog/provider-list', () => {
 
   afterEach(() => {
     fakeClient.watchProviderList.mockReset()
+    __resetNitropackRuntimeCache()
   })
 
   it('matches appletv to Apple TV via normalized search (space/punctuation-insensitive)', async () => {
@@ -90,5 +92,55 @@ describe('gET /api/catalog/provider-list', () => {
 
     expect(response.status).toBe(200)
     expect(body.map(p => p.name)).toEqual([...allProviders].sort((a, b) => a.name.localeCompare(b.name)).map(p => p.name))
+  })
+
+  it('serves a repeat visit from the 6h cache without hitting TMDB again', async () => {
+    fakeClient.watchProviderList.mockResolvedValue(allProviders)
+
+    const first = await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en'))
+    const second = await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en'))
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(await second.json()).toEqual(await first.json())
+    expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(1)
+  })
+
+  it('keys the cache by region so a region switch refetches the list', async () => {
+    fakeClient.watchProviderList.mockResolvedValue(allProviders)
+
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(1)
+
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en', { headers: { 'cf-ipcountry': 'US' } }))
+    expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the varies headers visible to the handler so a cached region key resolves the same region upstream', async () => {
+    fakeClient.watchProviderList.mockResolvedValue(allProviders)
+
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en', { headers: { 'cf-ipcountry': 'US' } }))
+
+    expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(2)
+    expect(fakeClient.watchProviderList).toHaveBeenLastCalledWith('MOVIE', 'en', 'US')
+  })
+
+  it('bypasses the cache for typed search so keystrokes always hit fresh data', async () => {
+    fakeClient.watchProviderList.mockResolvedValue(allProviders)
+
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&q=apple'))
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&q=apple'))
+
+    expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(2)
+  })
+
+  it('emits a 6h max-age cache-control so browsers keep the list on disk', async () => {
+    fakeClient.watchProviderList.mockResolvedValue(allProviders)
+
+    const response = await call(new Request('http://localhost/api/catalog/provider-list?kind=movie'))
+
+    expect(response.headers.get('cache-control')).toContain('max-age=21600')
   })
 })

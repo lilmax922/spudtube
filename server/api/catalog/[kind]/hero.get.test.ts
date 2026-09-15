@@ -1,5 +1,6 @@
 import { createApp, createRouter, toWebHandler } from 'h3'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { __resetNitropackRuntimeCache } from '../../../../vitest.stubs/nitropack-runtime'
 
 const fakeClient = vi.hoisted(() => ({
   trending: vi.fn(),
@@ -24,6 +25,7 @@ describe('gET /api/catalog/[kind]/hero', () => {
     fakeClient.trending.mockReset()
     fakeClient.title.mockReset()
     fakeClient.watchProviders.mockReset()
+    __resetNitropackRuntimeCache()
   })
 
   it('returns the top 5 trending titles enriched with detail fields', async () => {
@@ -274,5 +276,106 @@ describe('gET /api/catalog/[kind]/hero', () => {
     const body = await response.json()
 
     expect(body.results[0].backdropPath).toBe('/detail-backdrop.jpg')
+  })
+
+  it('serves a repeat visit from the 6h cache without hitting TMDB again', async () => {
+    fakeClient.trending.mockResolvedValue({
+      page: 1,
+      results: [{ kind: 'MOVIE', tmdbId: 1, name: 'A', posterPath: null, backdropPath: '/a.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }],
+      totalPages: 1,
+      totalResults: 1,
+    })
+    fakeClient.title.mockResolvedValue(null)
+    fakeClient.watchProviders.mockResolvedValue({})
+
+    const first = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+    const second = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(await second.json()).toEqual(await first.json())
+    expect(fakeClient.trending).toHaveBeenCalledTimes(1)
+  })
+
+  it('keys the cache by region so a region switch refetches providers', async () => {
+    fakeClient.trending.mockResolvedValue({
+      page: 1,
+      results: [{ kind: 'MOVIE', tmdbId: 1, name: 'A', posterPath: null, backdropPath: '/a.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }],
+      totalPages: 1,
+      totalResults: 1,
+    })
+    fakeClient.title.mockResolvedValue(null)
+    fakeClient.watchProviders.mockResolvedValue({})
+    // Title lookup misses so providers stay empty; the region split is observed
+    // through the upstream fetch count, not the payload.
+    await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    expect(fakeClient.trending).toHaveBeenCalledTimes(1)
+
+    await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'US' } }))
+    expect(fakeClient.trending).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the varies headers visible to the handler so a cached region key attaches the same region providers', async () => {
+    const trendingTitle = { kind: 'MOVIE', tmdbId: 1, name: 'A', posterPath: null, backdropPath: '/a.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }
+    fakeClient.trending.mockResolvedValue({ page: 1, results: [trendingTitle], totalPages: 1, totalResults: 1 })
+    fakeClient.title.mockResolvedValue({
+      kind: 'MOVIE',
+      tmdbId: 1,
+      name: 'A',
+      posterPath: null,
+      backdropPath: '/a.jpg',
+      releaseDate: null,
+      voteAverage: null,
+      overview: '',
+      tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
+      genres: [],
+      runtimeMinutes: 100,
+      trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
+    })
+    fakeClient.watchProviders.mockImplementation(async () => ({
+      TW: {
+        link: null,
+        groups: {
+          subscription: [{ id: 8, name: 'TW-Flix', logoPath: '/n.jpg' }],
+          free: [],
+          rent: [],
+          buy: [],
+        },
+      },
+      US: {
+        link: null,
+        groups: {
+          subscription: [{ id: 8, name: 'US-Flix', logoPath: '/n.jpg' }],
+          free: [],
+          rent: [],
+          buy: [],
+        },
+      },
+    }))
+
+    await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    const usResponse = await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'US' } }))
+    const usBody = await usResponse.json()
+
+    expect(fakeClient.trending).toHaveBeenCalledTimes(2)
+    expect(usBody.results[0].providers).toEqual([{ id: 8, name: 'US-Flix', logoPath: '/n.jpg' }])
+  })
+
+  it('emits a 6h max-age cache-control so browsers keep the payload on disk', async () => {
+    fakeClient.trending.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    const response = await call(new Request('http://localhost/api/catalog/movie/hero?language=en'))
+
+    expect(response.headers.get('cache-control')).toContain('max-age=21600')
   })
 })

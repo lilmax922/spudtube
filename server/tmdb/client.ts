@@ -115,9 +115,10 @@ export interface TmdbClient {
 }
 
 function createTimeoutError(url: string, ms: number): TmdbApiError {
-  // TmdbApiError(504) reuses the existing 5xx-to-502 route mapping, and the
-  // Nitro cached-handler validate() gate rejects code >= 400, so a timeout
-  // never pins a 6h error payload into the edge cache.
+  // TmdbApiError(504) reuses the existing 5xx handling at the route boundary
+  // (discover maps 5xx to 502), and the Nitro cached-handler validate() gate
+  // rejects code >= 400, so a timeout never pins a 6h error payload into
+  // the edge cache.
   return new TmdbApiError(504, `TMDB request timeout after ${ms}ms: ${url}`)
 }
 

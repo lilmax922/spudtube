@@ -262,6 +262,53 @@ describe('tmdb client — trending', () => {
 
     expect(requests).toHaveLength(1)
   })
+
+  it('rejects with a 504 when TMDB stalls past the fetch budget instead of hanging', async () => {
+    // Silent socket: fetch never settles and ignores abort, like a hung
+    // socket where abort does not settle the fetch. Small budget keeps the
+    // suite fast while proving the timer race fires on its own.
+    const { fetchJsonWithTimeout } = await import('./client')
+    const stalled = vi.fn(() => new Promise<Response>(() => {}))
+    const startedAt = Date.now()
+    await expect(fetchJsonWithTimeout('https://example.test/silent', {}, stalled, 150)).rejects.toMatchObject({ status: 504 })
+    expect(Date.now() - startedAt).toBeLessThan(5_000)
+    expect(stalled).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects with a 504 when the response body drips past the budget after headers', async () => {
+    // Dripping body: headers arrive fast, json() never settles. The outer
+    // budget race bounds the read even when abort cannot cancel the body.
+    const { fetchJsonWithTimeout } = await import('./client')
+    const cancel = vi.fn(async () => {})
+    const dripping = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      body: { cancel },
+      json: () => new Promise<unknown>(() => {}),
+    } as unknown as Response))
+    const startedAt = Date.now()
+    await expect(fetchJsonWithTimeout('https://example.test/drip', {}, dripping, 150)).rejects.toMatchObject({ status: 504 })
+    expect(Date.now() - startedAt).toBeLessThan(5_000)
+    expect(cancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('surfaces transport failures through the client without caching them', async () => {
+    // A rejected transport (post-timeout shape: TmdbApiError 504) must reach
+    // the caller, and the TTL cache must not pin the failure: the retry
+    // refetches instead of serving the error.
+    let calls = 0
+    const flaky: FetchJson = () => {
+      calls++
+      return calls === 1
+        ? Promise.reject(new TmdbApiError(504, 'TMDB request timeout after 10000ms: https://example.test'))
+        : Promise.resolve(DISCOVER_MOVIE_PAGE)
+    }
+    const client = createTmdbClient({ token: 'test-token', fetchJson: flaky })
+    await expect(client.trending('MOVIE', 1, 'en')).rejects.toMatchObject({ status: 504 })
+    const page = await client.trending('MOVIE', 1, 'en')
+    expect(page.results[0]).toMatchObject({ kind: 'MOVIE', tmdbId: 693134 })
+    expect(calls).toBe(2)
+  })
 })
 
 describe('tmdb client — topRated', () => {

@@ -176,10 +176,17 @@ describe('gET /api/catalog/discover', () => {
     expect(fakeClient.discover).toHaveBeenCalledTimes(2)
   })
 
-  it('declares cookie and cf-ipcountry as cache varies so the handler resolves the keyed region', async () => {
-    const fs = await import('node:fs')
-    const source = fs.readFileSync(`${process.cwd()}/server/api/catalog/discover.get.ts`, 'utf-8')
-    expect(source).toMatch(/varies:\s*\[.*cookie.*cf-ipcountry.*\]/s)
+  it('keeps the varies headers visible to the handler so a cached region key discovers with the same watchRegion', async () => {
+    fakeClient.discover.mockResolvedValue({ page: 1, results: [], totalPages: 1, totalResults: 0 })
+
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&providers=8&language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    await call(new Request('http://localhost/api/catalog/discover?kind=movie&providers=8&language=en', { headers: { 'cf-ipcountry': 'US' } }))
+
+    expect(fakeClient.discover).toHaveBeenCalledTimes(2)
+    expect(fakeClient.discover).toHaveBeenLastCalledWith('MOVIE', expect.objectContaining({
+      providerIds: [8],
+      watchRegion: 'US',
+    }))
   })
 
   it('emits a 6h max-age cache-control so browsers keep filtered results on disk', async () => {

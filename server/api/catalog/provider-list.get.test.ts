@@ -117,10 +117,14 @@ describe('gET /api/catalog/provider-list', () => {
     expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(2)
   })
 
-  it('declares cookie and cf-ipcountry as cache varies so the handler resolves the keyed region', async () => {
-    const fs = await import('node:fs')
-    const source = fs.readFileSync(`${process.cwd()}/server/api/catalog/provider-list.get.ts`, 'utf-8')
-    expect(source).toMatch(/varies:\s*\[.*cookie.*cf-ipcountry.*\]/s)
+  it('keeps the varies headers visible to the handler so a cached region key resolves the same region upstream', async () => {
+    fakeClient.watchProviderList.mockResolvedValue(allProviders)
+
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    await call(new Request('http://localhost/api/catalog/provider-list?kind=movie&language=en', { headers: { 'cf-ipcountry': 'US' } }))
+
+    expect(fakeClient.watchProviderList).toHaveBeenCalledTimes(2)
+    expect(fakeClient.watchProviderList).toHaveBeenLastCalledWith('MOVIE', 'en', 'US')
   })
 
   it('bypasses the cache for typed search so keystrokes always hit fresh data', async () => {

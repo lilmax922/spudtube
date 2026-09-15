@@ -316,10 +316,59 @@ describe('gET /api/catalog/[kind]/hero', () => {
     expect(fakeClient.trending).toHaveBeenCalledTimes(2)
   })
 
-  it('declares cookie and cf-ipcountry as cache varies so the handler resolves the keyed region', async () => {
-    const fs = await import('node:fs')
-    const source = fs.readFileSync(`${process.cwd()}/server/api/catalog/[kind]/hero.get.ts`, 'utf-8')
-    expect(source).toMatch(/varies:\s*\[.*cookie.*cf-ipcountry.*\]/s)
+  it('keeps the varies headers visible to the handler so a cached region key attaches the same region providers', async () => {
+    const trendingTitle = { kind: 'MOVIE', tmdbId: 1, name: 'A', posterPath: null, backdropPath: '/a.jpg', releaseDate: '2020', voteAverage: 8, genreIds: [] }
+    fakeClient.trending.mockResolvedValue({ page: 1, results: [trendingTitle], totalPages: 1, totalResults: 1 })
+    fakeClient.title.mockResolvedValue({
+      kind: 'MOVIE',
+      tmdbId: 1,
+      name: 'A',
+      posterPath: null,
+      backdropPath: '/a.jpg',
+      releaseDate: null,
+      voteAverage: null,
+      overview: '',
+      tagline: null,
+      originalName: null,
+      originalLanguage: null,
+      status: null,
+      genres: [],
+      runtimeMinutes: 100,
+      trailerKey: null,
+      budget: null,
+      revenue: null,
+      contentRating: null,
+      cast: [],
+      crew: [],
+      backdrops: [],
+    })
+    fakeClient.watchProviders.mockImplementation(async () => ({
+      TW: {
+        link: null,
+        groups: {
+          subscription: [{ id: 8, name: 'TW-Flix', logoPath: '/n.jpg' }],
+          free: [],
+          rent: [],
+          buy: [],
+        },
+      },
+      US: {
+        link: null,
+        groups: {
+          subscription: [{ id: 8, name: 'US-Flix', logoPath: '/n.jpg' }],
+          free: [],
+          rent: [],
+          buy: [],
+        },
+      },
+    }))
+
+    await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'TW' } }))
+    const usResponse = await call(new Request('http://localhost/api/catalog/movie/hero?language=en', { headers: { 'cf-ipcountry': 'US' } }))
+    const usBody = await usResponse.json()
+
+    expect(fakeClient.trending).toHaveBeenCalledTimes(2)
+    expect(usBody.results[0].providers).toEqual([{ id: 8, name: 'US-Flix', logoPath: '/n.jpg' }])
   })
 
   it('emits a 6h max-age cache-control so browsers keep the payload on disk', async () => {

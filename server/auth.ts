@@ -7,52 +7,16 @@ import * as authSchema from './db/schema/auth'
 
 type AuthInstance = ReturnType<typeof betterAuth>
 
-interface AuthEnv {
-  BETTER_AUTH_URL?: string
-  BETTER_AUTH_SECRET?: string
-  GOOGLE_CLIENT_ID?: string
-  GOOGLE_CLIENT_SECRET?: string
-}
-
-function getCloudflareEnv(event?: H3Event): AuthEnv | undefined {
-  const env = (event as unknown as { context?: { cloudflare?: { env?: AuthEnv } } })?.context?.cloudflare?.env
-  return env ?? undefined
-}
-
-function resolveAuthValue(event: H3Event | undefined, key: keyof AuthEnv): string | undefined {
-  const fromBinding = getCloudflareEnv(event)?.[key]
-  if (typeof fromBinding === 'string' && fromBinding.length > 0)
-    return fromBinding
-  const fromProcess = process.env[key]
-  if (typeof fromProcess === 'string' && fromProcess.length > 0)
-    return fromProcess
-  return undefined
-}
-
-export function resolveAuthEnv(event?: H3Event): AuthEnv {
-  return {
-    BETTER_AUTH_URL: resolveAuthValue(event, 'BETTER_AUTH_URL'),
-    BETTER_AUTH_SECRET: resolveAuthValue(event, 'BETTER_AUTH_SECRET'),
-    GOOGLE_CLIENT_ID: resolveAuthValue(event, 'GOOGLE_CLIENT_ID'),
-    GOOGLE_CLIENT_SECRET: resolveAuthValue(event, 'GOOGLE_CLIENT_SECRET'),
-  }
-}
-
-function hasCloudflareEnv(event?: H3Event): boolean {
-  return getCloudflareEnv(event) !== undefined
-}
-
 function createAuthInstance(event?: H3Event): AuthInstance {
-  const authEnv = resolveAuthEnv(event)
   return betterAuth({
-    baseURL: authEnv.BETTER_AUTH_URL,
+    baseURL: process.env.BETTER_AUTH_URL,
     trustHost: true,
-    secret: authEnv.BETTER_AUTH_SECRET,
+    secret: process.env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(getDb(event), { provider: 'pg', schema: authSchema }),
     socialProviders: {
       google: {
-        clientId: authEnv.GOOGLE_CLIENT_ID ?? '',
-        clientSecret: authEnv.GOOGLE_CLIENT_SECRET ?? '',
+        clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
       },
     },
   } as Parameters<typeof betterAuth>[0]) as AuthInstance
@@ -66,14 +30,13 @@ function getSingletonAuth(): AuthInstance {
 }
 
 // Request-scoped Better Auth instance. On Cloudflare Pages/Workers the production DB is
-// reached through a Hyperdrive binding (ADR 0002) and the auth secrets live in the same
-// platform env (`event.context.cloudflare.env`); both are only available per request.
-// When that env exists we build a fresh instance so each request uses the platform-managed
-// connection and the request-scoped secrets; otherwise we reuse the local singleton that
-// points at DATABASE_URL/process.env. Callers without an event (CLI, tests, fixtures)
-// fall through to the singleton.
+// reached through a Hyperdrive binding (ADR 0002); the binding is available per request
+// on `event.context.cloudflare.env.HYPERDRIVE`. When that binding exists we build a fresh
+// instance backed by the Hyperdrive Pool so each request uses the platform-managed
+// connection; otherwise we reuse the local singleton that points at DATABASE_URL. Callers
+// that do not have an event (CLI, tests, fixtures) fall through to the singleton.
 export function getAuth(event?: H3Event): AuthInstance {
-  if (event && (getHyperdriveConnectionString(event) || hasCloudflareEnv(event))) {
+  if (event && getHyperdriveConnectionString(event)) {
     return createAuthInstance(event)
   }
   return getSingletonAuth()

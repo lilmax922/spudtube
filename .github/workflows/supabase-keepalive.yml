@@ -2,7 +2,7 @@ name: Supabase keepalive
 
 on:
   schedule:
-    - cron: '17 3 */3 * *'
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -12,10 +12,10 @@ jobs:
     steps:
       - name: Run keepalive query
         env:
-          SUPABASE_KEEPALIVE_DB_URL: ${{ secrets.SUPABASE_KEEPALIVE_DB_URL }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$SUPABASE_KEEPALIVE_DB_URL" ]; then
-            echo 'SUPABASE_KEEPALIVE_DB_URL is not set. Add the Supabase session pooler URI as a repo secret.'
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo 'SUPABASE_DB_URL is not set. Add the Supabase session pooler URI as a repo secret.'
             exit 1
           fi
-          psql "$SUPABASE_KEEPALIVE_DB_URL" -v ON_ERROR_STOP=1 -c 'SELECT 1;'
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c 'SELECT 1;'

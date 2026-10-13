@@ -129,6 +129,7 @@
     "signOut": "登出",
     "requiredTitle": "需要登入",
     "requiredDescription": "請先登入才能執行此操作。",
+    "signInError": "登入失敗，請稍後再試。",
     "cancel": "取消"
   },
   "watchStatus": {

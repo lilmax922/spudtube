@@ -8,11 +8,12 @@ import TheFooter from './components/the-footer.vue'
 import TheHeader from './components/the-header.vue'
 import { Toaster } from './components/ui/sonner'
 import { useMediaLightboxState } from './composables/use-media-lightbox'
+import { useToast } from './composables/use-toast'
 import { useTrailerState } from './composables/use-trailer'
 import { authClient, signIn, signOut } from './lib/auth-client'
 import { buildCanonicalUrl, getOgLocale, getOgLocaleAlternate, SEO_DESCRIPTIONS, SEO_TITLES } from './lib/seo'
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 
 const siteConfig = useSiteConfig()
 const localeTitle = computed(() => locale.value === 'zh-TW' ? SEO_TITLES['zh-TW'] : SEO_TITLES.en)
@@ -53,6 +54,7 @@ const isSearchOpen = shallowRef(false)
 const overlayQuery = shallowRef('')
 const { isOpen: isTrailerOpen } = useTrailerState()
 const { isOpen: isMediaLightboxOpen } = useMediaLightboxState()
+const { showToast } = useToast()
 const isOverlayOpen = computed(() => isTrailerOpen.value || isMediaLightboxOpen.value)
 
 function openSearch(): void {
@@ -76,7 +78,12 @@ function onClearSearch(): void {
 }
 
 async function onSignIn(): Promise<void> {
-  await signIn.social({ provider: 'google' })
+  try {
+    await signIn.social({ provider: 'google' })
+  }
+  catch {
+    showToast({ message: t('auth.signInError') })
+  }
 }
 
 async function onSignOut(): Promise<void> {

@@ -129,6 +129,7 @@
     "signOut": "Sign out",
     "requiredTitle": "Sign in required",
     "requiredDescription": "You need to sign in to perform this action.",
+    "signInError": "Couldn't sign you in right now. Please try again later.",
     "cancel": "Cancel"
   },
   "watchStatus": {

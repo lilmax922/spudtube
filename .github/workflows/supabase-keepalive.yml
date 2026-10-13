@@ -1,0 +1,21 @@
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: '17 3 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run keepalive query
+        env:
+          KEEPALIVE_DATABASE_URL: ${{ secrets.SUPABASE_KEEPALIVE_DB_URL }}
+        run: |
+          if [ -z "$KEEPALIVE_DATABASE_URL" ]; then
+            echo 'SUPABASE_KEEPALIVE_DB_URL is not set. Add the Supabase session pooler URI as a repo secret.'
+            exit 1
+          fi
+          psql "$KEEPALIVE_DATABASE_URL" -v ON_ERROR_STOP=1 -c 'SELECT 1;'

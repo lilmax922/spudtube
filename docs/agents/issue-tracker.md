@@ -16,7 +16,3 @@ Create a GitHub issue (`gh-axi issue create --title ... --body-file ...`) and ap
 ## When a skill says "fetch the relevant ticket"
 
 Read the GitHub issue (`gh-axi issue view <number>`). The user will normally pass the issue number directly.
-
-## History
-
-`.scratch/` holds frozen pre-GitHub history (specs and tickets from before the migration). It is read-only reference; never add new files there.

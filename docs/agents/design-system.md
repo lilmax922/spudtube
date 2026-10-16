@@ -1,6 +1,6 @@
 # Design System
 
-SpudTube 的視覺基準 — **How the project should look and feel**。實作任何 UI 前必讀。Token 唯一撰寫位置為 `app/assets/css/tailwind.css`（`:root` == `.dark`）；本文件定義規則與用法，不重抄數值。`docs/design/prototype.html` 僅為可視化參考的暫定互動稿，不作為設計依據；最終產品實際樣式以本文件與各功能 spec 為準，並隨製作過程透過票證動態調整與收斂。
+SpudTube 的視覺基準 — **How the project should look and feel**。實作任何 UI 前必讀。Token 唯一撰寫位置為 `app/assets/css/tailwind.css`（`:root` == `.dark`）；本文件定義規則與用法，不重抄數值。最終產品實際樣式以本文件與各功能 spec 為準，並隨製作過程透過票證動態調整與收斂。
 
 > Contract, not pixels：以下規則是規格。原型像素皆為暫定，最終樣式以本文件與後續 spec / 票證動態收斂為準。
 
@@ -70,7 +70,7 @@ Provider 識別使用 icon，不以固定色塊作為系統色。
 
 ### Scale — Single Truth `tailwind.css :root/.dark`
 
-> 以 `app/assets/css/tailwind.css` 為唯一真相，本文件僅以 `{text.xxx}` 引用，不重抄數值。`docs/design/prototype.html` 不作為依據。
+> 以 `app/assets/css/tailwind.css` 為唯一真相，本文件僅以 `{text.xxx}` 引用，不重抄數值。
 
 | Token | `{text.*}` | Size / Weight / LineHeight / Tracking | Use | Responsive |
 |---|---|---|---|---|

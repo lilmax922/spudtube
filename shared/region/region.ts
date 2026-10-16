@@ -25,8 +25,7 @@ export type Region = (typeof CURATED_REGIONS)[number]
 /**
  * Fallback when no country signal arrives or the detected country is not
  * curated. The spec leaves this case open (the switcher only ever offers
- * curated Regions); TW is the product's primary market, matching the
- * prototype's default.
+ * curated Regions); TW is the product's primary market.
  */
 export const DEFAULT_REGION: Region = 'TW'
 

@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   BROWSE_CAROUSEL_BREAKPOINTS,
   calculatePeekWidth,
   getBrowseVisibleCount,
   getMidSnapShift,
+  readViewportWidth,
   resolveContentGutter,
   shouldReinitCarousel,
 } from './use-carousel'
@@ -171,5 +172,17 @@ describe('resolveContentGutter', () => {
   it('grows past max content width to center the row', () => {
     expect(resolveContentGutter(1920, 1680, 24)).toBe(144)
     expect(resolveContentGutter(2000, 1680, 24)).toBe(184)
+  })
+})
+
+describe('readViewportWidth', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('excludes the classic scrollbar that window.innerWidth includes', () => {
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1920)
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1903)
+    expect(readViewportWidth()).toBe(1903)
   })
 })

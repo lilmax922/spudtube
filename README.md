@@ -8,8 +8,8 @@ Discover movies and TV shows, check streaming availability, and manage your watc
 - **Keyword search** — one query across movies and TV shows at once when you already know roughly what you want
 - **Title pages** — overview, genres, year, runtime, trailer, and a recommendations strip to queue up what's next
 - **Streaming availability** — which providers carry a title in a given region, grouped subscription → free → rent → buy; defaults to the region detected from your IP, switchable across a curated list of 14 regions; regions never hide titles from you
-- **Private tracking** (Google sign-in) — rate any title awesome / good / sucks, one verdict per title, editable forever; maintain a Watchlist and a watched history that never contradict each other
-- **i18n** — zh-TW / English interface via @nuxtjs/i18n; defaults from the visitor's country signal (TW → zh-TW, else English), overridable per browser, and never affects catalog content or streaming availability, which follow Region
+- **Private tracking** (Google sign-in) — rate any title awesome / good / sucks, one verdict per title, editable forever; maintain a Watchlist and watched titles that never contradict each other
+- **i18n** — zh-TW / English interface via @nuxtjs/i18n; defaults from the visitor's country signal (TW/CN → zh-TW, else English), overridable per browser, and never affects catalog content or streaming availability, which follow Region
 
 ## Tech stack
 

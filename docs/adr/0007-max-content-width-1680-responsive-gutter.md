@@ -1,5 +1,7 @@
 # 0007 MaxContentWidth 1680 with responsive gutter variables
 
+> Superseded in part by ADR-0009 (no `100vw` breakout; viewport width read from `documentElement.clientWidth`).
+
 SpudTube's centered surfaces were hard-coded to `max-w-[1280px]` / `px-6` / `max-width:1280px` across 14 sites and `gutter = max(24,(vw-1280)/2+24)` in `content-row.vue:29`. Apple TV (`tv.apple.com`) reuses a single pair `--maxContentWidth:1680px` + `--bodyGutter:25→40px@740px` with a derived `--maxShelfContentWidth:calc(1680-2*gutter)` and `padding-inline:var(--bodyGutter)`, while Prime Video uses six-step `--dv-carousel-column-margin` (`24→32→44→72→104` with master jump at `880px`) and also consumes gutter via `padding`. We decided to mirror Apple TV's reuse shape with SpudTube's numbers: `app/assets/css/tailwind.css` `:root { --max-content-width:1680px; --content-gutter:24px; --max-shelf-content-width:calc(var(--max-content-width) - var(--content-gutter)*2) }` plus `@media(min-width:880px){ --content-gutter:40px }`, all containers consume `max-w-[var(--max-content-width)]` / `px-[var(--content-gutter)]` (model A, `mx-auto` kept for centering, `padding` carries gutter), JS gutter reads the CSS variables, and `nuxt.config.ts` `screens` becomes `xs320/sm560/md880/lg1280/xl1680/xxl1920` (`xl:1536→1680`, no new `1024` breakpoint until QA proves crowding at `880-1280`).
 
 ## Considered Options

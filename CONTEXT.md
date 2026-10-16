@@ -76,7 +76,7 @@ The action in a SectionHeader that explores a TitleCarouselSection beyond its vi
 _Avoid_: more button
 
 **TitleCarousel**:
-The horizontally scrollable viewport inside a TitleCarouselSection that presents cards. It owns peek, gap, row padding, breakout/full-bleed behavior, and page-by-page scrolling. Exactly one per TitleCarouselSection.
+The horizontally scrollable viewport inside a TitleCarouselSection that presents cards. It owns peek, gap, row padding, full-bleed behavior, and page-by-page scrolling. Exactly one per TitleCarouselSection.
 _Avoid_: slider, scroller, vega carousel
 
 **TitleCard**:

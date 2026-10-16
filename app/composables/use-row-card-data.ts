@@ -18,7 +18,7 @@ export interface RowCardData {
 // render: they receive a feed and report inspections back through it.
 export function useRowCardData(items: MaybeRefOrGetter<TitleSummary[]>): RowCardData {
   // Rows render one query result, so every item shares a Kind for the row's
-  // lifetime. Empty rows fetch a throwaway badge payload no card ever reads.
+  // lifetime. TODO: skip the badge fetch for empty rows (throwaway payload no card reads).
   const rowKind = toValue(items)[0]?.kind ?? 'MOVIE'
   const { badges } = useDiscoveryBadges(rowKind)
   const { region } = useRegion()

@@ -133,8 +133,6 @@ function statusToastMessage(next: WatchStatus | null, target: WatchStatus): stri
 }
 
 function resolveStatusTarget(previous: WatchStatus | null, next: WatchStatus | null): WatchStatus {
-  // When toggling off, next is null, target is the status being removed (previous)
-  // When toggling on, next is the target itself
   if (next != null)
     return next
   return previous ?? 'WATCHLISTED'
@@ -179,9 +177,7 @@ function onCardUpdated(payload: { kind: MyListEntry['kind'], tmdbId: number, pre
 }
 
 function onCardSignInRequested(): void {
-  // Unreachable: the my-list middleware guarantees a signed-in visitor, so
-  // cards never emit this here. Kept explicit so a future middleware change
-  // fails loudly in review instead of silently dropping the signal.
+  // The middleware guarantees sign-in; kept explicit so removing it fails loudly in review.
 }
 
 const TABS: Array<{ key: MyListTab, label: string }> = [

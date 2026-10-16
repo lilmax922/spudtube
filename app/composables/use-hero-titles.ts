@@ -82,12 +82,9 @@ function mapHeroPayload(payload: HeroPayload): HeroTitle[] {
   }))
 }
 
-// Shared hero state is SSR-tracked under kind + language: the server awaits
-// it before painting, and the payload seeds hydration, so both sides render
-// the same hero instead of racing a skeleton against the carousel. A context
-// change selects the entry for the new combination and fetches it, which
-// also resyncs remounts after a drift (for example setKind from the header
-// while home was unmounted) without any remount bookkeeping here.
+// Shared hero state is SSR-tracked under kind + language (see use-ssr-data.ts).
+// A context change selects the new entry and fetches it, which also resyncs
+// remounts after a drift without any remount bookkeeping here.
 
 export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetcher): HeroTitlesState {
   if (fetcher !== undefined) {
@@ -127,14 +124,9 @@ export function useHeroTitles(kind: Ref<'MOVIE' | 'TV_SHOW'>, fetcher?: HeroFetc
     return { titles, loading, error, refresh: load }
   }
 
-  // Shared singleton path used by the landing page. The instance is shared
-  // on the client only: reusing it across SSR requests would paint one
-  // visitor's hero into another's HTML and mismatch hydration. Remounts
-  // with an unchanged context reuse the settled combination without
-  // refetching; a drifted context selects the entry for the new combination
-  // and fetches it, so no remount bookkeeping is needed beyond the key.
-  // Region is not part of the key: hero content never varies by region, so
-  // a region switch correctly leaves the settled hero alone.
+  // Shared singleton path used by the landing page, client-only (see
+  // use-ssr-data.ts). Region is not part of the key: hero content never
+  // varies by region, so a region switch leaves the settled hero alone.
   const tmdbLanguage = resolveLocaleRef()
   const entryKey = `spud:hero:${kind.value}:${tmdbLanguage.value}`
   if (!import.meta.server && heroInstance && heroInstanceKey === entryKey) {

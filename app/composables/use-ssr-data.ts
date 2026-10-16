@@ -1,3 +1,7 @@
+// Consumer contract for first-paint data: go through useSsrData (SSR-tracked
+// useAsyncData + payload seeding, never fire-and-forget $fetch in setup) and
+// keep composable singletons client-only (import.meta.server bypass) so server
+// renders never leak across requests.
 import type { ComputedRef, WatchSource } from 'vue'
 import type { AsyncData, NuxtApp } from '#app'
 import type { TmdbLanguage } from '#server/tmdb/types'
@@ -85,9 +89,7 @@ export function useSsrData<T>(
 
   // Clear the outgoing entry synchronously at trigger time, before the next
   // paint: it shows a skeleton, never stale data from the previous context.
-  // Only features whose first paint branches on emptiness (the filter bar)
-  // need this; the hero and the rows keep settled content behind their
-  // loading flags instead.
+  // Pass clearSources only when first paint branches on emptiness (the filter bar).
   let previousKey = keyFor(prefix, paramsFn())
   if (clearSources.length > 0) {
     watch(clearSources, () => {

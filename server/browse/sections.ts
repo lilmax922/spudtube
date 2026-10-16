@@ -36,11 +36,10 @@ export interface SectionDefinition {
 /** Rows with fewer titles than one carousel page are hidden, never rendered half empty. */
 export const MIN_TITLES_PER_SECTION = 8
 
-// Keyword IDs are pre-resolved upstream numeric IDs passed straight through,
-// verified live against GET /search/keyword on 2026-09-05:
-// twist-heavy films = twist ending 326438 + plot twist 275311 + mind-bending 362567;
-// theories = mystery 316332 + conspiracy 10410. Spec rule: words with no
-// matching entry are dropped rather than blocking, so adjust by editing values only.
+// Keyword IDs are a 2026-09-05 snapshot of GET /search/keyword, passed straight
+// through: twist-heavy = 326438 + 275311 + 362567; theories = 316332 + 10410.
+// Re-verify upstream if rows go empty. Words with no matching entry are dropped
+// rather than blocking, so adjust by editing values only.
 const TWIST_KEYWORD_IDS = [326438, 275311, 362567]
 const THEORIES_KEYWORD_IDS = [316332, 10410]
 

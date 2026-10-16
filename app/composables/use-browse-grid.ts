@@ -113,9 +113,8 @@ let browseGridInstance: BrowseGridState | undefined
 
 export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
   const isDefault = fetcher === undefined
-  // Module singletons leak across SSR requests on the server (and across
-  // Cloudflare isolate reuses): one visitor's genres would render into
-  // another's HTML and mismatch hydration. Share only on the client.
+  // Client-only singleton (see use-ssr-data.ts): sharing across SSR requests
+  // leaks one visitor's HTML into another's.
   if (!import.meta.server && isDefault && browseGridInstance)
     return browseGridInstance
   const actualFetcher = fetcher ?? createApiBrowseFetcher()
@@ -152,13 +151,8 @@ export function useBrowseGrid(fetcher?: BrowseFetcher): BrowseGridState {
       || selectedProviderIds.value.length > 0
   }
 
-  // Filter metadata (genres + popular providers) prefetches on mount so the
-  // filter options render immediately. It is SSR-tracked under kind +
-  // language: the server awaits it before painting, and the payload seeds
-  // hydration, so both sides render the same filter bar instead of racing a
-  // skeleton against content. A key change selects the entry for the new
-  // combination and fetches it; the outgoing entry is cleared synchronously
-  // so the next paint shows skeletons, never stale options. Region shares
+  // Filter metadata prefetches on mount so the options render immediately.
+  // SSR-tracked under kind + language (see use-ssr-data.ts). Region shares
   // the entry (it never changes the fetch) but still forces one refetch
   // through the watcher below.
   const filterMeta = useSsrData<FilterMetadata>(

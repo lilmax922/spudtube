@@ -29,12 +29,9 @@ function getSingletonAuth(): AuthInstance {
   return singletonAuth
 }
 
-// Request-scoped Better Auth instance. On Cloudflare Pages/Workers the production DB is
-// reached through a Hyperdrive binding (ADR 0002); the binding is available per request
-// on `event.context.cloudflare.env.HYPERDRIVE`. When that binding exists we build a fresh
-// instance backed by the Hyperdrive Pool so each request uses the platform-managed
-// connection; otherwise we reuse the local singleton that points at DATABASE_URL. Callers
-// that do not have an event (CLI, tests, fixtures) fall through to the singleton.
+// Request-scoped Better Auth instance: with a Hyperdrive binding on the event
+// we build a fresh instance on its Pool (see ADR-0002); otherwise, and for
+// callers without an event (CLI, tests, fixtures), we reuse the local singleton.
 export function getAuth(event?: H3Event): AuthInstance {
   if (event && getHyperdriveConnectionString(event)) {
     return createAuthInstance(event)

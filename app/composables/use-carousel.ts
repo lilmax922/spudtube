@@ -82,9 +82,8 @@ export function getMidSnapShift(
 }
 
 // Embla reInit gate: slide growth (expandable 240->540px) must not re-measure
-// Embla mid-transition. Repeated re-measured re-seeks kill in-flight scroll
-// animations, so an arrow click during expansion lands instantly instead of
-// gliding. Only the viewport container may trigger a re-measure.
+// mid-transition (repeated re-seeks kill in-flight scrolls). Only the viewport
+// container may trigger a re-measure.
 export function shouldReinitCarousel(entries: ResizeObserverEntry[]): boolean {
   return entries.some(entry => entry.target instanceof Element && entry.target.matches('[data-slot="carousel-content"]'))
 }

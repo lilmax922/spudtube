@@ -60,14 +60,11 @@ export interface BrowseListing {
 
 let listingInstance: BrowseListing | undefined
 
-// The BrowseListing behind one seam: filter state, the search session, the
-// TitleCarouselSection rows, and paging all live inside. Callers see mode,
-// rows, items, and one loadMore; the three fetchers stay injectable so tests
-// cross the same seam with fakes. Rows carry titleKey, never translated
-// labels: DisplayLocale stays a view concern.
+// BrowseListing behind one seam (GLOSSARY.md): rows carry titleKey, never
+// translated labels; the three fetchers stay injectable so tests cross the
+// same seam with fakes.
 export function useBrowseListing(fetchers?: BrowseListingFetchers): BrowseListing {
-  // Like the grid and hero singletons below, the shared listing must not
-  // cross SSR requests: each server render builds its own session.
+  // Client-only session (see use-ssr-data.ts): each server render builds its own.
   if (!import.meta.server && fetchers === undefined && listingInstance)
     return listingInstance
 
@@ -118,9 +115,7 @@ export function useBrowseListing(fetchers?: BrowseListingFetchers): BrowseListin
       await grid.loadMore()
   }
 
-  // Replaying a row is one filter application and one refresh: assigning the
-  // refs directly instead of looping the toggle setters keeps the N+1 refetch
-  // storm behind the seam for good.
+  // Assign refs directly: keeps the N+1 refetch storm behind the seam.
   async function applySection(key: string): Promise<void> {
     const section = sectionState.sections.value.find(entry => entry.key === key)
     if (!section || section.genres.length === 0)

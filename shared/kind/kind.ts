@@ -1,5 +1,5 @@
 /**
- * Canonical Title kind (CONTEXT.md: Kind): exactly one of MOVIE | TV_SHOW.
+ * Canonical Title kind (GLOSSARY.md: Kind): exactly one of MOVIE | TV_SHOW.
  * Lives in shared so client and server name the same type without
  * deep-importing server paths. Server enum tables derive from KINDS.
  */

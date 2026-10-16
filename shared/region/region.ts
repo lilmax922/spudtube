@@ -1,7 +1,7 @@
 /**
  * Region selection: a curated fixed list of Regions the Availability panel offers.
  * The selected Region only changes which Providers are shown — it never filters
- * catalog content (CONTEXT.md: Region).
+ * catalog content (GLOSSARY.md: Region).
  */
 export const CURATED_REGIONS = [
   'TW',
@@ -25,8 +25,7 @@ export type Region = (typeof CURATED_REGIONS)[number]
 /**
  * Fallback when no country signal arrives or the detected country is not
  * curated. The spec leaves this case open (the switcher only ever offers
- * curated Regions); TW is the product's primary market, matching the
- * prototype's default.
+ * curated Regions); TW is the product's primary market.
  */
 export const DEFAULT_REGION: Region = 'TW'
 

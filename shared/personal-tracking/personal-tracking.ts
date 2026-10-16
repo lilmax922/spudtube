@@ -1,5 +1,5 @@
 /**
- * Canonical personal tracking values (CONTEXT.md: Rating, WatchStatus).
+ * Canonical personal tracking values (GLOSSARY.md: Rating, WatchStatus).
  * Each User holds at most one Rating and one WatchStatus per Title.
  * Server enum tables derive from these lists. The delete semantics stay
  * divergent by design: ratings hard-delete rows while statuses clear to

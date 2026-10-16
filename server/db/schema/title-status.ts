@@ -6,7 +6,7 @@ import { WATCH_STATUSES } from '../../../shared/personal-tracking/personal-track
 import { user } from './auth'
 import { kindEnum } from './kind'
 
-// Canonical WatchStatus values (CONTEXT.md). The enum cannot share the table's name
+// Canonical WatchStatus values (GLOSSARY.md). The enum cannot share the table's name
 // (Postgres tables reserve a composite type of the same name).
 // The value list lives in shared; this table only adds the Postgres enum.
 export const watchStatusEnum = pgEnum('watch_status', [...WATCH_STATUSES])

@@ -1,14 +1,15 @@
 # Code Standard
 
-Implementation rules and conventions for this repo. Rationale for architecture and technology choices lives in `docs/adr/`; domain vocabulary lives in `CONTEXT.md`. Consult both before making architectural decisions.
+Implementation rules and conventions for this repo. Rationale for architecture and technology choices lives in `docs/adr/`; domain vocabulary lives in `GLOSSARY.md`. Consult both before making architectural decisions.
 
 ## Definition of Done
 
-A task that modifies code is done only when all three pass, run at task end (scripts defined in `package.json`; if one is renamed there, rename it here in the same commit):
+A task that modifies code is done only when all four pass, run at task end (scripts defined in `package.json`; if one is renamed there, rename it here in the same commit):
 
 1. `pnpm typecheck`
 2. `pnpm lint` (ESLint — also the formatter)
-3. `pnpm build`
+3. `pnpm test`
+4. `pnpm build`
 
 ## Naming
 
@@ -44,6 +45,10 @@ Auto-imports are disabled at all three sites (`imports.autoImport: false`, `comp
 ## Vue
 
 `<script setup lang="ts">` exclusively. Props and emits are declared through typed interfaces (`withDefaults(defineProps<Props>(), ...)`). Prefer `shallowRef()`; use `ref()` for objects; `reactive()` stays unused.
+
+## SSR data fetching
+
+First-paint data (hero, rows, filter metadata) goes through `app/composables/use-ssr-data.ts` (SSR-tracked `useAsyncData` + payload seeding) so server HTML and hydration agree; never fire-and-forget `$fetch` in setup. Composable module singletons are client-only (`import.meta.server` bypass) to avoid cross-request leaks. Reka auto-IDs come from the root `ConfigProvider` counter in `app/app.vue`, never Vue `useId` namespaces.
 
 ## Comments
 

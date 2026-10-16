@@ -37,7 +37,7 @@ The set of Providers carrying a given Title in a given Region. Zero or many Prov
 ### Display locale
 
 **DisplayLocale**:
-The `zh-TW` | `en` locale the interface renders in. Its default derives from the same platform country signal as DetectedRegion (`TW` → zh-TW, everything else → `en`); a manual per-browser choice overrides it permanently. It never changes catalog content or Availability, which follow Region.
+The `zh-TW` | `en` locale the interface renders in. Its default derives from the same platform country signal as DetectedRegion (`TW`/`CN` → zh-TW, everything else → `en`); a manual per-browser choice overrides it permanently. It never changes catalog content or Availability, which follow Region.
 _Avoid_: country, market
 
 ### Personal Tracking
@@ -84,7 +84,7 @@ The card representing a single Title inside a TitleCarousel (or grid). It shows 
 _Avoid_: tile, poster, video, thumbnail
 
 **ExpandableTitleCard**:
-A single card component with rest and expanded states, used in place of TitleCard inside the second TitleCarouselSection (horror / obsessed). At rest it shows the Title's poster as a portrait card at its row's item width; on hover/focus (desktop fine pointers only, after a short intent delay) it widens to 540px at equal height and swaps to the Title's backdrop, overlaying title, providers, year, and rating. Click behavior matches TitleCard.
+A single card component with rest and expanded states, used in place of TitleCard. At rest it shows the Title's poster as a portrait card; on hover/focus it widens at equal height and swaps to the Title's backdrop, overlaying title, providers, year, and rating. Click behavior matches TitleCard. Geometry and pointer gating live in code (`EXPANDABLE_WIDTH`, `expandable-title-card.vue`).
 _Avoid_: gallery card, expanded tile, super carousel
 
 **BrowseListing**:
@@ -94,5 +94,5 @@ _Avoid_: grid state, search state, rows state
 ### Layout
 
 **MaxContentWidth**:
-The maximum inline size of every centered page surface (header inner, BrowseGrid, TitleCarouselSection head, footers, detail/my-list/search shells) before side gutters take over. A single CSS variable (`--max-content-width`) is the source of truth; all `max-width` and gutter math derive from it.
+The maximum inline size of every centered page surface (header inner, BrowseGrid, TitleCarouselSection head, footers, detail/my-list/search shells) before side gutters take over. Token and gutter math: see ADR-0007.
 _Avoid_: container width, page width, max-width, ContentMaxWidth

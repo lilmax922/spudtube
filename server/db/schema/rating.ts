@@ -5,7 +5,7 @@ import { RATING_LABELS } from '../../../shared/personal-tracking/personal-tracki
 import { user } from './auth'
 import { kindEnum } from './kind'
 
-// Canonical Rating labels (CONTEXT.md). The enum cannot share the table's name
+// Canonical Rating labels (GLOSSARY.md). The enum cannot share the table's name
 // (Postgres tables reserve a composite type of the same name).
 // The value list lives in shared; this table only adds the Postgres enum.
 export const ratingLabelEnum = pgEnum('rating_label', [...RATING_LABELS])

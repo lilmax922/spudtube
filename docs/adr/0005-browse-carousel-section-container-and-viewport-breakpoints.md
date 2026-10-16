@@ -1,5 +1,7 @@
 # Browse carousel uses section-level container with full-bleed viewport and table-driven paging
 
+> Superseded in part by ADR-0009 (no `100vw` breakout; viewport width read from `documentElement.clientWidth`).
+
 Browse rows must read as a full-width viewport (ContentRow title + BrowseCarousel of TitleCards) while headers, filters, and empty states stay inside the `max-w-[1280] px-6` grid. We grilles the Web `standard-carousel` of a reference video service (`navigation-carousel-wrapper` with row padding, `276/24/72` metrics) against SpudTube's `max-w-[1280]` system and decided on section-level padding: `app/pages/index.vue` loses its page-level `mx-auto max-w-[1280] px-6`, each section (`browse-grid.vue` filter bar, `content-row.vue` rowhead) owns `mx-auto max-w-[1280] px-6` individually, and `BrowseCarousel` renders full-bleed (`width:100vw; margin-left:calc(50% - 50vw)`) with a dynamic gutter, a phantom snap node, a viewport-width table for paging, and a full-height arrow overlay — all under neutral `browse-*` naming.
 
 ## Considered Options

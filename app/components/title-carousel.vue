@@ -10,6 +10,7 @@ import {
   CAROUSEL_VARIANT_WIDTHS,
   getBrowseVisibleCount,
   getMidSnapShift,
+  readViewportWidth,
   shouldReinitCarousel,
   useContentGutter,
 } from '../composables/use-carousel'
@@ -51,7 +52,7 @@ const state = computed<CarouselState>(() => {
 const isAtStart = computed(() => state.value === 'atStart' || state.value === 'single')
 const isAtEnd = computed(() => state.value === 'atEnd' || state.value === 'single')
 
-const viewportWidth = ref(typeof window === 'undefined' ? 1920 : window.innerWidth)
+const viewportWidth = ref(readViewportWidth())
 const visibleCount = computed(() => getBrowseVisibleCount(viewportWidth.value))
 
 function measureItemWidth(): number {
@@ -102,7 +103,7 @@ function scrollBy(direction: 'prev' | 'next'): void {
 }
 
 function onWindowResize(): void {
-  viewportWidth.value = window.innerWidth
+  viewportWidth.value = readViewportWidth()
 }
 
 // slidesToScroll / gutter feed Embla measurements; re-init after Vue patches styles.
@@ -132,7 +133,7 @@ const outerStyle = computed(() => ({
 <template>
   <div
     ref="outerRef"
-    class="group/carousel title-carousel-outer title-carousel-outer--breakout relative"
+    class="group/carousel title-carousel-outer relative"
     :style="outerStyle"
     :data-carousel-state="state"
     :data-peek-width="peekWidth"
@@ -184,11 +185,6 @@ const outerStyle = computed(() => ({
 .title-carousel-outer {
   /* allow hover-card to overflow vertically */
   overflow: visible;
-}
-
-.title-carousel-outer--breakout {
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
 }
 
 .title-carousel-root {

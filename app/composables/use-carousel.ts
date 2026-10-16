@@ -105,6 +105,16 @@ function readCssVarNumber(name: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback
 }
 
+const SSR_VIEWPORT_WIDTH = 1920
+
+// documentElement.clientWidth is the layout width the centered containers resolve
+// against; the window's own width also counts a classic (Windows) scrollbar.
+export function readViewportWidth(): number {
+  if (typeof document === 'undefined')
+    return SSR_VIEWPORT_WIDTH
+  return document.documentElement.clientWidth
+}
+
 export function useContentGutter(): Ref<number> {
   const gutter = ref(24)
   function updateGutter(): void {
@@ -112,7 +122,7 @@ export function useContentGutter(): Ref<number> {
       return
     const max = readCssVarNumber('--max-content-width', 1680)
     const base = readCssVarNumber('--content-gutter', 24)
-    gutter.value = resolveContentGutter(window.innerWidth, max, base)
+    gutter.value = resolveContentGutter(readViewportWidth(), max, base)
   }
   onMounted(() => {
     updateGutter()

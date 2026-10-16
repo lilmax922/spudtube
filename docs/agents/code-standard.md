@@ -46,6 +46,10 @@ Auto-imports are disabled at all three sites (`imports.autoImport: false`, `comp
 
 `<script setup lang="ts">` exclusively. Props and emits are declared through typed interfaces (`withDefaults(defineProps<Props>(), ...)`). Prefer `shallowRef()`; use `ref()` for objects; `reactive()` stays unused.
 
+## SSR data fetching
+
+First-paint data (hero, rows, filter metadata) goes through `app/composables/use-ssr-data.ts` (SSR-tracked `useAsyncData` + payload seeding) so server HTML and hydration agree; never fire-and-forget `$fetch` in setup. Composable module singletons are client-only (`import.meta.server` bypass) to avoid cross-request leaks. Reka auto-IDs come from the root `ConfigProvider` counter in `app/app.vue`, never Vue `useId` namespaces.
+
 ## Comments
 
 Comments explain why, never how. Code should be self-explanatory; if a comment narrates what the next line does, delete the comment.

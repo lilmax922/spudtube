@@ -4,11 +4,12 @@ Implementation rules and conventions for this repo. Rationale for architecture a
 
 ## Definition of Done
 
-A task that modifies code is done only when all three pass, run at task end (scripts defined in `package.json`; if one is renamed there, rename it here in the same commit):
+A task that modifies code is done only when all four pass, run at task end (scripts defined in `package.json`; if one is renamed there, rename it here in the same commit):
 
 1. `pnpm typecheck`
 2. `pnpm lint` (ESLint — also the formatter)
-3. `pnpm build`
+3. `pnpm test`
+4. `pnpm build`
 
 ## Naming
 

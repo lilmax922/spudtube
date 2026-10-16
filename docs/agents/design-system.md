@@ -233,7 +233,7 @@ Outfit 為首選（OFL, variable 100-900）；中文字僅作 fallback，不作�
 1. 一次只聚焦一個 `components:` token 命名的元件。
 2. 引入區塊前先決定其所在的表面階級（canvas/card/popover）。
 3. 內文預設語感為 `body 14/400/1.7` 級別。
-4. 實作後跑 `pnpm lint --fix && pnpm typecheck && pnpm build`（見 `docs/agents/code-standard.md`）。
+4. 實作後跑 Definition of Done（見 `docs/agents/code-standard.md`）。
 5. 新增變體時以獨立條目記錄，避免堆疊條件。
 6. 視 `primary` 為稀缺資源：主行動、選中、focus。
 7. 以「實際資料」驗證，而非空狀態。

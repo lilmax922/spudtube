@@ -37,7 +37,7 @@ Browse rows must read as a full-width viewport (ContentRow title + BrowseCarouse
 
 ## Consequences
 
-- `ContentRow`, `BrowseCarousel`, `TitleCard` are now ubiquitous language (`CONTEXT.md:60-72`); `gutter`, `phantom`, `peek` stay implementation detail, not glossary.
+- `ContentRow`, `BrowseCarousel`, `TitleCard` are now ubiquitous language (`GLOSSARY.md:60-72`); `gutter`, `phantom`, `peek` stay implementation detail, not glossary.
 - Code, comments, and tests must use neutral `browse-*` naming only (`BROWSE_CAROUSEL_BREAKPOINTS`, `getBrowseVisibleCount`) — hard constraint from grilling session — no reference-service naming.
 - `use-carousel.test.ts:56-79` expectations shift from formula to table; `browse-carousel.vue:105` `scrollBy` computes `step` from table.
 - Full-bleed requires `overflow-y:visible` coexistence with `overflow-x:hidden` (`CarouselContent.vue:19`, `browse-carousel.vue:205-206`) re-verified with `chrome-devtools-axi` screenshots at `1920/1280/880/560` (OS temp dir only).

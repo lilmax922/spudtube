@@ -60,7 +60,7 @@ export interface BrowseListing {
 
 let listingInstance: BrowseListing | undefined
 
-// BrowseListing behind one seam (CONTEXT.md): rows carry titleKey, never
+// BrowseListing behind one seam (GLOSSARY.md): rows carry titleKey, never
 // translated labels; the three fetchers stay injectable so tests cross the
 // same seam with fakes.
 export function useBrowseListing(fetchers?: BrowseListingFetchers): BrowseListing {

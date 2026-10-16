@@ -29,7 +29,7 @@ Discover movies and TV shows, check streaming availability, and manage your watc
 
 | Document | Contents |
 | --- | --- |
-| [`CONTEXT.md`](./CONTEXT.md) | Domain glossary — Title, Kind, Region, Availability, Rating, WatchStatus… |
+| [`GLOSSARY.md`](./GLOSSARY.md) | Domain glossary — Title, Kind, Region, Availability, Rating, WatchStatus… |
 | [`docs/adr/`](./docs/adr/) | Architecture decision records (data source, stack lock-in, storage strategy) |
 | [`docs/agents/code-standard.md`](./docs/agents/code-standard.md) | Implementation rules and conventions |
 | [`docs/agents/design-system.md`](./docs/agents/design-system.md) | Approved UI baseline — tokens, type scale, binding rules |

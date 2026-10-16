@@ -1,6 +1,6 @@
 # Code Standard
 
-Implementation rules and conventions for this repo. Rationale for architecture and technology choices lives in `docs/adr/`; domain vocabulary lives in `CONTEXT.md`. Consult both before making architectural decisions.
+Implementation rules and conventions for this repo. Rationale for architecture and technology choices lives in `docs/adr/`; domain vocabulary lives in `GLOSSARY.md`. Consult both before making architectural decisions.
 
 ## Definition of Done
 

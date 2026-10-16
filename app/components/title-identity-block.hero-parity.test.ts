@@ -29,11 +29,11 @@ describe('title-identity-block hero parity with home hero', () => {
     expect(src).toContain('max-height: 100dvh')
   })
 
-  it('has same full-bleed breakout as home hero (100vw + 50% -50vw + -header-h)', async () => {
+  it('has same full-width layout as home hero (100% width + -header-h, no 100vw breakout)', async () => {
     const src = readVue()
-    expect(src).toContain('width: 100vw')
-    expect(src).toContain('margin-left: calc(50% - 50vw)')
-    expect(src).toContain('margin-right: calc(50% - 50vw)')
+    expect(src).toContain('width: 100%')
+    expect(src).not.toContain('width: 100vw')
+    expect(src).not.toContain('calc(50% - 50vw)')
     expect(src).toContain('margin-top: calc(var(--header-h) * -1)')
   })
 

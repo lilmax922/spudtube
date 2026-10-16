@@ -138,9 +138,7 @@ function playTrailer(): void {
   max-height: 100dvh;
   overflow: hidden;
   isolation: isolate;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  width: 100%;
   margin-top: calc(var(--header-h) * -1);
   background: #0a0a0a;
   display: flex;
